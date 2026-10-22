@@ -4,6 +4,23 @@
 .interview-coach .coach-readiness span { font-size: 13px; opacity: .7; }
 .interview-coach .coach-readiness .done { border-color: rgba(60, 120, 80, .35); }
 .interview-coach .coach-matches { font-size: 14px; opacity: .75; margin: 0 0 22px; }
+.interview-coach .coach-fit { margin-bottom: 26px; }
+.interview-coach .coach-job-select { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.interview-coach .coach-method { font-size: 13px; opacity: .75; margin: 0 0 12px; }
+.interview-coach .coach-counts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.interview-coach .coach-count { display: flex; gap: 6px; align-items: baseline; padding: 6px 12px; border-radius: 999px; font-size: 13px; background: rgba(0, 0, 0, .05); }
+.interview-coach .coach-count.strong, .interview-coach .coach-group.strong h3 { color: #2f6b45; }
+.interview-coach .coach-count.partial, .interview-coach .coach-group.partial h3 { color: #8a6418; }
+.interview-coach .coach-count.gap, .interview-coach .coach-group.gap h3 { color: #a2422f; }
+.interview-coach .coach-group { margin-bottom: 18px; }
+.interview-coach .coach-group h3 { margin: 0 0 2px; font-size: 16px; }
+.interview-coach .coach-hint { margin: 0 0 8px; font-size: 13px; opacity: .7; }
+.interview-coach .coach-req { padding: 10px 14px; margin-bottom: 6px; border: 1px solid rgba(0, 0, 0, .1); border-radius: 12px; background: #fff; }
+.interview-coach .coach-req summary { cursor: pointer; font-size: 14px; }
+.interview-coach .coach-req ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.interview-coach .coach-quote, .interview-coach .coach-keywords { margin: 6px 0 0; font-size: 13px; opacity: .75; }
+.interview-coach .coach-level { display: inline-block; margin-right: 8px; padding: 1px 7px; border-radius: 999px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; background: rgba(0, 0, 0, .06); }
+.interview-coach .coach-level.required { background: rgba(162, 66, 47, .12); }
 .interview-coach .coach-rounds { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
 .interview-coach .coach-round { position: relative; padding: 18px; border: 1px solid rgba(0, 0, 0, .1); border-radius: 16px; background: #fff; }
 .interview-coach .coach-round h3 { margin: 10px 0 6px; font-size: 16px; }
