@@ -67,6 +67,13 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertEqual(code, 404)
         self.assertIn('matched jobs', json.loads(body)['error'])
 
+    def test_questions_follow_the_same_job_rules_as_fit(self):
+        state = self.confirmed_state()
+        result = json.loads(self.request('GET', f"/api/interview/{state['id']}/questions?job=graduate_ai_engineer")[1])
+        self.assertEqual(result['job']['document_id'], 'graduate_ai_engineer')
+        self.assertEqual(set(result['rounds']), {'self_introduction', 'behavioural', 'technical', 'motivation_fit'})
+        self.assertEqual(self.request('GET', f"/api/interview/{state['id']}/questions?job=rag_agent_engineer")[0], 404)
+
     def test_unknown_workspace_and_path_are_not_found(self):
         self.assertEqual(self.request('GET', '/api/interview/missing/status')[0], 404)
         self.assertEqual(self.request('GET', '/api/interview/x/unknown')[0], 404)

@@ -2,9 +2,11 @@
 from urllib.parse import parse_qs, urlsplit
 
 from .fit import job_fit, load_requirements
+from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
-ROUNDS = ['self_introduction', 'behavioural', 'technical', 'motivation_fit']
+ROUNDS = list(QUESTION_ROUNDS)
 _requirements = None
+_bank = None
 
 
 def requirements(jobs):
@@ -12,6 +14,13 @@ def requirements(jobs):
     if _requirements is None:
         _requirements = load_requirements(jobs)
     return _requirements
+
+
+def bank():
+    global _bank
+    if _bank is None:
+        _bank = load_bank()
+    return _bank
 
 
 def readiness(state):
@@ -45,12 +54,23 @@ def fit(service, state, job_id=None):
             'review_status': data['review_status']}
 
 
+def questions(service, state, job_id=None):
+    """Interview questions per round for the same job that fit() resolves."""
+    result = fit(service, state, job_id)
+    job = next(j for j in service.jobs if j['document_id'] == result['job']['document_id'])
+    keywords = {r['id']: r.get('keywords', []) for r in requirements(service.jobs)['jobs'][job['document_id']]}
+    return pick_questions(job, result['requirements'], keywords, state['confirmed_profile'], bank(), service.retriever.backend)
+
+
 def handle_get(service, url):
-    """GET /api/interview/<workspace_id>/status and /api/interview/<workspace_id>/fit[?job=<document_id>]"""
+    """GET /api/interview/<workspace_id>/(status|fit|questions)[?job=<document_id>]"""
     split = urlsplit(url)
     parts = split.path.strip('/').split('/')
+    job_id = (parse_qs(split.query).get('job') or [None])[0]
     if len(parts) == 4 and parts[3] == 'status':
         return readiness(service.store.get(parts[2]))
     if len(parts) == 4 and parts[3] == 'fit':
-        return fit(service, service.store.get(parts[2]), (parse_qs(split.query).get('job') or [None])[0])
+        return fit(service, service.store.get(parts[2]), job_id)
+    if len(parts) == 4 and parts[3] == 'questions':
+        return questions(service, service.store.get(parts[2]), job_id)
     raise ValueError('Endpoint not found.')

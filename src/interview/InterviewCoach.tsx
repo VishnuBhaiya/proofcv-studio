@@ -12,7 +12,9 @@ const GROUPS: { status: Requirement['status']; title: string; hint: string }[] =
     { status: 'gap', title: 'Gaps to prepare for', hint: 'No supporting fact found. Prepare an honest answer.' },
     { status: 'verify', title: 'Check yourself', hint: 'Degrees and years of experience are never judged automatically.' },
 ];
-type Readiness ={ workspace_id: string; profile_confirmed: boolean; matched_jobs: { document_id: string; title: string; score: number }[]; target_job: { document_id: string; title: string } | null; rounds: string[] };
+type Question = { id: string; round: string; text: string; reason: string; seconds?: number; requirement?: { id: string; text: string; status: Requirement['status'] } };
+type Questions = { job: { document_id: string; title: string }; review_status: string; rounds: Record<string, Question[]> };
+type Readiness = {workspace_id: string; profile_confirmed: boolean; matched_jobs: { document_id: string; title: string; score: number }[]; target_job: { document_id: string; title: string } | null; rounds: string[] };
 
 const ROUND_INFO: Record<string, { title: string; detail: string }> = {
     self_introduction: { title: 'Self-introduction', detail: '30-second, 90-second and 2-minute versions, with a short slide deck to rehearse.' },
@@ -31,11 +33,15 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
     const [jobId, setJobId] = useState('');
     const [fit, setFit] = useState<Fit | null>(null);
     const [fitError, setFitError] = useState('');
+    const [questions, setQuestions] = useState<Questions | null>(null);
     useEffect(() => {
         setFit(null);
+        setQuestions(null);
         setFitError('');
         if (!status?.profile_confirmed || !status.target_job) return;
-        api<Fit>(`/interview/${workspace.id}/fit${jobId ? `?job=${encodeURIComponent(jobId)}` : ''}`).then(setFit).catch(e => setFitError(e.message));
+        const query = jobId ? `?job=${encodeURIComponent(jobId)}` : '';
+        api<Fit>(`/interview/${workspace.id}/fit${query}`).then(setFit).catch(e => setFitError(e.message));
+        api<Questions>(`/interview/${workspace.id}/questions${query}`).then(setQuestions).catch(e => setFitError(e.message));
     }, [status, jobId, workspace.id]);
     if (error) return <div className="page-content"><p className="live-error" role="alert">{error}</p></div>;
     if (!status) return <div className="page-content"><p className="live-progress"><span className="live-dot" /> Loading Interview Coach…</p></div>;
@@ -65,7 +71,10 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
                 </div>)}
             </>}
         </section>}
-        <div className="section-heading"><h2>Interview rounds</h2><span>{ready ? 'Coming next' : 'Unlocks when both steps above are done'}</span></div>
-        <div className="coach-rounds">{status.rounds.map(id => <article className="coach-round" key={id}>{id === 'self_introduction' ? <Presentation size={20} /> : <Mic size={20} />}<h3>{ROUND_INFO[id]?.title ?? id}</h3><p>{ROUND_INFO[id]?.detail}</p><span className="coach-badge">Not built yet</span></article>)}</div>
+        <div className="section-heading"><h2>Interview rounds</h2><span>{!ready ? 'Unlocks when both steps above are done' : questions ? `${Object.values(questions.rounds).flat().length} questions picked for ${questions.job.title}` : 'Picking questions…'}</span></div>
+        {questions?.review_status.startsWith('draft') && <p className="coach-method">Questions are picked locally from a question bank that is still a draft awaiting review. Spoken practice is not built yet.</p>}
+        <div className="coach-rounds">{status.rounds.map(id => <article className="coach-round" key={id}>{id === 'self_introduction' ? <Presentation size={20} /> : <Mic size={20} />}<h3>{ROUND_INFO[id]?.title ?? id}</h3><p>{ROUND_INFO[id]?.detail}</p>
+            {questions ? <ol className="coach-questions">{(questions.rounds[id] || []).map((q, i) => <li key={`${q.id}-${i}`}>{q.text}<small className={q.requirement ? `coach-why ${q.requirement.status}` : 'coach-why'}>{q.reason}</small></li>)}</ol> : <span className="coach-badge">{ready ? 'Loading…' : 'Locked'}</span>}
+        </article>)}</div>
     </div>;
 }
