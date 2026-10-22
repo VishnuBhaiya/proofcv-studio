@@ -13,7 +13,7 @@ ran successfully: 6 tests, including parameterized HTTP 400/403/429/503 failures
 All network responses in these tests were mocked. No live model request was made.
 
 Historical status above was the provider-only checkpoint. The app is now connected;
-see ../DEVELOPMENT_RECORD.md for subsequent implementation and actual verification.
+see ../README.md for the current architecture, setup and repository verification.
 
 Configuration: edit the project-root `.env`, adding GEMINI_API_KEY and the exact
 GEMINI_MODEL ID available in the user's AI Studio account. Never prefix the key

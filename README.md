@@ -102,15 +102,15 @@ real API calls and consume quota. Live tests use the five supplied synthetic pro
 and save predictions before retrieval. Read each actual status under
 `runtime/evaluation/`; a single passed journey is not five passes.
 
-Latest verification: 61 local tests passed. All five supplied profiles completed
-genuine live-Gemini profile-to-PDF workflows through the exact final code in one run. The portable
-evidence includes messages, model Actions, Python Observations, stop reasons,
-three-job retrieval results, state snapshots and PDFs. It also retains the observed
-model-specific 404 failure that led to the fallback repair. Post-acceptance follow-up
-questions are live model `final_answer` Actions validated against `missing_fields`, not
-fixed service text. Five deterministic
-scripted-model journeys separately passed with real MiniLM retrieval. Live runners
-consume quota; passing tests do not guarantee future provider availability.
+Current repository verification: 61 offline tests passed on 22 October 2026.
+The Assignment 1 submission separately contains historical five-profile live
+journeys and deterministic integration evidence. Those assessment artifacts,
+personal sample PDFs and runtime databases are not included in this source-only
+team repository, and no new live journeys were run during the repository import.
+Post-acceptance follow-up questions use model `final_answer` Actions validated
+against `missing_fields`, not fixed service text. Run the live commands above to
+produce your own local evidence. They consume quota; passing offline tests does
+not guarantee future provider availability.
 
 ## Architecture and limitations
 
