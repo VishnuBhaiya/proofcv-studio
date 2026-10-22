@@ -1,0 +1,11 @@
+.interview-coach .coach-readiness { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.interview-coach .coach-readiness > div { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid rgba(0, 0, 0, .1); border-radius: 14px; background: #fff; }
+.interview-coach .coach-readiness > div > div { flex: 1; display: grid; gap: 2px; }
+.interview-coach .coach-readiness span { font-size: 13px; opacity: .7; }
+.interview-coach .coach-readiness .done { border-color: rgba(60, 120, 80, .35); }
+.interview-coach .coach-matches { font-size: 14px; opacity: .75; margin: 0 0 22px; }
+.interview-coach .coach-rounds { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.interview-coach .coach-round { position: relative; padding: 18px; border: 1px solid rgba(0, 0, 0, .1); border-radius: 16px; background: #fff; }
+.interview-coach .coach-round h3 { margin: 10px 0 6px; font-size: 16px; }
+.interview-coach .coach-round p { margin: 0 0 12px; font-size: 14px; opacity: .75; }
+.interview-coach .coach-badge { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: rgba(0, 0, 0, .06); }

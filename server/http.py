@@ -45,6 +45,9 @@ def make_handler(service):
                     self.send(200, service.store.trash_list())
                 elif path.startswith('/api/workspaces/') and path.count('/') == 3:
                     self.send(200, service.store.get(path.split('/')[-1]))
+                elif path.startswith('/api/interview/'):
+                    from .interview.routes import handle_get as interview_get
+                    self.send(200, interview_get(service, path))
                 elif path.startswith('/api/'):
                     self.send(404, {'error': 'Endpoint not found.'})
                 else:
