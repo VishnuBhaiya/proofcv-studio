@@ -1,0 +1,11 @@
+export type Profile = {location?:string;linkedin?:string;github?:string;portfolio?:string;name:string;email:string;phone:string;education:string;skills:string[];projects:{title:string;description:string;technologies:string}[];experience:string;achievements:string;goal:string;summary_facts:string[]};
+export type Job = {document_id:string;title:string;description:string;location?:string};
+export type Selection = {summary_fact_ids:string[];skills:string[];project_order:number[];section_order:string[];rationale:string};
+export type Design = {font:'sans'|'serif'|'mono';size:'compact'|'standard'|'large';spacing:'compact'|'comfortable'|'spacious';header:'center'|'left';skills:'inline'|'pills'|'grouped';page:'auto'|'one'|'two';ats:boolean;visible_sections:string[]};
+export type Draft = {project_excerpts?:Record<string,{source:string;text:string}>;id:string;revision:number;job:Job;profile:Profile;summary:string;selection:Selection;template:'editorial'|'classic'|'modern'|'minimal'|'executive';accent:string;design?:Design;suggestion_status:string;suggestion_note?:string;model:string;analysis:{matched:{skill:string;job_excerpt:string}[];missing:{requirement:string;job_excerpt:string}[];limitation:string}};
+export type Workspace = {pending_cv?:{id:string;base:Draft;draft:Draft;source:string;profile?:Profile};profile_undo?:Profile;id:string;label:string;profile:Profile;revision:number;confirmed_revision:number|null;confirmed_profile:Profile|null;messages:{role:string;content:string}[];trace:unknown[];retrieval:{embedding_backend:string;indexed_documents:number;results:{document_id:string;title:string;score:number;excerpt:string;job:Job}[]}|null;draft:Draft|null;versions:{id:string;saved_at:string;draft:Draft}[];undo:Draft|null;stop_reason:string|null;cv_messages?:{role:string;content:string}[];cv_trace?:unknown[];cv_stop_reason?:string|null};
+export type ProfileProposal = {id:string;revision:number;patch:Partial<Profile>;source:string;warnings?:string[];document?:boolean;skill_options?:string[]};
+export async function api<T>(path:string, body?:unknown):Promise<T>{
+ const response=await fetch('/api'+path,body===undefined?undefined:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const value=await response.json(); if(!response.ok)throw new Error(value.error||'Request failed'); return value;
+}

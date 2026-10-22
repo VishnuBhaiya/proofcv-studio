@@ -1,0 +1,30 @@
+.live-studio-layout .editor-body [hidden] { display: none; }
+.live-studio-layout .tabbar { display:flex; gap:8px; }
+.live-studio-layout .tabbar button { flex:1; display:flex; justify-content:center; align-items:center; gap:8px; padding:12px 8px; border:0; border-bottom:2px solid transparent; background:transparent; color:#788477; cursor:pointer; }
+.live-studio-layout .tabbar button.selected { color:#2c6554; border-bottom-color:#2c6554; background:#f0f5eb; }
+.live-studio-layout .studio-guidance .cv-chat { border:0; border-radius:0; box-shadow:none; }
+.live-studio-layout .cv-chat-message { max-width:100%; font-size:13px; overflow-wrap:anywhere; }
+.live-studio-layout .cv-chat-history { max-height:360px; }
+.live-studio-layout .cv-chat-composer { flex-direction:column; align-items:stretch; }
+.live-studio-layout .cv-chat-composer textarea { width:100%; min-width:0; }
+.live-studio-layout .cv-chat-composer .button { justify-content:center; }
+.live-studio-layout .cv-chat-intro { font-size:13px; }
+.live-studio-layout .cv-chat-intro h3 { font-size:17px; }
+.live-studio-layout .cv-chat-intro p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.live-studio-layout .cv-chat .helper { padding:0 18px; }
+.live-studio-layout .editor-panel { min-width:0; }
+.live-studio-layout .design-controls { margin:0; }
+.live-studio-layout .studio-guidance .assistant-body { border-top:1px solid #dfe8d8; }
+.studio-chat-below { margin-top:24px; min-width:0; }
+.studio-chat-below .cv-chat-message { overflow-wrap:anywhere; }
+.studio-target,.studio-personal { padding-bottom:22px; margin-bottom:22px; border-bottom:1px solid #e5e8e1; }
+.studio-role-button { width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; text-align:left; background:white; border:1px solid #dfe7d9; border-radius:8px; padding:12px; margin:12px 0 8px; }
+.studio-role-button span { overflow-wrap:anywhere; }
+.studio-target small,.studio-personal-card small { display:block; color:#7b837d; font-size:11px; margin-top:5px; overflow-wrap:anywhere; }
+.studio-personal-heading { display:flex; width:100%; justify-content:space-between; align-items:center; border:0; background:none; padding:0 0 14px; font-weight:600; text-align:left; }
+.studio-personal-card { width:100%; display:flex; align-items:center; gap:12px; padding:12px; border:0; border-radius:8px; background:#f7f8f3; text-align:left; }
+.studio-personal-card .avatar { flex-shrink:0; }
+.live-app .studio-education .cv-line { display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.live-app .studio-education .cv-line h4 { margin:0; }
+.live-app .studio-education .cv-line > span { font-size:calc(var(--paper-size) - 3px); color:#7b837d; white-space:nowrap; }
+.live-app .studio-education { margin-bottom:12px; }

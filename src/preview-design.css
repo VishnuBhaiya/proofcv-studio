@@ -1,0 +1,32 @@
+.live-app .cv-paper.cv-sans {--paper-font:Arial,sans-serif}
+.live-app .cv-paper.cv-serif {--paper-font:Georgia,'Times New Roman',serif}
+.live-app .cv-paper.cv-mono {--paper-font:'Courier New',monospace}
+.live-app .cv-paper,.live-app .cv-paper * {font-family:var(--paper-font,Arial,sans-serif)}
+.live-app .cv-paper.cv-size-compact {--paper-size:10px;--paper-name:25px}
+.live-app .cv-paper.cv-size-standard {--paper-size:13px;--paper-name:32px}
+.live-app .cv-paper.cv-size-large {--paper-size:16px;--paper-name:39px}
+.live-app .cv-paper p,.live-app .cv-paper .cv-skills span {font-size:var(--paper-size);line-height:1.55}
+.live-app .cv-paper h2 {font-size:var(--paper-name)}
+.live-app .cv-paper h4 {font-size:calc(var(--paper-size) + 1px)}
+.live-app .cv-paper .cv-contact {font-size:calc(var(--paper-size) - 2px);flex-wrap:wrap;overflow-wrap:anywhere}
+.live-app .cv-paper.cv-space-compact {--paper-gap:10px}
+.live-app .cv-paper.cv-space-comfortable {--paper-gap:20px}
+.live-app .cv-paper.cv-space-spacious {--paper-gap:30px}
+.live-app .cv-paper .cv-section {margin-top:var(--paper-gap);margin-bottom:var(--paper-gap)}
+.live-app .cv-paper.cv-header-left .cv-header {text-align:left}
+.live-app .cv-paper.cv-header-left .cv-contact {justify-content:flex-start}
+.live-app .cv-paper.cv-header-center .cv-header {text-align:center}
+.live-app .cv-paper.cv-header-center .cv-contact {justify-content:center}
+.live-app .cv-paper.cv-skills-inline .cv-skills span {background:none;border:0;padding:0}
+.live-app .cv-paper.cv-skills-pills .cv-skills span {background:#edf2e8;border-radius:8px;padding:4px 8px}
+.live-app .cv-paper.cv-skills-grouped .cv-skills {display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.live-app .cv-paper.modern .cv-header {border-top:8px solid var(--cv-accent);padding-top:20px}
+.live-app .cv-paper.modern .cv-section-title {border-left:4px solid var(--cv-accent);padding-left:10px}
+.live-app .cv-paper.minimal .cv-overline {display:none}
+.live-app .cv-paper.minimal .cv-header {border:0}
+.live-app .cv-paper.minimal .cv-section-title {border:0}
+.live-app .cv-paper.executive .cv-header {border-bottom:3px double var(--cv-accent)}
+.live-app .cv-paper.executive .cv-section-title {background:#f0f2ec;padding:6px 10px}
+.live-app .cv-paper.cv-ats .cv-overline {display:none}
+.live-app .cv-paper.cv-ats .cv-header,.live-app .cv-paper.cv-ats .cv-section-title {border:0;background:none}
+.live-app .cv-paper.cv-ats .cv-skills span {background:none;border:0}

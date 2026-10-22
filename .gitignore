@@ -1,0 +1,42 @@
+# Local credentials: only the blank template belongs in Git.
+.env
+.env.*
+!.env.example
+*.local
+
+# Local dependencies and Python/build caches.
+.venv/
+.venv*/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pnpm-store/
+.coverage
+htmlcov/
+coverage/
+
+# Candidate data, generated CVs, evaluation runs and temporary files.
+runtime/
+tmp/
+temp/
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.log
+
+# Personal editor/OS settings.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# dist/ is deliberately tracked: it is the production frontend needed to run
+# this baseline with Python only. Rebuild and commit it after frontend changes.

@@ -1,0 +1,17 @@
+.readable-review .review-project {border-top:1px solid #d4e0ca;padding-top:14px;margin-top:18px}
+.readable-review h4 {font-size:17px;margin:10px 0;color:#2b4838}
+.readable-review .review-field {margin:16px 0;min-width:0}
+.readable-review .review-before,.readable-review .review-after {padding:12px;border-radius:10px;margin-top:7px;background:#fff}
+.readable-review .review-before {background:#f5f6f2;color:#687366}
+.readable-review .review-after {border-left:3px solid #829e6d}
+.readable-review p,.readable-review li {white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;margin:5px 0}
+.readable-review .review-changed {background:#edf5df;color:#263e2d;border-radius:4px;padding:5px}
+.readable-review ul {padding-left:22px}
+.readable-review textarea {box-sizing:border-box;width:100%;min-width:0;font:inherit;line-height:1.5;padding:12px;border:1px solid #cbd9c0;border-radius:9px;resize:vertical;background:white}
+.readable-review .review-empty,.readable-review small {color:#71816b;font-size:12px}
+.readable-review .review-skills label {display:flex;align-items:center;gap:8px;margin:8px 0}
+.readable-review .review-skills input {width:auto;min-height:0}
+.review-skill-destination {margin:16px 0;border:1px solid #cbd9c0;border-radius:10px;padding:12px;min-width:0}
+.review-skill-destination label {display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap}
+.review-skill-destination input {width:auto;min-height:0}
+.review-skill-destination select {width:100%;padding:10px;border:1px solid #cbd9c0;border-radius:8px;background:white}
