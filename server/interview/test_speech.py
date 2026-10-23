@@ -5,7 +5,7 @@ import struct
 import unittest
 import wave
 
-from .speech import decode_audio, delivery, find_fillers
+from .speech import FILLER_PROMPT, decode_audio, delivery, expected_words, find_fillers
 
 
 def words(text, start=0.0, gap=0.0, step=0.4):
@@ -57,6 +57,17 @@ class DeliveryTests(unittest.TestCase):
 
     def test_silence_gives_a_microphone_hint(self):
         self.assertIn('No speech', delivery([], 3.0)['notes'][0])
+
+
+class PromptTests(unittest.TestCase):
+    def test_prompt_lists_name_job_skills_and_projects(self):
+        prompt = expected_words({'name': 'Tirth Patel', 'skills': ['PyTorch', 'YOLO', 'PyTorch'], 'projects': [{'title': 'Lane Detector'}]}, 'AI Engineer')
+        self.assertTrue(prompt.startswith('Interview answer by Tirth Patel. Role: AI Engineer. Words that may come up: PyTorch, YOLO, Lane Detector.'))
+        self.assertTrue(prompt.endswith(FILLER_PROMPT))
+
+    def test_no_profile_keeps_the_filler_prompt(self):
+        self.assertEqual(expected_words(None), FILLER_PROMPT)
+        self.assertEqual(expected_words({'name': '', 'skills': [], 'projects': []}), FILLER_PROMPT)
 
 
 class DecodeTests(unittest.TestCase):

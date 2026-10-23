@@ -72,6 +72,7 @@ def questions(service, state, job_id=None):
 
 
 MAX_AUDIO_BYTES = 5_000_000
+QUIET_RMS_DB = -45  # A real test recording averaged -22.5 dB; below -45 speech is hard to recognise.
 ROUND_TARGET_SECONDS = {'behavioural': 90, 'technical': 75, 'motivation_fit': 60}
 
 
@@ -87,9 +88,13 @@ def answer(service, state, data):
     if not 0 < len(audio) <= MAX_AUDIO_BYTES:
         raise ValueError('Recording is empty or longer than about five minutes.')
     target = question.get('seconds') or ROUND_TARGET_SECONDS.get(question['round'])
-    result = speech.transcriber().transcribe(audio)
+    job_title = next((j['title'] for j in service.jobs if j['document_id'] == data.get('job')), None) or ((state.get('draft') or {}).get('job') or {}).get('title')
+    result = speech.transcriber().transcribe(audio, speech.expected_words(state.get('confirmed_profile') or state.get('profile'), job_title))
     response = {'workspace_id': state['id'], 'question_id': question['id'], 'round': question['round'], 'transcript': result['text'], 'words': result['words'],
                 'model': result['model'], 'target_seconds': target, 'delivery': speech.delivery(result['words'], result['duration'], target)}
+    if result.get('audio', {}).get('rms_db', 0) < QUIET_RMS_DB:
+        response['delivery']['notes'].insert(0, 'Your microphone level was very low, which makes the transcript less accurate. Move closer or check the input device in your system sound settings.')
+    response['audio'] = result.get('audio')
     backend = service.retriever.backend
     confirmed = readiness(state)['profile_confirmed'] and bool(state.get('confirmed_profile'))
     try:

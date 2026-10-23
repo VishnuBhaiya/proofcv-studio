@@ -84,7 +84,7 @@ class InterviewRouteTests(unittest.TestCase):
 
     def test_answer_is_transcribed_scored_and_not_stored(self):
         class FakeTranscriber:
-            def transcribe(self, audio):
+            def transcribe(self, audio, prompt=None):
                 self.audio = audio
                 return {'text': 'I um trained a model', 'words': words('I um trained a model'), 'duration': 2.5, 'model': 'fake'}
         fake = FakeTranscriber()
@@ -102,7 +102,7 @@ class InterviewRouteTests(unittest.TestCase):
 
     def test_behavioural_answers_get_a_star_check(self):
         class FakeTranscriber:
-            def transcribe(self, audio):
+            def transcribe(self, audio, prompt=None):
                 return {'text': 'In my internship a job kept failing. I built a retry step.', 'words': words('In my internship a job kept failing. I built a retry step.'), 'duration': 4, 'model': 'fake'}
         workspace = self.create()
         with mock.patch.object(speech, '_transcriber', FakeTranscriber()), \
@@ -120,7 +120,9 @@ class InterviewRouteTests(unittest.TestCase):
 
     def test_technical_answer_gets_key_points_and_fact_check_on_confirmed_profile(self):
         class FakeTranscriber:
-            def transcribe(self, audio):
+            prompt = None
+            def transcribe(self, audio, prompt=None):
+                FakeTranscriber.prompt = prompt
                 return {'text': 'I would report precision and recall.', 'words': words('I would report precision and recall.'), 'duration': 3, 'model': 'fake'}
         state = self.confirmed_state()
         with mock.patch.object(speech, '_transcriber', FakeTranscriber()), \
@@ -128,6 +130,7 @@ class InterviewRouteTests(unittest.TestCase):
                 mock.patch.object(factcheck, 'check', return_value={'claims': [], 'notes': ['ok']}) as check:
             result = json.loads(self.post_answer(state['id'], {'question_id': 'tq-detection-eval', 'audio': base64.b64encode(b'x').decode()})[1])
         self.assertEqual(score.call_args[0][1][1], 'Precision and recall')
+        self.assertIn('Role: AI Computer Vision Engineer.', FakeTranscriber.prompt)
         self.assertEqual(check.call_args[0][1], PROFILE)
         self.assertFalse(check.call_args[1]['personal_story'])
         self.assertEqual((result['content']['score'], result['fact_check']['notes']), (0.5, ['ok']))
@@ -135,7 +138,7 @@ class InterviewRouteTests(unittest.TestCase):
 
     def test_no_fact_check_without_a_confirmed_profile(self):
         class FakeTranscriber:
-            def transcribe(self, audio):
+            def transcribe(self, audio, prompt=None):
                 return {'text': 'I built it.', 'words': words('I built it.'), 'duration': 1, 'model': 'fake'}
         with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
             result = json.loads(self.post_answer(self.create()['id'], {'question_id': 'mf-why-role', 'audio': base64.b64encode(b'x').decode()})[1])
@@ -145,7 +148,7 @@ class InterviewRouteTests(unittest.TestCase):
     def test_retries_are_numbered_compared_and_get_an_example_answer(self):
         class FakeTranscriber:
             texts = iter(['um I um built uh it um.', 'I built a lane detector and measured precision and recall.'])
-            def transcribe(self, audio):
+            def transcribe(self, audio, prompt=None):
                 text = next(self.texts)
                 return {'text': text, 'words': words(text), 'duration': 3, 'model': 'fake'}
         state = self.confirmed_state()
@@ -182,7 +185,7 @@ class InterviewRouteTests(unittest.TestCase):
 
     def test_rehearsal_reports_which_slides_were_covered(self):
         class FakeTranscriber:
-            def transcribe(self, audio):
+            def transcribe(self, audio, prompt=None):
                 text = 'I built a lane detector and measured precision and recall.'
                 return {'text': text, 'words': words(text), 'duration': 4, 'model': 'fake'}
         state = self.confirmed_state()

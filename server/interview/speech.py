@@ -6,8 +6,11 @@ plain rules, not a model: speaking pace, pauses, filler words and length.
 Audio is processed in memory and never saved.
 """
 import io
+import os
 import re
 import threading
+import time
+from pathlib import Path
 
 WHISPER_MODEL = 'base.en'
 # Whisper tends to drop disfluencies; a prompt that contains them makes it keep "um" and "uh".
@@ -15,11 +18,13 @@ FILLER_PROMPT = 'Umm, let me think, uh, like, hmm. Okay, so, um, here is what I,
 FILLERS = {'um', 'umm', 'uh', 'uhh', 'er', 'erm', 'ah', 'hmm', 'mm'}
 FILLER_PHRASES = (('you', 'know'), ('i', 'mean'), ('sort', 'of'), ('kind', 'of'))
 # Whisper can invent words after silence, such as "Thank you for your attention". Invented
-# segments scored an average log-probability around -1.3 (real speech: -0.2 to 0), and
-# invented words ~1% confidence (real words, fillers included, above 30%). -1.0 is
-# Whisper's own threshold for a failed decode.
+# segments scored an average log-probability around -1.2 to -1.3 (real speech: -0.5 to 0);
+# -1.0 is Whisper's own threshold for a failed decode. Invented words inside a real segment
+# had ~1% confidence and zero length. Rare real words can also score low (the name "Tirth"
+# scored 3%) but take time to say, so a word is dropped only when it is both.
 MIN_SEGMENT_LOGPROB = -1.0
 MIN_WORD_PROBABILITY = 0.1
+MIN_WORD_SECONDS = 0.05
 PAUSE_SECONDS, LONG_PAUSE_SECONDS = 1.0, 2.5
 SLOW_WPM, FAST_WPM = 110, 170
 FILLERS_PER_MINUTE_LIMIT = 6
@@ -48,6 +53,31 @@ def decode_audio(audio):
     return np.concatenate(chunks).astype(np.float32) / 32768.0
 
 
+def expected_words(profile, job_title=None):
+    """A short prompt of words the answer may contain, so Whisper spells names and tools correctly.
+
+    Base Whisper turned "Tirth Patel" into "Faith Patel" until the name was in its prompt.
+    Taken only from the confirmed profile and the chosen job.
+    """
+    if not profile:
+        return FILLER_PROMPT
+    name = (profile.get('name') or '').strip()
+    terms = list(dict.fromkeys([s.strip() for s in profile.get('skills') or [] if s.strip()][:20]
+                               + [p['title'].strip() for p in profile.get('projects') or [] if p.get('title')][:5]))
+    lead = ' '.join(filter(None, [f'Interview answer by {name}.' if name else '', f'Role: {job_title}.' if job_title else '',
+                                  f"Words that may come up: {', '.join(terms)}." if terms else '']))
+    return (lead[:600] + ' ' + FILLER_PROMPT).strip()
+
+
+def level(samples):
+    """Length and loudness of the recording, in seconds and dB relative to full scale."""
+    import numpy as np
+    rms = float(np.sqrt(np.mean(np.square(samples)))) if len(samples) else 0.0
+    peak = float(np.max(np.abs(samples))) if len(samples) else 0.0
+    to_db = lambda value: round(float(20 * np.log10(value)), 1) if value > 0 else -120.0
+    return {'seconds': round(len(samples) / SAMPLE_RATE, 1), 'rms_db': to_db(rms), 'peak_db': to_db(peak)}
+
+
 class WhisperTranscriber:
     def __init__(self, model_name=WHISPER_MODEL):
         self.model_name = model_name
@@ -64,16 +94,29 @@ class WhisperTranscriber:
                 self._model = WhisperModel(self.model_name, device='cpu', compute_type='int8')
         return self._model
 
-    def transcribe(self, audio):
+    def transcribe(self, audio, prompt=FILLER_PROMPT):
         """Text and word timings for recorded audio bytes (webm, mp4, wav and other common formats)."""
         samples = decode_audio(audio)
+        debug_dir = os.environ.get('PROOFCV_DEBUG_AUDIO_DIR')
+        if debug_dir:  # Developer diagnosis only; off unless this variable is set.
+            Path(debug_dir).mkdir(parents=True, exist_ok=True)
+            (Path(debug_dir) / f'answer-{int(time.time())}.webm').write_bytes(audio)
         with self._lock:
             segments, info = self._load().transcribe(samples, language='en', word_timestamps=True,
-                                                     vad_filter=True, initial_prompt=FILLER_PROMPT, condition_on_previous_text=False)
-            words = [{'word': w.word.strip(), 'start': round(float(w.start), 2), 'end': round(float(w.end), 2), 'probability': round(float(w.probability), 3)}
-                     for segment in segments if segment.avg_logprob >= MIN_SEGMENT_LOGPROB
-                     for w in (segment.words or []) if w.probability >= MIN_WORD_PROBABILITY]
-        return {'text': ' '.join(w['word'] for w in words).strip(), 'words': words, 'duration': round(float(info.duration), 2), 'model': f'whisper-{self.model_name}'}
+                                                     vad_filter=True, initial_prompt=prompt, condition_on_previous_text=False)
+            segments = list(segments)
+        kept = [s for s in segments if s.avg_logprob >= MIN_SEGMENT_LOGPROB]
+        words = [{'word': w.word.strip(), 'start': round(float(w.start), 2), 'end': round(float(w.end), 2), 'probability': round(float(w.probability), 3)}
+                 for segment in kept for w in (segment.words or [])
+                 if w.probability >= MIN_WORD_PROBABILITY or w.end - w.start >= MIN_WORD_SECONDS]
+        audio_check = level(samples)
+        audio_check.update(speech_seconds=round(float(info.duration_after_vad), 1),
+                           segments=len(segments), segments_dropped=len(segments) - len(kept),
+                           words_dropped=sum(len(s.words or []) for s in kept) - len(words))
+        if debug_dir:
+            print('[audio]', audio_check, [(round(s.avg_logprob, 2), s.text.strip()[:60]) for s in segments], flush=True)
+        return {'text': ' '.join(w['word'] for w in words).strip(), 'words': words, 'duration': round(float(info.duration), 2),
+                'model': f'whisper-{self.model_name}', 'audio': audio_check}
 
 
 _transcriber = None
