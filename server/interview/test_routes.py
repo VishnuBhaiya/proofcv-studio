@@ -159,6 +159,10 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertEqual(first['example_answer']['kind'], 'motivation')
         history = json.loads(self.request('GET', f"/api/interview/{state['id']}/attempts?question=mf-why-role")[1])
         self.assertEqual([h['attempt'] for h in history], [1, 2])
+        overview = json.loads(self.request('GET', f"/api/interview/{state['id']}/attempts")[1])
+        self.assertEqual(list(overview), ['mf-why-role'])
+        self.assertEqual(overview['mf-why-role']['attempts'], 2)
+        self.assertEqual(overview['mf-why-role']['needs_work'], second['progress']['needs_work'])
 
     def test_unknown_workspace_and_path_are_not_found(self):
         self.assertEqual(self.request('GET', '/api/interview/missing/status')[0], 404)

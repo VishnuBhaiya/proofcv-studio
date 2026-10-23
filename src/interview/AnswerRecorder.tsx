@@ -34,7 +34,7 @@ export function speak(text: string) {
     window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 
-export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId }: { workspaceId: string; questionId: string; questionText: string; jobId?: string; requirementId?: string }) {
+export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId, onResult }: { workspaceId: string; questionId: string; questionText: string; jobId?: string; requirementId?: string; onResult?: () => void }) {
     const [phase, setPhase] = useState<'idle' | 'recording' | 'processing'>('idle');
     const [seconds, setSeconds] = useState(0);
     const [answer, setAnswer] = useState<Answer | null>(null);
@@ -58,6 +58,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 try {
                     const audio = await toBase64(new Blob(chunks, { type: media.mimeType }));
                     setAnswer(await api<Answer>(`/interview/${workspaceId}/answer`, { question_id: questionId, audio, question_text: questionText, job: jobId, requirement_id: requirementId }));
+                    onResult?.();
                 } catch (e) {
                     setError(e instanceof Error ? e.message : 'Transcription failed.');
                 } finally {
@@ -83,7 +84,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 : <button type="button" className="button dark" disabled={phase === 'processing'} onClick={() => void start()}><Mic size={15} />{phase === 'processing' ? 'Transcribing locally…' : answer ? 'Record again' : 'Record answer'}</button>}
         </div>
         {error && <p className="live-error" role="alert">{error}</p>}
-        {answer && d && <div className="coach-result">
+        {answer && d && <div className="coach-result"><div className="coach-col">
             <div className={`coach-verdict ${answer.progress.needs_work.length ? 'needs-work' : 'strong'}`}>
                 <strong>Attempt {answer.progress.attempt} · {answer.progress.needs_work.length ? 'Needs work' : 'Strong answer'}</strong>
                 {answer.progress.needs_work.length > 0 && <ul>{answer.progress.needs_work.map((r, i) => <li key={i}>{r}</li>)}</ul>}
@@ -105,6 +106,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 <ul className="coach-notes">{answer.star.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
                 <p className="coach-method">STAR labels come from our own classifier, trained on {answer.star.model.trained_on.sentences} labelled sentences. “?” marks a low-confidence label.</p>
             </div>}
+            </div><div className="coach-col">
             {answer.content && <div className="coach-section">
                 <h4>Key points: {answer.content.key_points.filter(k => k.status === 'covered').length} of {answer.content.key_points.length} covered</h4>
                 <ul className="coach-points">{answer.content.key_points.map((k, i) => <li key={i} className={`point-${k.status}`}><span className="point-mark">{POINT_MARK[k.status]}</span><div>{k.text}{k.quote && <small>You said: “{k.quote}”</small>}</div></li>)}</ul>
@@ -126,6 +128,6 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 {answer.example_answer.text && <button type="button" className="text-button" onClick={() => speak(answer.example_answer!.text)}><Volume2 size={15} />Hear example</button>}
             </details>}
             <p className="coach-method">Transcribed on this computer by {answer.model}. The recording was not saved; the transcript and scores are kept on this computer to track your progress.</p>
-        </div>}
+        </div></div>}
     </div>;
 }

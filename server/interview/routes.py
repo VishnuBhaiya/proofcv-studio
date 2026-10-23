@@ -138,7 +138,9 @@ def handle_get(service, url):
     job_id = (query.get('job') or [None])[0]
     if len(parts) == 4 and parts[3] == 'attempts':
         state = service.store.get(parts[2])
-        return attempt_store(service).history(state['id'], (query.get('question') or [''])[0])
+        if 'question' in query:
+            return attempt_store(service).history(state['id'], query['question'][0])
+        return attempt_store(service).overview(state['id'])
     if len(parts) == 4 and parts[3] == 'status':
         return readiness(service.store.get(parts[2]))
     if len(parts) == 4 and parts[3] == 'fit':

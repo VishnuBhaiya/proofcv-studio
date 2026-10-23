@@ -92,6 +92,13 @@ class AttemptStore:
                                       (workspace_id, question_id)).fetchall()
         return [{'attempt': i + 1, 'created_at': at, 'transcript': text, 'summary': json.loads(summary)} for i, (at, text, summary) in enumerate(rows)]
 
+    def overview(self, workspace_id):
+        """For every practised question: how many attempts, and whether the latest one still needs work."""
+        with self.connect() as connection:
+            rows = connection.execute('SELECT question_id, COUNT(*), MAX(id) FROM attempts WHERE workspace_id=? GROUP BY question_id', (workspace_id,)).fetchall()
+            latest = {qid: json.loads(connection.execute('SELECT summary FROM attempts WHERE id=?', (last,)).fetchone()[0]) for qid, _, last in rows}
+        return {qid: {'attempts': count, 'needs_work': needs_work(latest[qid])} for qid, count, _ in rows}
+
     def record(self, workspace_id, question_id, transcript, summary):
         """Save an attempt and return its progress compared with the previous one."""
         with self.lock:
