@@ -7,7 +7,9 @@ retrieval across nine supplied jobs, confirmed-source CV generation and PDF expo
 
 This repository starts from the final Assignment 1 CV builder. Its application
 source, supplied datasets and production frontend were compared with the working
-app before import. Assignment 3 portfolio features are not implemented yet.
+app before import. Assignment 3 adds two features, each in its own module: Interview
+Coach (see [Interview Coach](#interview-coach-assignment-3) below) and the AI-generated
+Portfolio website, which is still a placeholder page in `src/portfolio/`.
 
 Clone this repository into your own folder. On Windows, follow the setup and start
 commands below. Each teammate must create their own `.env` from `.env.example` and
@@ -89,6 +91,75 @@ dependency graph with `pnpm install --frozen-lockfile`, then
 6. Save versions, compare jobs and download PDF. Changing jobs preserves confirmed
    facts. A draft using an older profile cannot be exported.
 
+## Interview Coach (Assignment 3)
+
+Spoken interview practice for the job the user picked from their top matches. It makes
+**no Gemini calls**: every step runs on this computer with local models or plain rules.
+Open it from **Interview Coach** in the sidebar after confirming a profile and choosing
+a target job.
+
+What it does, in order:
+
+1. **Fit:** links each requirement of the job to the user's confirmed facts (exact
+   keywords plus MiniLM similarity) and lists strengths, partial matches and gaps.
+   Degrees and years of experience are never auto-judged.
+2. **Questions:** picks self-introduction, behavioural, technical and motivation
+   questions from a question bank, linked to the job's strengths and gaps.
+3. **Spoken answers:** the browser records the answer; local Whisper (`base.en` via
+   faster-whisper) transcribes it with word timings. Audio is never stored.
+4. **Feedback:** pace, pauses, filler words and length; a STAR check for behavioural
+   answers from our own trained classifier; key-point coverage for technical answers;
+   and a fact check that flags numbers, tools or leadership claims the confirmed profile
+   cannot back up.
+5. **Corrections:** an example answer built only from confirmed facts, with
+   [bracketed prompts] where the profile has no detail; retries are compared with the
+   previous attempt.
+6. **Self-introduction deck:** six slides with speaker notes from the strongest facts
+   for the job, viewable full screen, downloadable as PDF, with a rehearsal mode that
+   checks which slides were talked about.
+
+**First run:** after `pip install -r requirements.txt` (which now includes
+`faster-whisper`), the first spoken answer downloads the Whisper `base.en` model
+(about 148 MB) into the Hugging Face cache, like MiniLM. Later runs work offline. The
+browser asks for microphone access the first time.
+
+**Data it keeps:** each attempt's transcript and scores in `runtime/interview.sqlite3`
+(never committed, like the other `runtime/` databases). Removing a workspace does not
+yet remove its practice history.
+
+**Files:**
+
+| Path | Purpose |
+| --- | --- |
+| `server/interview/routes.py` | `/api/interview/...` endpoints (one hook in `server/http.py`) |
+| `server/interview/fit.py` | Requirement-to-fact matching |
+| `server/interview/questions.py` | Question picker |
+| `server/interview/speech.py` | Whisper transcription and delivery checks |
+| `server/interview/star.py`, `train_star.py` | STAR classifier and its training script |
+| `server/interview/content.py`, `factcheck.py` | Key-point coverage and fact check |
+| `server/interview/model_answer.py`, `attempts.py` | Example answers and attempt tracking |
+| `server/interview/slides.py` | Self-introduction deck and PDF |
+| `server/interview/data/` | Requirement map, question bank, STAR data, model and evaluation |
+| `src/interview/` | Interview Coach screens |
+
+**STAR classifier:** multinomial logistic regression on MiniLM sentence embeddings plus
+sentence position, trained on 374 labelled sentences from 60 example answers. Splits
+are by answer; 12 answers are held out. Held-out macro-F1 is 0.929 (cross-validation
+0.855 ± 0.04), against 0.706 for keyword rules and 0.755 without the position feature.
+Full results are in `server/interview/data/star_evaluation.json`. To retrain after
+changing labels:
+
+```sh
+python -m server.interview.train_star
+```
+
+**Limitations:** the requirement map, question bank and STAR sentences were drafted with
+AI assistance and still need human review (each file states its review status). The
+STAR training data was written, not collected from real interviews, so real answers
+will likely score lower than the evaluation suggests. Key-point scoring measures
+coverage of expected ideas, not whether every statement is correct. Thresholds were
+calibrated on the labelled sample profile.
+
 ## Tests and evidence
 
 ```sh
@@ -101,6 +172,10 @@ Unit tests are offline with mocked provider responses. The last two commands mak
 real API calls and consume quota. Live tests use the five supplied synthetic profiles
 and save predictions before retrieval. Read each actual status under
 `runtime/evaluation/`; a single passed journey is not five passes.
+
+Interview Coach branch verification (23 October 2026): 143 offline tests passed on
+macOS with Python 3.14. Interview Coach tests use a fake transcriber and small test
+embeddings, so they need neither the Whisper nor the MiniLM model. Not yet run on Windows.
 
 Current repository verification: 61 offline tests passed on 22 October 2026.
 The Assignment 1 submission separately contains historical five-profile live
