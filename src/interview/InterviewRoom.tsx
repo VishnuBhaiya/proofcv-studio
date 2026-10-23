@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Presentation } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Flag, Presentation } from 'lucide-react';
+import MockInterview from './MockInterview';
 import { api } from '../api';
 import AnswerRecorder from './AnswerRecorder';
 import { speak } from './speech';
@@ -16,6 +17,7 @@ export default function InterviewRoom({ workspaceId, questions }: { workspaceId:
     const [overview, setOverview] = useState<Overview>({});
     const [readAloud, setReadAloud] = useState(false);
     const [deckOpen, setDeckOpen] = useState(false);
+    const [mockOpen, setMockOpen] = useState(false);
     const refresh = () => api<Overview>(`/interview/${workspaceId}/attempts`).then(setOverview).catch(() => undefined);
     useEffect(() => { void refresh(); }, [workspaceId]);
     const list = questions.rounds[round] || [];
@@ -27,7 +29,12 @@ export default function InterviewRoom({ workspaceId, questions }: { workspaceId:
         setRound(target);
         setIndex(position);
     }
+    if (mockOpen) return <section className="coach-room" aria-label="Mock interview">
+        <MockInterview workspaceId={workspaceId} jobId={questions.job.document_id} onExit={() => { setMockOpen(false); void refresh(); }} />
+    </section>;
     return <section className="coach-room" aria-label="Interview practice">
+        <div className="room-mock-cta"><div><strong>Ready for the real thing?</strong><span>Five questions in a row, then a readiness report.</span></div>
+            <button type="button" className="button dark" onClick={() => setMockOpen(true)}><Flag size={15} />Start full mock interview</button></div>
         <div className="room-toolbar">
             <div className="room-tabs" role="tablist" aria-label="Interview rounds">{ROUNDS.map(id => {
                 const items = questions.rounds[id] || [];

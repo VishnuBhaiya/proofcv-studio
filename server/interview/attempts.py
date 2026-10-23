@@ -6,6 +6,7 @@ file (runtime/interview.sqlite3, never committed). Audio is never stored.
 import json
 import sqlite3
 import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -82,6 +83,8 @@ class AttemptStore:
         with self.connect() as connection:
             connection.execute('CREATE TABLE IF NOT EXISTS attempts (id INTEGER PRIMARY KEY AUTOINCREMENT, workspace_id TEXT NOT NULL, '
                                'question_id TEXT NOT NULL, created_at TEXT NOT NULL, transcript TEXT NOT NULL, summary TEXT NOT NULL)')
+            connection.execute('CREATE TABLE IF NOT EXISTS mock_sessions (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, created_at TEXT NOT NULL, '
+                               'job TEXT NOT NULL, questions TEXT NOT NULL, answers TEXT NOT NULL)')
 
     def connect(self):
         return sqlite3.connect(self.path, timeout=20)
@@ -104,8 +107,43 @@ class AttemptStore:
         with self.lock:
             earlier = self.history(workspace_id, question_id)
             with self.connect() as connection:
-                connection.execute('INSERT INTO attempts (workspace_id, question_id, created_at, transcript, summary) VALUES (?, ?, ?, ?, ?)',
-                                   (workspace_id, question_id, datetime.now(timezone.utc).isoformat(timespec='seconds'), transcript, json.dumps(summary)))
+                attempt_id = connection.execute('INSERT INTO attempts (workspace_id, question_id, created_at, transcript, summary) VALUES (?, ?, ?, ?, ?)',
+                                                (workspace_id, question_id, datetime.now(timezone.utc).isoformat(timespec='seconds'), transcript, json.dumps(summary))).lastrowid
         previous = earlier[-1]['summary'] if earlier else None
-        return {'attempt': len(earlier) + 1, 'needs_work': needs_work(summary),
+        return {'id': attempt_id, 'attempt': len(earlier) + 1, 'needs_work': needs_work(summary),
                 'changes': compare(previous, summary) if previous else [], 'summary': summary}
+
+    def get(self, workspace_id, attempt_ids):
+        """Attempts by id for one workspace, keyed by id."""
+        if not attempt_ids:
+            return {}
+        marks = ','.join('?' * len(attempt_ids))
+        with self.connect() as connection:
+            rows = connection.execute(f'SELECT id, question_id, created_at, transcript, summary FROM attempts WHERE workspace_id=? AND id IN ({marks})',
+                                      (workspace_id, *attempt_ids)).fetchall()
+        return {i: {'id': i, 'question_id': q, 'created_at': at, 'transcript': t, 'summary': json.loads(s)} for i, q, at, t, s in rows}
+
+    def create_session(self, workspace_id, job, questions):
+        session_id = uuid.uuid4().hex
+        with self.connect() as connection:
+            connection.execute('INSERT INTO mock_sessions (id, workspace_id, created_at, job, questions, answers) VALUES (?, ?, ?, ?, ?, ?)',
+                               (session_id, workspace_id, datetime.now(timezone.utc).isoformat(timespec='seconds'), json.dumps(job), json.dumps(questions), '{}'))
+        return self.session(workspace_id, session_id)
+
+    def session(self, workspace_id, session_id):
+        with self.connect() as connection:
+            row = connection.execute('SELECT id, created_at, job, questions, answers FROM mock_sessions WHERE id=? AND workspace_id=?',
+                                     (session_id, workspace_id)).fetchone()
+        if not row:
+            raise ValueError('Mock interview not found.')
+        return {'id': row[0], 'created_at': row[1], 'job': json.loads(row[2]), 'questions': json.loads(row[3]), 'answers': json.loads(row[4])}
+
+    def link_answer(self, workspace_id, session_id, position, attempt_id):
+        """Record that question number `position` of a mock interview was answered by this attempt (latest wins)."""
+        with self.lock:
+            current = self.session(workspace_id, session_id)
+            if not 0 <= position < len(current['questions']):
+                raise ValueError('Question is not part of this mock interview.')
+            current['answers'][str(position)] = attempt_id
+            with self.connect() as connection:
+                connection.execute('UPDATE mock_sessions SET answers=? WHERE id=?', (json.dumps(current['answers']), session_id))

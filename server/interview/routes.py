@@ -5,7 +5,7 @@ import threading
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, content, factcheck, model_answer, slides, speech, star
+from . import attempts, content, factcheck, mock, model_answer, slides, speech, star
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
@@ -115,7 +115,21 @@ def answer(service, state, data):
         if job_fit_result and data.get('rehearsal'):
             response['slide_coverage'] = slide_coverage(result['text'], slides.build(state['confirmed_profile'], job_fit_result['requirements'], job_fit_result['job'], backend), backend)
     response['progress'] = attempt_store(service).record(state['id'], question['id'], result['text'], attempts.summarise(response))
+    if data.get('mock_session'):
+        attempt_store(service).link_answer(state['id'], data['mock_session'], int(data.get('mock_position', -1)), response['progress']['id'])
     return response
+
+
+def start_mock(service, state, data):
+    """A new five-question mock interview for the target job or a matched job."""
+    picked = questions(service, state, data.get('job'))
+    return attempt_store(service).create_session(state['id'], picked['job'], mock.pick(picked['rounds']))
+
+
+def mock_report(service, state, session_id):
+    store = attempt_store(service)
+    session = store.session(state['id'], session_id)
+    return mock.report(session, store.get(state['id'], [int(v) for v in session['answers'].values()]))
 
 
 def slide_coverage(transcript, deck, backend):
@@ -147,10 +161,12 @@ def attempt_store(service):
 
 
 def handle_post(service, path, data):
-    """POST /api/interview/<workspace_id>/answer"""
+    """POST /api/interview/<workspace_id>/answer and /api/interview/<workspace_id>/mock"""
     parts = path.strip('/').split('/')
     if len(parts) == 4 and parts[3] == 'answer':
         return answer(service, service.store.get(parts[2]), data)
+    if len(parts) == 4 and parts[3] == 'mock':
+        return start_mock(service, service.store.get(parts[2]), data)
     raise ValueError('Endpoint not found.')
 
 
@@ -173,6 +189,14 @@ def handle_get(service, url):
         return questions(service, service.store.get(parts[2]), job_id)
     if len(parts) == 4 and parts[3] == 'slides':
         return deck(service, service.store.get(parts[2]), job_id)
+    if len(parts) == 5 and parts[3] == 'mock':
+        return attempt_store(service).session(service.store.get(parts[2])['id'], parts[4])
+    if len(parts) == 6 and parts[3] == 'mock' and parts[5] in ('report', 'report.pdf'):
+        state = service.store.get(parts[2])
+        result = mock_report(service, state, parts[4])
+        if parts[5] == 'report':
+            return result
+        return mock.render_pdf(result, ((state.get('confirmed_profile') or state.get('profile') or {}).get('name') or 'Candidate'))
     if len(parts) == 4 and parts[3] == 'slides.pdf':
         return slides.render_pdf(deck(service, service.store.get(parts[2]), job_id))
     raise ValueError('Endpoint not found.')

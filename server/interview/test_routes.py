@@ -197,6 +197,34 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertTrue(coverage['notes'])
         self.assertNotIn('slide_coverage', plain)
 
+    def test_mock_interview_links_answers_and_builds_a_report(self):
+        class FakeTranscriber:
+            def transcribe(self, audio, prompt=None):
+                text = 'I built a lane detector and measured precision and recall.'
+                return {'text': text, 'words': words(text), 'duration': 4, 'model': 'fake'}
+        state = self.confirmed_state()
+        code, body = self.request('POST', f"/api/interview/{state['id']}/mock", {}, {'Content-Type': 'application/json'})
+        self.assertEqual(code, 200)
+        session = json.loads(body)
+        self.assertEqual(len(session['questions']), 5)
+        first = session['questions'][0]
+        self.assertEqual(self.request('GET', f"/api/interview/{state['id']}/mock/{session['id']}/report")[0], 404)  # Nothing answered yet.
+        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+            self.post_answer(state['id'], {'question_id': first['id'], 'audio': base64.b64encode(b'x').decode(), 'mock_session': session['id'], 'mock_position': 0})
+        result = json.loads(self.request('GET', f"/api/interview/{state['id']}/mock/{session['id']}/report")[1])
+        self.assertEqual((result['answered'], result['total']), (1, 5))
+        self.assertEqual(result['band'], 'Incomplete')  # Only 1 of 5 answered.
+        connection = HTTPConnection('127.0.0.1', self.server.server_port, timeout=10)
+        try:
+            connection.request('GET', f"/api/interview/{state['id']}/mock/{session['id']}/report.pdf")
+            response = connection.getresponse()
+            self.assertEqual(response.getheader('Content-Type'), 'application/pdf')
+            self.assertTrue(response.read().startswith(b'%PDF'))
+        finally:
+            connection.close()
+        other = self.create()
+        self.assertEqual(self.request('GET', f"/api/interview/{other['id']}/mock/{session['id']}")[0], 404)
+
     def test_unknown_workspace_and_path_are_not_found(self):
         self.assertEqual(self.request('GET', '/api/interview/missing/status')[0], 404)
         self.assertEqual(self.request('GET', '/api/interview/x/unknown')[0], 404)

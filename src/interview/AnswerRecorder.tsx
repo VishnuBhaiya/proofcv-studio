@@ -41,7 +41,7 @@ function SpeakButton({ text, label }: { text: string; label: string }) {
     </span>;
 }
 
-export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId, onResult, extra }: { workspaceId: string; questionId: string; questionText: string; jobId?: string; requirementId?: string; onResult?: () => void; extra?: Record<string, unknown> }) {
+export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId, onResult, extra, hideFeedback }: { workspaceId: string; questionId: string; questionText: string; jobId?: string; requirementId?: string; onResult?: () => void; extra?: Record<string, unknown>; hideFeedback?: boolean }) {
     const [phase, setPhase] = useState<'idle' | 'recording' | 'processing'>('idle');
     const [seconds, setSeconds] = useState(0);
     const [answer, setAnswer] = useState<Answer | null>(null);
@@ -92,7 +92,8 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 : <button type="button" className="button dark" disabled={phase === 'processing'} onClick={() => void start()}><Mic size={15} />{phase === 'processing' ? 'Transcribing locally…' : answer ? 'Record again' : 'Record answer'}</button>}
         </div>
         {error && <p className="live-error" role="alert">{error}</p>}
-        {answer && d && <div className="coach-result"><div className="coach-col">
+        {answer && hideFeedback && <p className="live-success">Answer saved{answer.transcript ? '' : ', but no speech was detected'}. Feedback comes in your report at the end.</p>}
+        {answer && d && !hideFeedback && <div className="coach-result"><div className="coach-col">
             <div className={`coach-verdict ${answer.progress.needs_work.length ? 'needs-work' : 'strong'}`}>
                 <strong>Attempt {answer.progress.attempt} · {answer.progress.needs_work.length ? 'Needs work' : 'Strong answer'}</strong>
                 {answer.progress.needs_work.length > 0 && <ul>{answer.progress.needs_work.map((r, i) => <li key={i}>{r}</li>)}</ul>}

@@ -137,3 +137,24 @@
 .interview-coach .coach-speak { display: inline-flex; flex-direction: column; gap: 2px; }
 .interview-coach .coach-speak button { display: inline-flex; align-items: center; gap: 6px; }
 .interview-coach .coach-speak small { color: #a2422f; font-size: 12px; }
+.interview-coach .room-mock-cta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 16px; padding: 12px 14px; border-radius: 12px; background: rgba(47, 107, 69, .08); }
+.interview-coach .room-mock-cta div { display: grid; gap: 2px; font-size: 14px; }
+.interview-coach .room-mock-cta span { font-size: 13px; opacity: .75; }
+.interview-coach .room-mock-cta button, .interview-coach .mock-actions a, .interview-coach .mock-actions button, .interview-coach .mock-head button { display: inline-flex; align-items: center; gap: 6px; }
+.interview-coach .coach-mock > p { max-width: 70ch; }
+.interview-coach .mock-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+.interview-coach .mock-head h3 { margin: 0; }
+.interview-coach .mock-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.interview-coach .mock-score { display: flex; align-items: baseline; gap: 8px; margin: 6px 0; }
+.interview-coach .mock-score strong { font-size: 52px; line-height: 1; }
+.interview-coach .mock-score span { font-size: 18px; }
+.interview-coach .band-ready { color: #2f6b45; }
+.interview-coach .band-nearly-ready { color: #8a6418; }
+.interview-coach .band-needs-practice { color: #a2422f; }
+.interview-coach .band-incomplete { color: #6b6f6c; }
+.interview-coach .mock-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 20px; margin: 14px 0; }
+.interview-coach .mock-lists h4 { margin: 0 0 4px; }
+.interview-coach .mock-lists ul { margin: 0; padding-left: 18px; font-size: 14px; }
+.interview-coach .mock-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+.interview-coach .mock-table th, .interview-coach .mock-table td { padding: 6px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid rgba(0, 0, 0, .08); }
+.interview-coach .mock-table th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
