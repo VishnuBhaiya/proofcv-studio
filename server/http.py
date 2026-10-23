@@ -68,7 +68,7 @@ def make_handler(service):
             except ValueError:
                 self.send(400, {'error': 'Invalid content length.'})
                 return
-            upload = urlsplit(self.path).path.endswith('/upload-document')
+            upload = urlsplit(self.path).path.endswith(('/upload-document', '/answer'))
             if not 0 < length <= (7500000 if upload else 200000):
                 self.send(400, {'error': 'Request is empty or too large.'})
                 return
@@ -95,6 +95,9 @@ def make_handler(service):
                 path = urlsplit(self.path).path
                 if path == '/api/workspaces':
                     self.send(201, service.store.create(data.get('label', '')))
+                elif path.startswith('/api/interview/'):
+                    from .interview.routes import handle_post as interview_post
+                    self.send(200, interview_post(service, path, data))
                 else:
                     parts = path.strip('/').split('/')
                     if len(parts) != 4 or parts[:2] != ['api', 'workspaces']:

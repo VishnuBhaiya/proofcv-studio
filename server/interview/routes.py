@@ -1,12 +1,18 @@
 """HTTP entry point for the Interview Coach module."""
+import base64
+import binascii
+import threading
 from urllib.parse import parse_qs, urlsplit
 
+from . import speech
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
 ROUNDS = list(QUESTION_ROUNDS)
 _requirements = None
 _bank = None
+# The page requests fit and questions together; MiniLM's first load is not safe to run twice at once.
+_embedding_lock = threading.Lock()
 
 
 def requirements(jobs):
@@ -50,8 +56,9 @@ def fit(service, state, job_id=None):
         raise ValueError('Choose one of your matched jobs.')
     data = requirements(service.jobs)
     job = next(j for j in service.jobs if j['document_id'] == job_id)
-    return {**job_fit(job, data['jobs'][job_id], state['confirmed_profile'], service.retriever.backend),
-            'review_status': data['review_status']}
+    with _embedding_lock:
+        result = job_fit(job, data['jobs'][job_id], state['confirmed_profile'], service.retriever.backend)
+    return {**result, 'review_status': data['review_status']}
 
 
 def questions(service, state, job_id=None):
@@ -59,7 +66,37 @@ def questions(service, state, job_id=None):
     result = fit(service, state, job_id)
     job = next(j for j in service.jobs if j['document_id'] == result['job']['document_id'])
     keywords = {r['id']: r.get('keywords', []) for r in requirements(service.jobs)['jobs'][job['document_id']]}
-    return pick_questions(job, result['requirements'], keywords, state['confirmed_profile'], bank(), service.retriever.backend)
+    with _embedding_lock:
+        return pick_questions(job, result['requirements'], keywords, state['confirmed_profile'], bank(), service.retriever.backend)
+
+
+MAX_AUDIO_BYTES = 5_000_000
+ROUND_TARGET_SECONDS = {'behavioural': 90, 'technical': 75, 'motivation_fit': 60}
+
+
+def answer(service, state, data):
+    """Transcribe one spoken answer locally and measure its delivery. Audio is not stored."""
+    question = next((q for q in bank()['questions'] if q['id'] == data.get('question_id')), None)
+    if not question:
+        raise ValueError('Unknown question.')
+    try:
+        audio = base64.b64decode(data.get('audio') or '', validate=True)
+    except (binascii.Error, TypeError):
+        raise ValueError('Audio must be base64 encoded.')
+    if not 0 < len(audio) <= MAX_AUDIO_BYTES:
+        raise ValueError('Recording is empty or longer than about five minutes.')
+    target = question.get('seconds') or ROUND_TARGET_SECONDS.get(question['round'])
+    result = speech.transcriber().transcribe(audio)
+    return {'workspace_id': state['id'], 'question_id': question['id'], 'transcript': result['text'], 'words': result['words'],
+            'model': result['model'], 'target_seconds': target, 'delivery': speech.delivery(result['words'], result['duration'], target)}
+
+
+def handle_post(service, path, data):
+    """POST /api/interview/<workspace_id>/answer"""
+    parts = path.strip('/').split('/')
+    if len(parts) == 4 and parts[3] == 'answer':
+        return answer(service, service.store.get(parts[2]), data)
+    raise ValueError('Endpoint not found.')
 
 
 def handle_get(service, url):

@@ -1,7 +1,11 @@
 """Interview Coach HTTP routes with synthetic local data and no model requests."""
+import base64
 import json
 import unittest
+from unittest import mock
 from .. import test_http
+from . import speech
+from .test_speech import words
 from ..retrieval import InspectableHashEmbeddingBackend, JobRetriever
 from .test_fit import PROFILE
 
@@ -73,6 +77,32 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertEqual(result['job']['document_id'], 'graduate_ai_engineer')
         self.assertEqual(set(result['rounds']), {'self_introduction', 'behavioural', 'technical', 'motivation_fit'})
         self.assertEqual(self.request('GET', f"/api/interview/{state['id']}/questions?job=rag_agent_engineer")[0], 404)
+
+    def post_answer(self, workspace_id, body):
+        return self.request('POST', f'/api/interview/{workspace_id}/answer', body, {'Content-Type': 'application/json'})
+
+    def test_answer_is_transcribed_scored_and_not_stored(self):
+        class FakeTranscriber:
+            def transcribe(self, audio):
+                self.audio = audio
+                return {'text': 'I um trained a model', 'words': words('I um trained a model'), 'duration': 2.5, 'model': 'fake'}
+        fake = FakeTranscriber()
+        workspace = self.create()
+        before = self.service.store.get(workspace['id'])
+        with mock.patch.object(speech, '_transcriber', fake):
+            code, body = self.post_answer(workspace['id'], {'question_id': 'si-30', 'audio': base64.b64encode(b'fake-audio').decode()})
+        self.assertEqual(code, 200)
+        result = json.loads(body)
+        self.assertEqual(fake.audio, b'fake-audio')
+        self.assertEqual((result['transcript'], result['target_seconds']), ('I um trained a model', 30))
+        self.assertEqual([f['word'] for f in result['delivery']['fillers']], ['um'])
+        self.assertEqual(self.service.store.get(workspace['id']), before)
+
+    def test_answer_rejects_bad_input(self):
+        workspace = self.create()
+        self.assertEqual(self.post_answer(workspace['id'], {'question_id': 'nope', 'audio': 'AAAA'})[0], 400)
+        self.assertEqual(self.post_answer(workspace['id'], {'question_id': 'si-30', 'audio': 'not base64!'})[0], 400)
+        self.assertEqual(self.post_answer(workspace['id'], {'question_id': 'si-30', 'audio': ''})[0], 400)
 
     def test_unknown_workspace_and_path_are_not_found(self):
         self.assertEqual(self.request('GET', '/api/interview/missing/status')[0], 404)

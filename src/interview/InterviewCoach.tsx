@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Mic, Presentation, Target, UserRound } from 'lucide-react';
 import { api, Workspace } from '../api';
+import AnswerRecorder from './AnswerRecorder';
 import './interview.css';
 
 type Evidence = { source: string; label: string; text: string; similarity: number };
@@ -34,6 +35,7 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
     const [fit, setFit] = useState<Fit | null>(null);
     const [fitError, setFitError] = useState('');
     const [questions, setQuestions] = useState<Questions | null>(null);
+    const [practising, setPractising] = useState('');
     useEffect(() => {
         setFit(null);
         setQuestions(null);
@@ -72,9 +74,10 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
             </>}
         </section>}
         <div className="section-heading"><h2>Interview rounds</h2><span>{!ready ? 'Unlocks when both steps above are done' : questions ? `${Object.values(questions.rounds).flat().length} questions picked for ${questions.job.title}` : 'Picking questions…'}</span></div>
-        {questions?.review_status.startsWith('draft') && <p className="coach-method">Questions are picked locally from a question bank that is still a draft awaiting review. Spoken practice is not built yet.</p>}
+        {questions?.review_status.startsWith('draft') && <p className="coach-method">Questions are picked locally from a question bank that is still a draft awaiting review. Spoken practice currently gives delivery feedback only; feedback on what you said comes in a later step.</p>}
         <div className="coach-rounds">{status.rounds.map(id => <article className="coach-round" key={id}>{id === 'self_introduction' ? <Presentation size={20} /> : <Mic size={20} />}<h3>{ROUND_INFO[id]?.title ?? id}</h3><p>{ROUND_INFO[id]?.detail}</p>
-            {questions ? <ol className="coach-questions">{(questions.rounds[id] || []).map((q, i) => <li key={`${q.id}-${i}`}>{q.text}<small className={q.requirement ? `coach-why ${q.requirement.status}` : 'coach-why'}>{q.reason}</small></li>)}</ol> : <span className="coach-badge">{ready ? 'Loading…' : 'Locked'}</span>}
+            {questions ? <ol className="coach-questions">{(questions.rounds[id] || []).map((q, i) => { const key = `${q.id}-${i}`; return <li key={key}>{q.text}<small className={q.requirement ? `coach-why ${q.requirement.status}` : 'coach-why'}>{q.reason}</small>
+                {practising === key ? <AnswerRecorder workspaceId={workspace.id} questionId={q.id} questionText={q.text} /> : <button type="button" className="text-button coach-practise" onClick={() => setPractising(key)}><Mic size={14} />Practise</button>}</li>; })}</ol> : <span className="coach-badge">{ready ? 'Loading…' : 'Locked'}</span>}
         </article>)}</div>
     </div>;
 }

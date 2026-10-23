@@ -29,4 +29,13 @@
 .interview-coach .coach-why { display: block; margin-top: 3px; font-size: 12px; opacity: .7; }
 .interview-coach .coach-why.strong { color: #2f6b45; opacity: 1; }
 .interview-coach .coach-why.gap { color: #a2422f; opacity: 1; }
+.interview-coach .coach-practise { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 13px; }
+.interview-coach .coach-recorder { margin-top: 8px; padding: 10px; border-radius: 12px; background: rgba(0, 0, 0, .035); }
+.interview-coach .coach-recorder-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.interview-coach .coach-recorder-actions button { display: inline-flex; align-items: center; gap: 6px; }
+.interview-coach .coach-result { margin-top: 10px; font-size: 13px; }
+.interview-coach .coach-transcript { margin: 0 0 8px; }
+.interview-coach .coach-metrics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.interview-coach .coach-metrics span { padding: 3px 9px; border-radius: 999px; background: #fff; border: 1px solid rgba(0, 0, 0, .08); }
+.interview-coach .coach-notes { margin: 0 0 6px; padding-left: 18px; }
 .interview-coach .coach-badge { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: rgba(0, 0, 0, .06); }
