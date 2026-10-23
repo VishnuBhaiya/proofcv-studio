@@ -2,9 +2,10 @@
 import base64
 import binascii
 import threading
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import content, factcheck, speech, star
+from . import attempts, content, factcheck, model_answer, speech, star
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
@@ -90,14 +91,35 @@ def answer(service, state, data):
     response = {'workspace_id': state['id'], 'question_id': question['id'], 'round': question['round'], 'transcript': result['text'], 'words': result['words'],
                 'model': result['model'], 'target_seconds': target, 'delivery': speech.delivery(result['words'], result['duration'], target)}
     backend = service.retriever.backend
+    confirmed = readiness(state)['profile_confirmed'] and bool(state.get('confirmed_profile'))
+    try:
+        job_fit_result = fit(service, state, data.get('job')) if confirmed else None
+    except ValueError:
+        job_fit_result = None  # No target job yet: feedback still works, the example answer needs a job.
     with _embedding_lock:
         if question['round'] == 'behavioural':
             response['star'] = star.analyse(result['text'], backend)
         if question.get('key_points'):
             response['content'] = content.score(result['text'], question['key_points'], backend)
-        if readiness(state)['profile_confirmed'] and state.get('confirmed_profile'):
+        if confirmed:
             response['fact_check'] = factcheck.check(result['text'], state['confirmed_profile'], backend, personal_story=question['round'] != 'technical')
+        if job_fit_result:
+            response['example_answer'] = model_answer.build(question, data.get('question_text') or question['text'], state['confirmed_profile'],
+                                                            job_fit_result['requirements'], job_fit_result['job'], backend,
+                                                            response.get('content'), data.get('requirement_id'))
+    response['progress'] = attempt_store(service).record(state['id'], question['id'], result['text'], attempts.summarise(response))
     return response
+
+
+_attempt_stores = {}
+
+
+def attempt_store(service):
+    """The module's own attempt database, next to the core database."""
+    path = str(Path(service.store.path).parent / 'interview.sqlite3')
+    if path not in _attempt_stores:
+        _attempt_stores[path] = attempts.AttemptStore(path)
+    return _attempt_stores[path]
 
 
 def handle_post(service, path, data):
@@ -109,10 +131,14 @@ def handle_post(service, path, data):
 
 
 def handle_get(service, url):
-    """GET /api/interview/<workspace_id>/(status|fit|questions)[?job=<document_id>]"""
+    """GET /api/interview/<workspace_id>/(status|fit|questions)[?job=<document_id>] and .../attempts?question=<id>"""
     split = urlsplit(url)
     parts = split.path.strip('/').split('/')
-    job_id = (parse_qs(split.query).get('job') or [None])[0]
+    query = parse_qs(split.query)
+    job_id = (query.get('job') or [None])[0]
+    if len(parts) == 4 and parts[3] == 'attempts':
+        state = service.store.get(parts[2])
+        return attempt_store(service).history(state['id'], (query.get('question') or [''])[0])
     if len(parts) == 4 and parts[3] == 'status':
         return readiness(service.store.get(parts[2]))
     if len(parts) == 4 and parts[3] == 'fit':

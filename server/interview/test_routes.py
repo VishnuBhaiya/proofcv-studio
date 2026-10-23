@@ -141,6 +141,25 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertNotIn('fact_check', result)
         self.assertNotIn('content', result)
 
+    def test_retries_are_numbered_compared_and_get_an_example_answer(self):
+        class FakeTranscriber:
+            texts = iter(['um I um built uh it um.', 'I built a lane detector and measured precision and recall.'])
+            def transcribe(self, audio):
+                text = next(self.texts)
+                return {'text': text, 'words': words(text), 'duration': 3, 'model': 'fake'}
+        state = self.confirmed_state()
+        body = {'question_id': 'mf-why-role', 'audio': base64.b64encode(b'x').decode(), 'question_text': 'Why do you want this role?'}
+        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+            first = json.loads(self.post_answer(state['id'], body)[1])
+            second = json.loads(self.post_answer(state['id'], body)[1])
+        self.assertEqual((first['progress']['attempt'], second['progress']['attempt']), (1, 2))
+        self.assertTrue(first['progress']['needs_work'])
+        fillers = next(c for c in second['progress']['changes'] if c['metric'] == 'fillers_per_minute')
+        self.assertEqual(fillers['direction'], 'better')
+        self.assertEqual(first['example_answer']['kind'], 'motivation')
+        history = json.loads(self.request('GET', f"/api/interview/{state['id']}/attempts?question=mf-why-role")[1])
+        self.assertEqual([h['attempt'] for h in history], [1, 2])
+
     def test_unknown_workspace_and_path_are_not_found(self):
         self.assertEqual(self.request('GET', '/api/interview/missing/status')[0], 404)
         self.assertEqual(self.request('GET', '/api/interview/x/unknown')[0], 404)

@@ -8,7 +8,12 @@ type Star = { sentences: { text: string; label: StarLabel; confidence: number; u
 type Content = { key_points: { text: string; status: 'covered' | 'partial' | 'missed'; similarity: number; quote: string | null }[]; score: number; notes: string[] };
 type Claim = { text: string; status: 'supported' | 'weak' | 'unmatched'; similarity: number; support: { label: string; text: string } | null; flags: { type: string; value: string; message: string }[] };
 type FactCheck = { claims: Claim[]; notes: string[] };
-type Answer = { question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content; fact_check?: FactCheck };
+type Change = { metric: string; label: string; before: number; after: number; direction: 'better' | 'worse' | 'same' };
+type Progress = { attempt: number; needs_work: string[]; changes: Change[] };
+type ExampleAnswer = { kind: string; parts: { label: string; text: string; source: string | null; placeholder: boolean }[]; text: string; note: string };
+type Answer = { question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content; fact_check?: FactCheck; progress: Progress; example_answer?: ExampleAnswer };
+const ARROW = { better: '↑', worse: '↓', same: '=' };
+const show = (metric: string, value: number) => metric === 'key_points' ? `${Math.round(value * 100)}%` : metric === 'length_gap' ? `${value}%` : String(value);
 const POINT_MARK = { covered: '✓', partial: '~', missed: '✗' };
 const CLAIM_LABEL = { supported: 'Matches your profile', weak: 'Loosely matches', unmatched: 'Not in your profile' };
 const STAR_PARTS: [Exclude<StarLabel, 'other'>, string][] = [['situation', 'Situation'], ['task', 'Task'], ['action', 'Action'], ['result', 'Result']];
@@ -29,7 +34,7 @@ export function speak(text: string) {
     window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 
-export default function AnswerRecorder({ workspaceId, questionId, questionText }: { workspaceId: string; questionId: string; questionText: string }) {
+export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId }: { workspaceId: string; questionId: string; questionText: string; jobId?: string; requirementId?: string }) {
     const [phase, setPhase] = useState<'idle' | 'recording' | 'processing'>('idle');
     const [seconds, setSeconds] = useState(0);
     const [answer, setAnswer] = useState<Answer | null>(null);
@@ -52,7 +57,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText }
                 setPhase('processing');
                 try {
                     const audio = await toBase64(new Blob(chunks, { type: media.mimeType }));
-                    setAnswer(await api<Answer>(`/interview/${workspaceId}/answer`, { question_id: questionId, audio }));
+                    setAnswer(await api<Answer>(`/interview/${workspaceId}/answer`, { question_id: questionId, audio, question_text: questionText, job: jobId, requirement_id: requirementId }));
                 } catch (e) {
                     setError(e instanceof Error ? e.message : 'Transcription failed.');
                 } finally {
@@ -79,6 +84,13 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText }
         </div>
         {error && <p className="live-error" role="alert">{error}</p>}
         {answer && d && <div className="coach-result">
+            <div className={`coach-verdict ${answer.progress.needs_work.length ? 'needs-work' : 'strong'}`}>
+                <strong>Attempt {answer.progress.attempt} · {answer.progress.needs_work.length ? 'Needs work' : 'Strong answer'}</strong>
+                {answer.progress.needs_work.length > 0 && <ul>{answer.progress.needs_work.map((r, i) => <li key={i}>{r}</li>)}</ul>}
+                {answer.progress.changes.length > 0 && <div className="coach-changes"><span>Since your last try:</span>{answer.progress.changes.some(c => c.direction !== 'same')
+                    ? answer.progress.changes.filter(c => c.direction !== 'same').map(c => <span key={c.metric} className={`change-${c.direction}`} title={c.label}>{ARROW[c.direction]} {c.label}: {show(c.metric, c.before)} → {show(c.metric, c.after)}</span>)
+                    : <span className="change-same">no measurable change yet</span>}</div>}
+            </div>
             <p className="coach-transcript"><strong>What Whisper heard:</strong> {answer.transcript || <em>nothing</em>}</p>
             <div className="coach-metrics">
                 <span><strong>{d.words_per_minute}</strong> words/min</span>
@@ -107,7 +119,13 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText }
                 </li>)}</ul>
                 <ul className="coach-notes">{answer.fact_check.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
             </div>}
-            <p className="coach-method">Transcribed on this computer by {answer.model}. The recording was not saved.</p>
+            {answer.example_answer && <details className="coach-example" open={answer.progress.needs_work.length > 0}>
+                <summary>Example answer from your confirmed facts</summary>
+                <ol>{answer.example_answer.parts.map((p, i) => <li key={i} className={p.placeholder ? 'example-prompt' : ''}><span className="example-label">{p.label}</span>{p.text}{p.source && <small>From {p.source}</small>}</li>)}</ol>
+                <p className="coach-method">{answer.example_answer.note}</p>
+                {answer.example_answer.text && <button type="button" className="text-button" onClick={() => speak(answer.example_answer!.text)}><Volume2 size={15} />Hear example</button>}
+            </details>}
+            <p className="coach-method">Transcribed on this computer by {answer.model}. The recording was not saved; the transcript and scores are kept on this computer to track your progress.</p>
         </div>}
     </div>;
 }

@@ -77,7 +77,7 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
         {questions?.review_status.startsWith('draft') && <p className="coach-method">Questions are picked locally from a question bank that is still a draft awaiting review. Spoken practice gives delivery feedback and a fact check for every answer, a STAR check for behavioural answers and key-point coverage for technical answers.</p>}
         <div className="coach-rounds">{status.rounds.map(id => <article className="coach-round" key={id}>{id === 'self_introduction' ? <Presentation size={20} /> : <Mic size={20} />}<h3>{ROUND_INFO[id]?.title ?? id}</h3><p>{ROUND_INFO[id]?.detail}</p>
             {questions ? <ol className="coach-questions">{(questions.rounds[id] || []).map((q, i) => { const key = `${q.id}-${i}`; return <li key={key}>{q.text}<small className={q.requirement ? `coach-why ${q.requirement.status}` : 'coach-why'}>{q.reason}</small>
-                {practising === key ? <AnswerRecorder workspaceId={workspace.id} questionId={q.id} questionText={q.text} /> : <button type="button" className="text-button coach-practise" onClick={() => setPractising(key)}><Mic size={14} />Practise</button>}</li>; })}</ol> : <span className="coach-badge">{ready ? 'Loading…' : 'Locked'}</span>}
+                {practising === key ? <AnswerRecorder workspaceId={workspace.id} questionId={q.id} questionText={q.text} jobId={questions.job.document_id} requirementId={q.requirement?.id} /> : <button type="button" className="text-button coach-practise" onClick={() => setPractising(key)}><Mic size={14} />Practise</button>}</li>; })}</ol> : <span className="coach-badge">{ready ? 'Loading…' : 'Locked'}</span>}
         </article>)}</div>
     </div>;
 }
