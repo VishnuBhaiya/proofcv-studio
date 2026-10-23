@@ -134,3 +134,6 @@
 .interview-coach .notes-prompt { padding: 0 3px; border-radius: 3px; background: rgba(196, 140, 30, .25); }
 .interview-coach .deck-rehearse { margin-top: 16px; }
 .interview-coach .deck-rehearse h4 { margin: 0 0 4px; }
+.interview-coach .coach-speak { display: inline-flex; flex-direction: column; gap: 2px; }
+.interview-coach .coach-speak button { display: inline-flex; align-items: center; gap: 6px; }
+.interview-coach .coach-speak small { color: #a2422f; font-size: 12px; }

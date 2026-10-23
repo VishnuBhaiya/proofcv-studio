@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Mic, Square, Volume2 } from 'lucide-react';
 import { api } from '../api';
+import { speak, SpeechState, stopSpeaking } from './speech';
 
 type Delivery = { word_count: number; speaking_seconds: number; words_per_minute: number; pauses: { after: string; seconds: number }[]; long_pauses: number; fillers: { word: string; start: number }[]; fillers_per_minute: number; thinking_seconds: number; duration: number; notes: string[] };
 type StarLabel = 'situation' | 'task' | 'action' | 'result' | 'other';
@@ -29,10 +30,15 @@ function toBase64(blob: Blob) {
     });
 }
 
-export function speak(text: string) {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+function SpeakButton({ text, label }: { text: string; label: string }) {
+    const [state, setState] = useState<SpeechState>('idle');
+    useEffect(() => () => { if (state === 'speaking') stopSpeaking(); }, [state]);
+    return <span className="coach-speak">
+        <button type="button" className="text-button" aria-pressed={state === 'speaking'} onClick={() => {
+            if (state === 'speaking') { stopSpeaking(); setState('idle'); } else speak(text, setState);
+        }}>{state === 'speaking' ? <><Square size={13} />Speaking… (click to stop)</> : <><Volume2 size={15} />{label}</>}</button>
+        {state === 'failed' && <small role="status">No sound played. Check that your volume is on, or open the app in Chrome.</small>}
+    </span>;
 }
 
 export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId, onResult, extra }: { workspaceId: string; questionId: string; questionText: string; jobId?: string; requirementId?: string; onResult?: () => void; extra?: Record<string, unknown> }) {
@@ -45,6 +51,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
     useEffect(() => () => { window.clearInterval(timer.current); recorder.current?.stream.getTracks().forEach(t => t.stop()); }, []);
 
     async function start() {
+        stopSpeaking(); // The read-aloud voice must not end up in the recording.
         setError('');
         setAnswer(null);
         try {
@@ -79,7 +86,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
     const d = answer?.delivery;
     return <div className="coach-recorder">
         <div className="coach-recorder-actions">
-            <button type="button" className="text-button" onClick={() => speak(questionText)}><Volume2 size={15} />Hear question</button>
+            <SpeakButton text={questionText} label="Hear question" />
             {phase === 'recording'
                 ? <button type="button" className="button dark" onClick={() => recorder.current?.stop()}><Square size={14} />Stop · {seconds}s</button>
                 : <button type="button" className="button dark" disabled={phase === 'processing'} onClick={() => void start()}><Mic size={15} />{phase === 'processing' ? 'Transcribing locally…' : answer ? 'Record again' : 'Record answer'}</button>}
@@ -131,7 +138,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 <summary>Example answer from your confirmed facts</summary>
                 <ol>{answer.example_answer.parts.map((p, i) => <li key={i} className={p.placeholder ? 'example-prompt' : ''}><span className="example-label">{p.label}</span>{p.text}{p.source && <small>From {p.source}</small>}</li>)}</ol>
                 <p className="coach-method">{answer.example_answer.note}</p>
-                {answer.example_answer.text && <button type="button" className="text-button" onClick={() => speak(answer.example_answer!.text)}><Volume2 size={15} />Hear example</button>}
+                {answer.example_answer.text && <SpeakButton text={answer.example_answer.text} label="Hear example" />}
             </details>}
             <p className="coach-method">Transcribed on this computer by {answer.model}. The recording was not saved; the transcript and scores are kept on this computer to track your progress.</p>
         </div></div>}

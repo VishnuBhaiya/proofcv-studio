@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Presentation } from 'lucide-react';
 import { api } from '../api';
-import AnswerRecorder, { speak } from './AnswerRecorder';
+import AnswerRecorder from './AnswerRecorder';
+import { speak } from './speech';
 import SlideDeck from './SlideDeck';
 import { Question, Questions, ROUND_INFO } from './types';
 
