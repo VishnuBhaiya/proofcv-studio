@@ -17,7 +17,8 @@ SUPPORTED_SIMILARITY = 0.45
 WEAK_SIMILARITY = 0.35
 FIRST_PERSON = re.compile(r"\b(i|i'm|i've|i'd|my|me|we|our|us)\b", re.I)
 # "I would report precision" describes what the speaker would do, not something they did.
-HYPOTHETICAL = re.compile(r"\b(i|we) (would|could|should|might|will)\b|\b(i|we)'(d|ll)\b", re.I)
+# "I'd" is hypothetical in "I'd use YOLO" but past ("I had") in "I'd deployed it on AWS".
+HYPOTHETICAL = re.compile(r"\b(i|we) (would|could|should|might|will)\b|\b(i|we)'ll\b|\b(i|we)'d (?!\w+ed\b|(been|built|done|made|led|run|won|got|had|taken|written|seen|worked)\b)", re.I)
 # Greetings and thanks ("Hi, I'm Avery.", "Thank you.") are not claims about experience.
 COURTESY = re.compile(r"^\W*(hi|hello|hey|good (morning|afternoon|evening)|thanks|thank you)\b", re.I)
 LEADERSHIP_CLAIM = re.compile(r"\b(i (led|managed|supervised|ran the team)|i was the (lead|leader|manager|captain)|team lead|in charge of (a|the) team)\b", re.I)
@@ -81,7 +82,7 @@ def check(transcript, profile, backend, personal_story=True):
         for tool in TOOLS:
             said = re.search(keyword_pattern(tool).pattern, claim, re.I) if tool not in profile_tools else None
             if said:
-                flags.append({'type': 'tool', 'value': tool, 'message': f'You mentioned {said.group(0)}, which is not in your confirmed profile.'})
+                flags.append({'type': 'tool', 'value': tool, 'said': said.group(0), 'message': f'You mentioned {said.group(0)}, which is not in your confirmed profile.'})
         if LEADERSHIP_CLAIM.search(claim) and not shows_leadership:
             flags.append({'type': 'leadership', 'value': LEADERSHIP_CLAIM.search(claim).group(0), 'message': 'This is a leadership claim, but nothing in your confirmed profile shows leading others.'})
         best = int(similarities[i].argmax()) if units else None

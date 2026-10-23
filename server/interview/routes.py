@@ -5,7 +5,7 @@ import threading
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, content, factcheck, mock, model_answer, slides, speech, star
+from . import attempts, content, factcheck, followup, mock, model_answer, slides, speech, star
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
@@ -87,10 +87,13 @@ def answer(service, state, data):
         raise ValueError('Audio must be base64 encoded.')
     if not 0 < len(audio) <= MAX_AUDIO_BYTES:
         raise ValueError('Recording is empty or longer than about five minutes.')
-    target = question.get('seconds') or ROUND_TARGET_SECONDS.get(question['round'])
+    asked = data.get('follow_up') if isinstance(data.get('follow_up'), dict) else None  # Answering an interviewer follow-up.
+    depth = int(asked.get('depth', 1)) if asked else 0
+    target = followup.FOLLOW_UP_SECONDS if asked else question.get('seconds') or ROUND_TARGET_SECONDS.get(question['round'])
     job_title = next((j['title'] for j in service.jobs if j['document_id'] == data.get('job')), None) or ((state.get('draft') or {}).get('job') or {}).get('title')
     result = speech.transcriber().transcribe(audio, speech.expected_words(state.get('confirmed_profile') or state.get('profile'), job_title))
-    response = {'workspace_id': state['id'], 'question_id': question['id'], 'round': question['round'], 'transcript': result['text'], 'words': result['words'],
+    response = {'workspace_id': state['id'], 'question_id': question['id'], 'round': question['round'], 'follow_up_of': asked['question'] if asked else None,
+                'transcript': result['text'], 'words': result['words'],
                 'model': result['model'], 'target_seconds': target, 'delivery': speech.delivery(result['words'], result['duration'], target)}
     if result.get('audio', {}).get('rms_db', 0) < QUIET_RMS_DB:
         response['delivery']['notes'].insert(0, 'Your microphone level was very low, which makes the transcript less accurate. Move closer or check the input device in your system sound settings.')
@@ -102,20 +105,25 @@ def answer(service, state, data):
     except ValueError:
         job_fit_result = None  # No target job yet: feedback still works, the example answer needs a job.
     with _embedding_lock:
-        if question['round'] == 'behavioural':
+        # A follow-up answer is one part of a story, so it gets no STAR check or example answer;
+        # a follow-up about a missed key point is scored on that point only.
+        if question['round'] == 'behavioural' and not asked:
             response['star'] = star.analyse(result['text'], backend)
-        if question.get('key_points'):
-            response['content'] = content.score(result['text'], question['key_points'], backend)
+        key_points = ([asked['key_point']] if asked.get('key_point') else []) if asked else question.get('key_points')
+        if key_points:
+            response['content'] = content.score(result['text'], key_points, backend)
         if confirmed:
             response['fact_check'] = factcheck.check(result['text'], state['confirmed_profile'], backend, personal_story=question['round'] != 'technical')
-        if job_fit_result:
+        if job_fit_result and not asked:
             response['example_answer'] = model_answer.build(question, data.get('question_text') or question['text'], state['confirmed_profile'],
                                                             job_fit_result['requirements'], job_fit_result['job'], backend,
                                                             response.get('content'), data.get('requirement_id'))
         if job_fit_result and data.get('rehearsal'):
             response['slide_coverage'] = slide_coverage(result['text'], slides.build(state['confirmed_profile'], job_fit_result['requirements'], job_fit_result['job'], backend), backend)
-    response['progress'] = attempt_store(service).record(state['id'], question['id'], result['text'], attempts.summarise(response))
-    if data.get('mock_session'):
+    response['progress'] = attempt_store(service).record(state['id'], f"{question['id']}:follow-up" if asked else question['id'], result['text'], attempts.summarise(response))
+    if not data.get('mock_session'):  # A mock interview keeps all feedback for its report.
+        response['follow_up'] = followup.follow_up(question, response, depth)
+    if data.get('mock_session') and not asked:
         attempt_store(service).link_answer(state['id'], data['mock_session'], int(data.get('mock_position', -1)), response['progress']['id'])
     return response
 

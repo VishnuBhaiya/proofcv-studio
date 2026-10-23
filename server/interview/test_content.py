@@ -89,6 +89,11 @@ class FactCheckTests(unittest.TestCase):
         result = check("I would report precision and recall. I'd use YOLO. I'll check IoU. I used YOLO in the warehouse.", PROFILE, TopicBackend())
         self.assertEqual([c['text'] for c in result['claims']], ['I used YOLO in the warehouse.'])
 
+    def test_id_with_a_past_verb_is_a_real_claim(self):
+        result = check("I'd use YOLO there. In the warehouse project I'd deployed it on Kubernetes.", PROFILE, TopicBackend())
+        self.assertEqual([c['text'] for c in result['claims']], ["In the warehouse project I'd deployed it on Kubernetes."])
+        self.assertEqual(result['claims'][0]['flags'][0]['value'], 'kubernetes')
+
     def test_greetings_and_thanks_are_not_claims(self):
         result = check("Hi, I'm Sam. Thank you for having me. I used YOLO in the warehouse.", PROFILE, TopicBackend())
         self.assertEqual([c['text'] for c in result['claims']], ['I used YOLO in the warehouse.'])

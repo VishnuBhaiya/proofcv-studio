@@ -225,6 +225,27 @@ class InterviewRouteTests(unittest.TestCase):
         other = self.create()
         self.assertEqual(self.request('GET', f"/api/interview/{other['id']}/mock/{session['id']}")[0], 404)
 
+    def test_follow_up_is_asked_and_its_answer_is_scored_on_its_own(self):
+        class FakeTranscriber:
+            def transcribe(self, audio, prompt=None):
+                text = 'I would report precision and recall for each class.'
+                return {'text': text, 'words': words(text), 'duration': 4, 'model': 'fake'}
+        state = self.confirmed_state()
+        body = {'question_id': 'tq-detection-eval', 'audio': base64.b64encode(b'x').decode()}
+        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+            first = json.loads(self.post_answer(state['id'], body)[1])
+            asked = first['follow_up']
+            self.assertEqual(asked['depth'], 1)
+            second = json.loads(self.post_answer(state['id'], {**body, 'follow_up': asked})[1])
+        self.assertEqual(second['follow_up_of'], asked['question'])
+        self.assertEqual(second['target_seconds'], 45)
+        self.assertNotIn('example_answer', second)
+        if asked.get('key_point'):
+            self.assertEqual([k['text'] for k in second['content']['key_points']], [asked['key_point']])
+        self.assertEqual(second['follow_up']['depth'], 2)
+        overview = json.loads(self.request('GET', f"/api/interview/{state['id']}/attempts")[1])
+        self.assertEqual((overview['tq-detection-eval']['attempts'], overview['tq-detection-eval:follow-up']['attempts']), (1, 1))
+
     def test_unknown_workspace_and_path_are_not_found(self):
         self.assertEqual(self.request('GET', '/api/interview/missing/status')[0], 404)
         self.assertEqual(self.request('GET', '/api/interview/x/unknown')[0], 404)

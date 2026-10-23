@@ -13,7 +13,8 @@ type Change = { metric: string; label: string; before: number; after: number; di
 type Progress = { attempt: number; needs_work: string[]; changes: Change[] };
 type ExampleAnswer = { kind: string; parts: { label: string; text: string; source: string | null; placeholder: boolean }[]; text: string; note: string };
 type SlideCoverage = { slides: { title: string; status: 'covered' | 'partial' | 'missed'; quote: string | null }[]; covered: number; total: number; notes: string[] };
-type Answer = { question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content; fact_check?: FactCheck; progress: Progress; example_answer?: ExampleAnswer; slide_coverage?: SlideCoverage };
+type FollowUp = { question: string; why: string; kind: string; key_point: string | null; depth: number };
+type Answer = { follow_up?: FollowUp | null; follow_up_of?: string | null; question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content; fact_check?: FactCheck; progress: Progress; example_answer?: ExampleAnswer; slide_coverage?: SlideCoverage };
 const ARROW = { better: '↑', worse: '↓', same: '=' };
 const show = (metric: string, value: number) => metric === 'key_points' ? `${Math.round(value * 100)}%` : metric === 'length_gap' ? `${value}%` : String(value);
 const POINT_MARK = { covered: '✓', partial: '~', missed: '✗' };
@@ -46,6 +47,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
     const [seconds, setSeconds] = useState(0);
     const [answer, setAnswer] = useState<Answer | null>(null);
     const [error, setError] = useState('');
+    const [answeringFollowUp, setAnsweringFollowUp] = useState(false);
     const recorder = useRef<MediaRecorder | null>(null);
     const timer = useRef<number | undefined>(undefined);
     useEffect(() => () => { window.clearInterval(timer.current); recorder.current?.stream.getTracks().forEach(t => t.stop()); }, []);
@@ -54,6 +56,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
         stopSpeaking(); // The read-aloud voice must not end up in the recording.
         setError('');
         setAnswer(null);
+        setAnsweringFollowUp(false);
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const chunks: Blob[] = [];
@@ -142,6 +145,18 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 {answer.example_answer.text && <SpeakButton text={answer.example_answer.text} label="Hear example" />}
             </details>}
             <p className="coach-method">Transcribed on this computer by {answer.model}. The recording was not saved; the transcript and scores are kept on this computer to track your progress.</p>
-        </div></div>}
+        </div>
+        {answer.follow_up && <div className="coach-follow-up">
+            <span className="example-label">Interviewer follow-up</span>
+            <p className="follow-up-question">{answer.follow_up.question}</p>
+            <small>Why: {answer.follow_up.why}</small>
+            <div className="coach-recorder-actions">
+                <SpeakButton text={answer.follow_up.question} label="Hear it" />
+                {!answeringFollowUp && <button type="button" className="button subtle" onClick={() => setAnsweringFollowUp(true)}><Mic size={15} />Answer the follow-up</button>}
+            </div>
+            {answeringFollowUp && <AnswerRecorder key={answer.follow_up.question} workspaceId={workspaceId} questionId={questionId} questionText={answer.follow_up.question}
+                jobId={jobId} requirementId={requirementId} onResult={onResult} extra={{ ...extra, follow_up: answer.follow_up }} />}
+        </div>}
+        </div>}
     </div>;
 }
