@@ -4,7 +4,7 @@ import json
 import unittest
 from unittest import mock
 from .. import test_http
-from . import speech, star
+from . import content, factcheck, speech, star
 from .test_speech import words
 from ..retrieval import InspectableHashEmbeddingBackend, JobRetriever
 from .test_fit import PROFILE
@@ -116,6 +116,30 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertEqual(self.post_answer(workspace['id'], {'question_id': 'nope', 'audio': 'AAAA'})[0], 400)
         self.assertEqual(self.post_answer(workspace['id'], {'question_id': 'si-30', 'audio': 'not base64!'})[0], 400)
         self.assertEqual(self.post_answer(workspace['id'], {'question_id': 'si-30', 'audio': ''})[0], 400)
+
+    def test_technical_answer_gets_key_points_and_fact_check_on_confirmed_profile(self):
+        class FakeTranscriber:
+            def transcribe(self, audio):
+                return {'text': 'I would report precision and recall.', 'words': words('I would report precision and recall.'), 'duration': 3, 'model': 'fake'}
+        state = self.confirmed_state()
+        with mock.patch.object(speech, '_transcriber', FakeTranscriber()), \
+                mock.patch.object(content, 'score', return_value={'key_points': [], 'score': 0.5, 'notes': []}) as score, \
+                mock.patch.object(factcheck, 'check', return_value={'claims': [], 'notes': ['ok']}) as check:
+            result = json.loads(self.post_answer(state['id'], {'question_id': 'tq-detection-eval', 'audio': base64.b64encode(b'x').decode()})[1])
+        self.assertEqual(score.call_args[0][1][1], 'Precision and recall')
+        self.assertEqual(check.call_args[0][1], PROFILE)
+        self.assertFalse(check.call_args[1]['personal_story'])
+        self.assertEqual((result['content']['score'], result['fact_check']['notes']), (0.5, ['ok']))
+        self.assertNotIn('star', result)
+
+    def test_no_fact_check_without_a_confirmed_profile(self):
+        class FakeTranscriber:
+            def transcribe(self, audio):
+                return {'text': 'I built it.', 'words': words('I built it.'), 'duration': 1, 'model': 'fake'}
+        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+            result = json.loads(self.post_answer(self.create()['id'], {'question_id': 'mf-why-role', 'audio': base64.b64encode(b'x').decode()})[1])
+        self.assertNotIn('fact_check', result)
+        self.assertNotIn('content', result)
 
     def test_unknown_workspace_and_path_are_not_found(self):
         self.assertEqual(self.request('GET', '/api/interview/missing/status')[0], 404)

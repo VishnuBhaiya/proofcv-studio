@@ -51,4 +51,19 @@
 .interview-coach .star-action { border-left-color: #2f6b45 !important; }
 .interview-coach .star-result { border-left-color: #7a4fa0 !important; }
 .interview-coach .star-other { opacity: .6; }
+.interview-coach .coach-section { margin: 10px 0 6px; padding-top: 10px; border-top: 1px solid rgba(0, 0, 0, .08); }
+.interview-coach .coach-section h4 { margin: 0 0 6px; font-size: 13px; }
+.interview-coach .coach-points, .interview-coach .coach-claims { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 5px; }
+.interview-coach .coach-points li { display: flex; gap: 8px; }
+.interview-coach .coach-points small, .interview-coach .coach-claims small { display: block; margin-top: 2px; opacity: .7; }
+.interview-coach .point-mark { font-weight: 700; width: 12px; }
+.interview-coach .point-covered .point-mark { color: #2f6b45; }
+.interview-coach .point-partial .point-mark { color: #8a6418; }
+.interview-coach .point-missed { opacity: .8; }
+.interview-coach .point-missed .point-mark { color: #a2422f; }
+.interview-coach .coach-claims li { padding: 6px 8px; background: #fff; border-radius: 6px; border-left: 3px solid #2f6b45; }
+.interview-coach .coach-claims li.claim-weak { border-left-color: #8a6418; }
+.interview-coach .coach-claims li.claim-unmatched, .interview-coach .coach-claims li.claim-flagged { border-left-color: #a2422f; }
+.interview-coach .claim-status { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
+.interview-coach .coach-claims .claim-flag { color: #a2422f; opacity: 1; }
 .interview-coach .coach-badge { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: rgba(0, 0, 0, .06); }

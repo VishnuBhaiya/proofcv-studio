@@ -5,7 +5,12 @@ import { api } from '../api';
 type Delivery = { word_count: number; speaking_seconds: number; words_per_minute: number; pauses: { after: string; seconds: number }[]; long_pauses: number; fillers: { word: string; start: number }[]; fillers_per_minute: number; thinking_seconds: number; duration: number; notes: string[] };
 type StarLabel = 'situation' | 'task' | 'action' | 'result' | 'other';
 type Star = { sentences: { text: string; label: StarLabel; confidence: number; uncertain: boolean }[]; present: Record<Exclude<StarLabel, 'other'>, boolean>; notes: string[]; model: { trained_on: { stories: number; sentences: number } } };
-type Answer = { question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star };
+type Content = { key_points: { text: string; status: 'covered' | 'partial' | 'missed'; similarity: number; quote: string | null }[]; score: number; notes: string[] };
+type Claim = { text: string; status: 'supported' | 'weak' | 'unmatched'; similarity: number; support: { label: string; text: string } | null; flags: { type: string; value: string; message: string }[] };
+type FactCheck = { claims: Claim[]; notes: string[] };
+type Answer = { question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content; fact_check?: FactCheck };
+const POINT_MARK = { covered: '✓', partial: '~', missed: '✗' };
+const CLAIM_LABEL = { supported: 'Matches your profile', weak: 'Loosely matches', unmatched: 'Not in your profile' };
 const STAR_PARTS: [Exclude<StarLabel, 'other'>, string][] = [['situation', 'Situation'], ['task', 'Task'], ['action', 'Action'], ['result', 'Result']];
 const MAX_SECONDS = 300;
 
@@ -87,6 +92,20 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText }
                 <ol className="coach-star-sentences">{answer.star.sentences.map((s, i) => <li key={i} className={`star-${s.label}`}><span className="star-tag" title={`Confidence ${Math.round(s.confidence * 100)}%`}>{s.label}{s.uncertain ? '?' : ''}</span>{s.text}</li>)}</ol>
                 <ul className="coach-notes">{answer.star.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
                 <p className="coach-method">STAR labels come from our own classifier, trained on {answer.star.model.trained_on.sentences} labelled sentences. “?” marks a low-confidence label.</p>
+            </div>}
+            {answer.content && <div className="coach-section">
+                <h4>Key points: {answer.content.key_points.filter(k => k.status === 'covered').length} of {answer.content.key_points.length} covered</h4>
+                <ul className="coach-points">{answer.content.key_points.map((k, i) => <li key={i} className={`point-${k.status}`}><span className="point-mark">{POINT_MARK[k.status]}</span><div>{k.text}{k.quote && <small>You said: “{k.quote}”</small>}</div></li>)}</ul>
+                <p className="coach-method">Matched locally with MiniLM against the question’s expected key points. This checks coverage, not whether every statement is correct.</p>
+            </div>}
+            {answer.fact_check && answer.fact_check.claims.length > 0 && <div className="coach-section">
+                <h4>Fact check against your confirmed profile</h4>
+                <ul className="coach-claims">{answer.fact_check.claims.map((c, i) => <li key={i} className={`claim-${c.status}${c.flags.length ? ' claim-flagged' : ''}`}>
+                    <span className="claim-status">{CLAIM_LABEL[c.status]}</span>“{c.text}”
+                    {c.support && <small>Closest fact · {c.support.label}: {c.support.text}</small>}
+                    {c.flags.map((f, j) => <small className="claim-flag" key={j}>⚠ {f.message}</small>)}
+                </li>)}</ul>
+                <ul className="coach-notes">{answer.fact_check.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
             </div>}
             <p className="coach-method">Transcribed on this computer by {answer.model}. The recording was not saved.</p>
         </div>}
