@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Presentation } from 'lucide-react';
 import { api } from '../api';
 import AnswerRecorder, { speak } from './AnswerRecorder';
+import SlideDeck from './SlideDeck';
 import { Question, Questions, ROUND_INFO } from './types';
 
 type Overview = Record<string, { attempts: number; needs_work: string[] }>;
@@ -13,6 +14,7 @@ export default function InterviewRoom({ workspaceId, questions }: { workspaceId:
     const [index, setIndex] = useState(0);
     const [overview, setOverview] = useState<Overview>({});
     const [readAloud, setReadAloud] = useState(false);
+    const [deckOpen, setDeckOpen] = useState(false);
     const refresh = () => api<Overview>(`/interview/${workspaceId}/attempts`).then(setOverview).catch(() => undefined);
     useEffect(() => { void refresh(); }, [workspaceId]);
     const list = questions.rounds[round] || [];
@@ -33,6 +35,10 @@ export default function InterviewRoom({ workspaceId, questions }: { workspaceId:
             })}</div>
             <label className="room-aloud"><input type="checkbox" checked={readAloud} onChange={e => setReadAloud(e.target.checked)} />Read each question aloud</label>
         </div>
+        {round === 'self_introduction' && <div className="room-deck">
+            <button type="button" className="button subtle" aria-expanded={deckOpen} onClick={() => setDeckOpen(v => !v)}><Presentation size={15} />{deckOpen ? 'Hide slide deck' : 'Open your 2-minute introduction slide deck'}</button>
+            {deckOpen && <SlideDeck workspaceId={workspaceId} jobId={questions.job.document_id} />}
+        </div>}
         <div className="room-steps" aria-label={`${ROUND_INFO[round].title} questions`}>{list.map((q, i) =>
             <button type="button" key={`${q.id}-${i}`} className={`room-step ${status(q)} ${i === index ? 'current' : ''}`} aria-current={i === index ? 'step' : undefined}
                 title={`${q.text} (${STATUS_LABEL[status(q)]})`} onClick={() => setIndex(i)}>{i + 1}</button>)}

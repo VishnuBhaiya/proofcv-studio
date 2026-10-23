@@ -47,7 +47,8 @@ def make_handler(service):
                     self.send(200, service.store.get(path.split('/')[-1]))
                 elif path.startswith('/api/interview/'):
                     from .interview.routes import handle_get as interview_get
-                    self.send(200, interview_get(service, self.path))
+                    result = interview_get(service, self.path)
+                    self.send(200, result, 'application/pdf') if isinstance(result, bytes) else self.send(200, result)
                 elif path.startswith('/api/'):
                     self.send(404, {'error': 'Endpoint not found.'})
                 else:

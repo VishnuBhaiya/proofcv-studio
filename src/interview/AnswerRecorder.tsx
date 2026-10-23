@@ -11,7 +11,8 @@ type FactCheck = { claims: Claim[]; notes: string[] };
 type Change = { metric: string; label: string; before: number; after: number; direction: 'better' | 'worse' | 'same' };
 type Progress = { attempt: number; needs_work: string[]; changes: Change[] };
 type ExampleAnswer = { kind: string; parts: { label: string; text: string; source: string | null; placeholder: boolean }[]; text: string; note: string };
-type Answer = { question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content; fact_check?: FactCheck; progress: Progress; example_answer?: ExampleAnswer };
+type SlideCoverage = { slides: { title: string; status: 'covered' | 'partial' | 'missed'; quote: string | null }[]; covered: number; total: number; notes: string[] };
+type Answer = { question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content; fact_check?: FactCheck; progress: Progress; example_answer?: ExampleAnswer; slide_coverage?: SlideCoverage };
 const ARROW = { better: '↑', worse: '↓', same: '=' };
 const show = (metric: string, value: number) => metric === 'key_points' ? `${Math.round(value * 100)}%` : metric === 'length_gap' ? `${value}%` : String(value);
 const POINT_MARK = { covered: '✓', partial: '~', missed: '✗' };
@@ -34,7 +35,7 @@ export function speak(text: string) {
     window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 
-export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId, onResult }: { workspaceId: string; questionId: string; questionText: string; jobId?: string; requirementId?: string; onResult?: () => void }) {
+export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId, onResult, extra }: { workspaceId: string; questionId: string; questionText: string; jobId?: string; requirementId?: string; onResult?: () => void; extra?: Record<string, unknown> }) {
     const [phase, setPhase] = useState<'idle' | 'recording' | 'processing'>('idle');
     const [seconds, setSeconds] = useState(0);
     const [answer, setAnswer] = useState<Answer | null>(null);
@@ -57,7 +58,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 setPhase('processing');
                 try {
                     const audio = await toBase64(new Blob(chunks, { type: media.mimeType }));
-                    setAnswer(await api<Answer>(`/interview/${workspaceId}/answer`, { question_id: questionId, audio, question_text: questionText, job: jobId, requirement_id: requirementId }));
+                    setAnswer(await api<Answer>(`/interview/${workspaceId}/answer`, { ...extra, question_id: questionId, audio, question_text: questionText, job: jobId, requirement_id: requirementId }));
                     onResult?.();
                 } catch (e) {
                     setError(e instanceof Error ? e.message : 'Transcription failed.');
@@ -107,6 +108,11 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 <p className="coach-method">STAR labels come from our own classifier, trained on {answer.star.model.trained_on.sentences} labelled sentences. “?” marks a low-confidence label.</p>
             </div>}
             </div><div className="coach-col">
+            {answer.slide_coverage && <div className="coach-section">
+                <h4>Slides you talked about: {answer.slide_coverage.covered} of {answer.slide_coverage.total}</h4>
+                <ul className="coach-points">{answer.slide_coverage.slides.map((s, i) => <li key={i} className={`point-${s.status}`}><span className="point-mark">{POINT_MARK[s.status]}</span><div>{s.title}{s.quote && <small>You said: “{s.quote}”</small>}</div></li>)}</ul>
+                <ul className="coach-notes">{answer.slide_coverage.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+            </div>}
             {answer.content && <div className="coach-section">
                 <h4>Key points: {answer.content.key_points.filter(k => k.status === 'covered').length} of {answer.content.key_points.length} covered</h4>
                 <ul className="coach-points">{answer.content.key_points.map((k, i) => <li key={i} className={`point-${k.status}`}><span className="point-mark">{POINT_MARK[k.status]}</span><div>{k.text}{k.quote && <small>You said: “{k.quote}”</small>}</div></li>)}</ul>

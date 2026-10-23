@@ -89,6 +89,10 @@ class FactCheckTests(unittest.TestCase):
         result = check("I would report precision and recall. I'd use YOLO. I'll check IoU. I used YOLO in the warehouse.", PROFILE, TopicBackend())
         self.assertEqual([c['text'] for c in result['claims']], ['I used YOLO in the warehouse.'])
 
+    def test_greetings_and_thanks_are_not_claims(self):
+        result = check("Hi, I'm Sam. Thank you for having me. I used YOLO in the warehouse.", PROFILE, TopicBackend())
+        self.assertEqual([c['text'] for c in result['claims']], ['I used YOLO in the warehouse.'])
+
     def test_numbers_in_profile_are_not_flagged(self):
         claim = check('I processed 200 clips of warehouse video.', PROFILE, TopicBackend())['claims'][0]
         self.assertEqual(claim['flags'], [])

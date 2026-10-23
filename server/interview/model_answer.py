@@ -11,6 +11,7 @@ import re
 
 import numpy as np
 
+from .factcheck import TOOLS
 from .fit import sentences
 from .star import classifier
 
@@ -46,9 +47,11 @@ def clauses(sentence):
 
 
 def lower_first(sentence):
-    """Lower-case the first letter mid-sentence, unless it starts a name such as 'YOLO' or 'Artificial Intelligence'."""
+    """Lower-case the first letter mid-sentence, unless it starts a name such as 'YOLO', 'Python', 'TensorFlow' or 'Artificial Intelligence'."""
     words = sentence.split(' ')
-    if sentence[:2].isupper() or sentence.startswith('I ') or (len(words) > 1 and words[1][:1].isupper()):
+    first = words[0].strip(',.')
+    if (sentence[:2].isupper() or sentence.startswith('I ') or (len(words) > 1 and words[1][:1].isupper())
+            or first.lower() in TOOLS or any(c.isupper() for c in first[1:])):
         return sentence
     return sentence[:1].lower() + sentence[1:]
 

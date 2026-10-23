@@ -5,7 +5,7 @@ import threading
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, content, factcheck, model_answer, speech, star
+from . import attempts, content, factcheck, model_answer, slides, speech, star
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
@@ -107,8 +107,27 @@ def answer(service, state, data):
             response['example_answer'] = model_answer.build(question, data.get('question_text') or question['text'], state['confirmed_profile'],
                                                             job_fit_result['requirements'], job_fit_result['job'], backend,
                                                             response.get('content'), data.get('requirement_id'))
+        if job_fit_result and data.get('rehearsal'):
+            response['slide_coverage'] = slide_coverage(result['text'], slides.build(state['confirmed_profile'], job_fit_result['requirements'], job_fit_result['job'], backend), backend)
     response['progress'] = attempt_store(service).record(state['id'], question['id'], result['text'], attempts.summarise(response))
     return response
+
+
+def slide_coverage(transcript, deck, backend):
+    """Which slides the spoken rehearsal actually talked about, using the key-point matcher."""
+    covered = [s for s in deck['slides'] if s['point']]
+    scored = content.score(transcript, [s['point'] for s in covered], backend)['key_points'] if covered else []
+    items = [{'title': s['title'], 'status': k['status'], 'quote': k['quote']} for s, k in zip(covered, scored)]
+    missed = [i['title'] for i in items if i['status'] == 'missed']
+    notes = [f"You didn't talk about: {', '.join(missed)}." if missed else 'You talked about every slide.']
+    return {'slides': items, 'covered': sum(i['status'] != 'missed' for i in items), 'total': len(items), 'notes': notes}
+
+
+def deck(service, state, job_id=None):
+    """The self-introduction deck for the target job or a matched job."""
+    result = fit(service, state, job_id)
+    with _embedding_lock:
+        return slides.build(state['confirmed_profile'], result['requirements'], result['job'], service.retriever.backend)
 
 
 _attempt_stores = {}
@@ -147,4 +166,8 @@ def handle_get(service, url):
         return fit(service, service.store.get(parts[2]), job_id)
     if len(parts) == 4 and parts[3] == 'questions':
         return questions(service, service.store.get(parts[2]), job_id)
+    if len(parts) == 4 and parts[3] == 'slides':
+        return deck(service, service.store.get(parts[2]), job_id)
+    if len(parts) == 4 and parts[3] == 'slides.pdf':
+        return slides.render_pdf(deck(service, service.store.get(parts[2]), job_id))
     raise ValueError('Endpoint not found.')

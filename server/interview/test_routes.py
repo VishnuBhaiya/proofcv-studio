@@ -2,6 +2,7 @@
 import base64
 import json
 import unittest
+from http.client import HTTPConnection
 from unittest import mock
 from .. import test_http
 from . import content, factcheck, speech, star
@@ -163,6 +164,35 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertEqual(list(overview), ['mf-why-role'])
         self.assertEqual(overview['mf-why-role']['attempts'], 2)
         self.assertEqual(overview['mf-why-role']['needs_work'], second['progress']['needs_work'])
+
+    def test_slides_are_served_as_json_and_pdf(self):
+        state = self.confirmed_state()
+        deck = json.loads(self.request('GET', f"/api/interview/{state['id']}/slides?job=graduate_ai_engineer")[1])
+        self.assertEqual(deck['job']['document_id'], 'graduate_ai_engineer')
+        self.assertEqual(deck['slides'][0]['kind'], 'title')
+        connection = HTTPConnection('127.0.0.1', self.server.server_port, timeout=10)
+        try:
+            connection.request('GET', f"/api/interview/{state['id']}/slides.pdf")
+            response = connection.getresponse()
+            self.assertEqual((response.status, response.getheader('Content-Type')), (200, 'application/pdf'))
+            self.assertTrue(response.read().startswith(b'%PDF'))
+        finally:
+            connection.close()
+        self.assertEqual(self.request('GET', f"/api/interview/{self.create()['id']}/slides")[0], 404)
+
+    def test_rehearsal_reports_which_slides_were_covered(self):
+        class FakeTranscriber:
+            def transcribe(self, audio):
+                text = 'I built a lane detector and measured precision and recall.'
+                return {'text': text, 'words': words(text), 'duration': 4, 'model': 'fake'}
+        state = self.confirmed_state()
+        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+            result = json.loads(self.post_answer(state['id'], {'question_id': 'si-120', 'audio': base64.b64encode(b'x').decode(), 'rehearsal': True})[1])
+            plain = json.loads(self.post_answer(state['id'], {'question_id': 'si-120', 'audio': base64.b64encode(b'x').decode()})[1])
+        coverage = result['slide_coverage']
+        self.assertEqual(coverage['total'], len(coverage['slides']))
+        self.assertTrue(coverage['notes'])
+        self.assertNotIn('slide_coverage', plain)
 
     def test_unknown_workspace_and_path_are_not_found(self):
         self.assertEqual(self.request('GET', '/api/interview/missing/status')[0], 404)

@@ -18,6 +18,8 @@ WEAK_SIMILARITY = 0.35
 FIRST_PERSON = re.compile(r"\b(i|i'm|i've|i'd|my|me|we|our|us)\b", re.I)
 # "I would report precision" describes what the speaker would do, not something they did.
 HYPOTHETICAL = re.compile(r"\b(i|we) (would|could|should|might|will)\b|\b(i|we)'(d|ll)\b", re.I)
+# Greetings and thanks ("Hi, I'm Avery.", "Thank you.") are not claims about experience.
+COURTESY = re.compile(r"^\W*(hi|hello|hey|good (morning|afternoon|evening)|thanks|thank you)\b", re.I)
 LEADERSHIP_CLAIM = re.compile(r"\b(i (led|managed|supervised|ran the team)|i was the (lead|leader|manager|captain)|team lead|in charge of (a|the) team)\b", re.I)
 LEADERSHIP_EVIDENCE = re.compile(r"\b(led|leader|leading|team lead|managed a|supervised|captain\w*|mentor\w*|head of|in charge of)\b", re.I)
 TOOLS = ('python', 'java', 'c++', 'sql', 'pytorch', 'tensorflow', 'keras', 'scikit-learn', 'numpy', 'pandas', 'opencv', 'yolo',
@@ -60,7 +62,7 @@ def check(transcript, profile, backend, personal_story=True):
     "a threshold like 0.5" is not flagged.
     """
     claims = [s for s in split_sentences(transcript)
-              if (FIRST_PERSON.search(s) or (personal_story and re.search(r'\d', s))) and not HYPOTHETICAL.search(s)]
+              if (FIRST_PERSON.search(s) or (personal_story and re.search(r'\d', s))) and not HYPOTHETICAL.search(s) and not COURTESY.search(s)]
     units = evidence_units(profile)
     if not claims:
         return {'claims': [], 'notes': ['No first-person claims to check.']}
