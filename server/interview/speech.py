@@ -14,8 +14,11 @@ WHISPER_MODEL = 'base.en'
 FILLER_PROMPT = 'Umm, let me think, uh, like, hmm. Okay, so, um, here is what I, uh, did.'
 FILLERS = {'um', 'umm', 'uh', 'uhh', 'er', 'erm', 'ah', 'hmm', 'mm'}
 FILLER_PHRASES = (('you', 'know'), ('i', 'mean'), ('sort', 'of'), ('kind', 'of'))
-# Whisper can invent words after silence; those come with ~1% confidence. Real words,
-# fillers included, scored above 30% in testing.
+# Whisper can invent words after silence, such as "Thank you for your attention". Invented
+# segments scored an average log-probability around -1.3 (real speech: -0.2 to 0), and
+# invented words ~1% confidence (real words, fillers included, above 30%). -1.0 is
+# Whisper's own threshold for a failed decode.
+MIN_SEGMENT_LOGPROB = -1.0
 MIN_WORD_PROBABILITY = 0.1
 PAUSE_SECONDS, LONG_PAUSE_SECONDS = 1.0, 2.5
 SLOW_WPM, FAST_WPM = 110, 170
@@ -68,7 +71,8 @@ class WhisperTranscriber:
             segments, info = self._load().transcribe(samples, language='en', word_timestamps=True,
                                                      vad_filter=True, initial_prompt=FILLER_PROMPT, condition_on_previous_text=False)
             words = [{'word': w.word.strip(), 'start': round(float(w.start), 2), 'end': round(float(w.end), 2), 'probability': round(float(w.probability), 3)}
-                     for segment in segments for w in (segment.words or []) if w.probability >= MIN_WORD_PROBABILITY]
+                     for segment in segments if segment.avg_logprob >= MIN_SEGMENT_LOGPROB
+                     for w in (segment.words or []) if w.probability >= MIN_WORD_PROBABILITY]
         return {'text': ' '.join(w['word'] for w in words).strip(), 'words': words, 'duration': round(float(info.duration), 2), 'model': f'whisper-{self.model_name}'}
 
 

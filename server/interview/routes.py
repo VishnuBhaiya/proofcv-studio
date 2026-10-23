@@ -4,7 +4,7 @@ import binascii
 import threading
 from urllib.parse import parse_qs, urlsplit
 
-from . import speech
+from . import speech, star
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
@@ -87,8 +87,12 @@ def answer(service, state, data):
         raise ValueError('Recording is empty or longer than about five minutes.')
     target = question.get('seconds') or ROUND_TARGET_SECONDS.get(question['round'])
     result = speech.transcriber().transcribe(audio)
-    return {'workspace_id': state['id'], 'question_id': question['id'], 'transcript': result['text'], 'words': result['words'],
-            'model': result['model'], 'target_seconds': target, 'delivery': speech.delivery(result['words'], result['duration'], target)}
+    response = {'workspace_id': state['id'], 'question_id': question['id'], 'round': question['round'], 'transcript': result['text'], 'words': result['words'],
+                'model': result['model'], 'target_seconds': target, 'delivery': speech.delivery(result['words'], result['duration'], target)}
+    if question['round'] == 'behavioural':
+        with _embedding_lock:
+            response['star'] = star.analyse(result['text'], service.retriever.backend)
+    return response
 
 
 def handle_post(service, path, data):

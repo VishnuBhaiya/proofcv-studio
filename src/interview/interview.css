@@ -38,4 +38,17 @@
 .interview-coach .coach-metrics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .interview-coach .coach-metrics span { padding: 3px 9px; border-radius: 999px; background: #fff; border: 1px solid rgba(0, 0, 0, .08); }
 .interview-coach .coach-notes { margin: 0 0 6px; padding-left: 18px; }
+.interview-coach .coach-star { margin: 10px 0 6px; padding-top: 10px; border-top: 1px solid rgba(0, 0, 0, .08); }
+.interview-coach .coach-star-parts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.interview-coach .star-part { padding: 2px 9px; border-radius: 999px; font-size: 12px; }
+.interview-coach .star-part.present { background: rgba(47, 107, 69, .12); color: #2f6b45; }
+.interview-coach .star-part.missing { background: rgba(162, 66, 47, .1); color: #a2422f; }
+.interview-coach .coach-star-sentences { margin: 0 0 8px; padding-left: 0; list-style: none; display: grid; gap: 4px; }
+.interview-coach .coach-star-sentences li { padding: 4px 8px; border-left: 3px solid rgba(0, 0, 0, .15); background: #fff; border-radius: 4px; }
+.interview-coach .star-tag { display: inline-block; min-width: 64px; margin-right: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; opacity: .75; }
+.interview-coach .star-situation { border-left-color: #5b7fa6 !important; }
+.interview-coach .star-task { border-left-color: #8a6418 !important; }
+.interview-coach .star-action { border-left-color: #2f6b45 !important; }
+.interview-coach .star-result { border-left-color: #7a4fa0 !important; }
+.interview-coach .star-other { opacity: .6; }
 .interview-coach .coach-badge { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: rgba(0, 0, 0, .06); }

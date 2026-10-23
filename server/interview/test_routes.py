@@ -4,7 +4,7 @@ import json
 import unittest
 from unittest import mock
 from .. import test_http
-from . import speech
+from . import speech, star
 from .test_speech import words
 from ..retrieval import InspectableHashEmbeddingBackend, JobRetriever
 from .test_fit import PROFILE
@@ -97,6 +97,19 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertEqual((result['transcript'], result['target_seconds']), ('I um trained a model', 30))
         self.assertEqual([f['word'] for f in result['delivery']['fillers']], ['um'])
         self.assertEqual(self.service.store.get(workspace['id']), before)
+        self.assertNotIn('star', result)
+
+    def test_behavioural_answers_get_a_star_check(self):
+        class FakeTranscriber:
+            def transcribe(self, audio):
+                return {'text': 'In my internship a job kept failing. I built a retry step.', 'words': words('In my internship a job kept failing. I built a retry step.'), 'duration': 4, 'model': 'fake'}
+        workspace = self.create()
+        with mock.patch.object(speech, '_transcriber', FakeTranscriber()), \
+                mock.patch.object(star, 'analyse', return_value={'sentences': [], 'present': {}, 'notes': ['checked'], 'model': {}}) as analyse:
+            result = json.loads(self.post_answer(workspace['id'], {'question_id': 'bh-teamwork', 'audio': base64.b64encode(b'x').decode()})[1])
+        analyse.assert_called_once()
+        self.assertEqual(analyse.call_args[0][0], 'In my internship a job kept failing. I built a retry step.')
+        self.assertEqual(result['star']['notes'], ['checked'])
 
     def test_answer_rejects_bad_input(self):
         workspace = self.create()

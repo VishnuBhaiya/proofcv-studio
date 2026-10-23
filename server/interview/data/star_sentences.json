@@ -1,0 +1,508 @@
+{
+  "review_status": "draft: written with AI assistance, awaiting human review",
+  "labels": ["situation", "task", "action", "result", "other"],
+  "guide": {
+    "situation": "Background and context: where and when, what was going on, the problem as it stood.",
+    "task": "The speaker's goal or responsibility: what needed to be achieved, what they were asked to do.",
+    "action": "Concrete steps the speaker (or their team) took.",
+    "result": "The outcome: what changed, numbers, feedback received, and what the speaker learned or now does differently.",
+    "other": "Not part of the story: fillers, meta-talk about the answer, restating the question, generic claims about oneself, closing remarks."
+  },
+  "notes": "Each story is one spoken answer with its sentences in the order they would be said. Train/test splits are made by story so no answer is split across both. Some sentences are lowercase or unpunctuated, as speech transcripts often are.",
+  "stories": [
+    {"id": "s01", "sentences": [
+      ["other", "Sure, I can talk about my final-year computer vision project."],
+      ["situation", "In my second year, our team was building a pedestrian detector from traffic camera footage."],
+      ["situation", "It worked well in daylight but missed almost half the pedestrians at night."],
+      ["task", "My job was to find out why and fix it before the final demo."],
+      ["action", "I split the test set by lighting condition and looked at every missed detection."],
+      ["action", "Then I added brightness and noise augmentation and labelled two hundred extra night frames."],
+      ["result", "Night-time recall went from fifty-two to seventy-eight percent."],
+      ["result", "The tutor singled out our error analysis as the strongest part of the project."]
+    ]},
+    {"id": "s02", "sentences": [
+      ["situation", "I was working weekend shifts at a hardware store."],
+      ["situation", "A customer came in really upset because his delivery had been missed twice."],
+      ["task", "I needed to calm him down and actually get his order to him that day."],
+      ["action", "I listened without interrupting and apologised for the trouble."],
+      ["action", "I called the warehouse, found the order sitting in the wrong bay and got it onto the afternoon truck."],
+      ["action", "I also gave him my direct number in case anything else went wrong."],
+      ["result", "He got the delivery by five o'clock and later left a positive review mentioning me by name."],
+      ["other", "So yeah, that's basically it."]
+    ]},
+    {"id": "s03", "sentences": [
+      ["other", "Um, okay, let me think."],
+      ["situation", "In a database subject we had a four-person group assignment worth forty percent."],
+      ["situation", "Two weeks before the deadline, one member still hadn't pushed any code."],
+      ["task", "As the person coordinating the group, I had to get the work back on track without making things hostile."],
+      ["action", "I messaged him privately and asked if something was going on."],
+      ["action", "It turned out he was stuck on the setup, so I paired with him for an hour to get his environment working."],
+      ["action", "We then split his part into smaller tasks with clear dates on our board."],
+      ["result", "He delivered his module on time and we got a distinction for the assignment."],
+      ["result", "I learned to check in early instead of assuming silence means someone is fine."]
+    ]},
+    {"id": "s04", "sentences": [
+      ["other", "Great question, I actually love talking about this one."],
+      ["situation", "At a twenty-four hour hackathon our team wanted to build an app that summarised lecture recordings."],
+      ["task", "I was responsible for the backend and getting transcription working."],
+      ["action", "I set up a small Flask API and connected it to an open-source speech model."],
+      ["action", "When the model was too slow, I switched to processing the audio in chunks in parallel."],
+      ["action", "um and then i wrote a quick script to test it on three real lectures"],
+      ["result", "We had a working demo with two hours to spare and placed second out of thirty teams."]
+    ]},
+    {"id": "s05", "sentences": [
+      ["situation", "During my internship at a logistics company, a nightly data pipeline started failing at random."],
+      ["situation", "The reports the operations team relied on every morning were coming out empty."],
+      ["task", "My manager asked me to find the cause and make the pipeline reliable."],
+      ["action", "I added logging to each step and compared the failed runs with the successful ones."],
+      ["action", "I found that a supplier file sometimes arrived late, so the job was reading an empty file."],
+      ["action", "I changed the job to wait for the file and send an alert if it hadn't arrived by six."],
+      ["result", "There were no empty reports for the rest of my internship."],
+      ["result", "The alert was later reused for two other pipelines."]
+    ]},
+    {"id": "s06", "sentences": [
+      ["other", "Let me think of a good example."],
+      ["situation", "I was a peer mentor for first-year students in an introductory Python course."],
+      ["situation", "A lot of them were struggling with Git and kept losing their work."],
+      ["task", "I wanted to get them comfortable with version control before their first group project."],
+      ["action", "I ran two short workshops where everyone practised branching on a shared practice repository."],
+      ["action", "I also wrote a one-page cheat sheet with the five commands they needed most."],
+      ["result", "Questions about lost work on the course forum dropped noticeably after the workshops."],
+      ["result", "The coordinator asked me to run them again the next semester."]
+    ]},
+    {"id": "s07", "sentences": [
+      ["situation", "I volunteered with a local food bank that was planning its first community fundraising dinner."],
+      ["task", "I took on organising the volunteers for the night."],
+      ["action", "I built a simple roster in a shared spreadsheet and confirmed every shift by phone."],
+      ["action", "On the night, I kept a few people on standby to cover any gaps."],
+      ["result", "All forty shifts were covered and the dinner raised about eight thousand dollars."],
+      ["other", "It was honestly one of my favourite things I've done."]
+    ]},
+    {"id": "s08", "sentences": [
+      ["situation", "For a statistics project we were given council survey data about public transport use."],
+      ["situation", "The data had missing ages, duplicate responses and free-text answers in numeric columns."],
+      ["task", "I had to clean it so we could run a regression on travel time and satisfaction."],
+      ["action", "I first profiled every column in pandas to see how much was missing."],
+      ["action", "I removed exact duplicates and wrote rules to turn answers like 'about 20 mins' into numbers."],
+      ["action", "For missing ages, I compared results with and without imputation instead of just dropping rows."],
+      ["result", "We kept ninety-four percent of the responses, and the conclusions didn't change between the two approaches."],
+      ["other", "I hope that answers your question."]
+    ]},
+    {"id": "s09", "sentences": [
+      ["situation", "At my part-time job at a gym, I had built a small dashboard of class attendance."],
+      ["task", "The manager wanted to know whether to cancel the early morning classes, but she isn't technical."],
+      ["action", "I replaced my charts with one simple bar chart comparing each time slot."],
+      ["action", "I explained it in two sentences and pointed out the three classes that were consistently under five people."],
+      ["result", "She cut those three classes and moved the trainer hours to evening sessions that were overbooked."]
+    ]},
+    {"id": "s10", "sentences": [
+      ["other", "Yeah, so, um, I'll go with something from my time at a startup."],
+      ["situation", "I joined a student startup that had built its frontend in React, which I had never used."],
+      ["task", "I had one week to fix the sign-up form before a demo to investors."],
+      ["action", "I worked through the official tutorial in two evenings."],
+      ["action", "Then I read the existing components and rebuilt the form using the same patterns."],
+      ["action", "I asked the lead developer to review my first pull request in detail."],
+      ["result", "The form was ready two days early and the demo went smoothly."]
+    ]},
+    {"id": "s11", "sentences": [
+      ["situation", "In a research project, I was testing whether a transformer model could beat our simple baseline at classifying support tickets."],
+      ["task", "The aim was to show at least a five-point improvement in F1."],
+      ["action", "I fine-tuned the model and ran it with three different random seeds."],
+      ["action", "When it didn't improve, I checked the data and found many tickets were labelled inconsistently."],
+      ["result", "In the end the transformer was only one point better, which wasn't worth the extra cost."],
+      ["result", "I learned to look at label quality before reaching for a bigger model."],
+      ["other", "Does that make sense?"]
+    ]},
+    {"id": "s12", "sentences": [
+      ["situation", "At my internship I was updating a shared configuration file for our test environment."],
+      ["action", "I pushed the change without running the full test suite because it looked tiny."],
+      ["situation", "Within an hour the build was broken for the whole team."],
+      ["task", "I needed to fix it quickly and make sure it couldn't happen again."],
+      ["action", "I told the team straight away that it was my change and reverted it."],
+      ["action", "Then I added a check to our pipeline that runs the config tests on every commit."],
+      ["result", "The build was green again within twenty minutes, and the new check caught two similar issues later."]
+    ]},
+    {"id": "s13", "sentences": [
+      ["situation", "On my first pull request to an open-source project, a maintainer left more than twenty comments."],
+      ["situation", "Most of them said my functions were too long and had no tests."],
+      ["task", "I wanted to get the contribution merged and learn their standards."],
+      ["action", "I thanked them and asked which comments mattered most."],
+      ["action", "I split my code into smaller functions and wrote unit tests for each one."],
+      ["result", "The second version was merged with only two small comments."],
+      ["result", "Since then I write tests before I open a pull request."]
+    ]},
+    {"id": "s14", "sentences": [
+      ["situation", "In my final semester I had three assignments due in the same week while working twenty hours a week."],
+      ["task", "I had to submit everything on time without dropping my shifts."],
+      ["action", "I listed every task with its deadline and weighting and estimated how long each would take."],
+      ["action", "I started with the assignment worth the most and asked my manager to swap one shift."],
+      ["action", "so i basically blocked out my mornings just for study and didn't touch my phone"],
+      ["result", "I submitted all three on time and got a high distinction in the biggest one."],
+      ["other", "In general I like to plan ahead."]
+    ]},
+    {"id": "s15", "sentences": [
+      ["situation", "A local bakery asked our class team to build an online ordering page."],
+      ["situation", "Their brief was just one line saying they wanted something simple for orders."],
+      ["task", "We needed to work out what they actually needed before building anything."],
+      ["action", "I set up a thirty-minute call and asked them to walk me through a normal day of orders."],
+      ["action", "I sketched two rough page layouts and had them pick one."],
+      ["result", "We built only the features they used, and they launched it the following month."]
+    ]},
+    {"id": "s16", "sentences": [
+      ["other", "Okay, so where do I start."],
+      ["situation", "I worked at a busy cafe, and one Saturday two staff called in sick."],
+      ["task", "The manager was away, so I had to keep service running with only three of us."],
+      ["action", "I moved our strongest barista to coffee only and took the till myself."],
+      ["action", "I simplified the menu for the morning by pausing the slowest dishes."],
+      ["result", "Wait times stayed under fifteen minutes and we had no complaints that day."],
+      ["result", "The owner later made me a shift supervisor."]
+    ]},
+    {"id": "s17", "sentences": [
+      ["situation", "In my admin role at a real estate office, a colleague spent every Monday copying listing data into a weekly report."],
+      ["task", "I thought there had to be a faster way to do it."],
+      ["action", "Without being asked, I wrote a short Python script that pulled the data and built the report automatically."],
+      ["action", "I tested it against three past reports to make sure the numbers matched."],
+      ["result", "It saved about three hours every week, and the office still uses it."]
+    ]},
+    {"id": "s18", "sentences": [
+      ["situation", "For a capstone project we were analysing student wellbeing survey responses."],
+      ["situation", "Some answers included names and very personal details."],
+      ["task", "I had to make sure nothing could identify a student before we shared results."],
+      ["action", "I removed names and IDs and grouped small categories so no group had fewer than ten people."],
+      ["action", "I also read the free-text answers manually and redacted anything identifying."],
+      ["result", "The ethics reviewer approved our report without any changes."],
+      ["other", "I think privacy is something every data person should care about."]
+    ]},
+    {"id": "s19", "sentences": [
+      ["situation", "On a group app project, I was the only developer working with two design students."],
+      ["situation", "Their designs looked great but used animations that would have taken weeks to build."],
+      ["task", "I had to find a version we could actually ship in our four-week timeline."],
+      ["action", "I set up a short weekly meeting where I showed them what was quick versus slow to build."],
+      ["action", "We agreed on simpler transitions that kept the same look."],
+      ["result", "We shipped on time and the app won the faculty's design award."]
+    ]},
+    {"id": "s20", "sentences": [
+      ["other", "There are a few examples I could give, but I'll pick a recent one."],
+      ["situation", "I built a chatbot that answered questions about our university's course handbook."],
+      ["situation", "In early testing it gave wrong answers to about a third of the questions."],
+      ["task", "My goal was to get it above eighty percent correct on a fixed set of fifty questions."],
+      ["action", "I separated retrieval errors from generation errors by checking whether the right page was retrieved."],
+      ["action", "Most failures were retrieval, so I made the chunks smaller and added section titles to each chunk."],
+      ["action", "I re-ran the same fifty questions after every change and kept a log."],
+      ["result", "Accuracy rose to eighty-six percent after four iterations."]
+    ]},
+    {"id": "s21", "sentences": [
+      ["situation", "I captained my club's under-twenty-one football team."],
+      ["situation", "Halfway through the season we had lost five games in a row and morale was low."],
+      ["task", "I wanted to get the team working together again."],
+      ["action", "I organised a team meeting where everyone could say what wasn't working."],
+      ["action", "so we basically changed training to more small games and less running"],
+      ["result", "We won four of our last six games and finished mid-table."],
+      ["other", "My friends would probably describe me as a natural leader."]
+    ]},
+    {"id": "s22", "sentences": [
+      ["situation", "As a lab assistant, students often came to me with evaluation scripts that crashed."],
+      ["task", "I had to help them fix their own code rather than fixing it for them."],
+      ["action", "I asked them to read the error message out loud and explain what they expected to happen."],
+      ["action", "Then I showed them how to print the shapes of their arrays at each step."],
+      ["result", "By the end of semester, far fewer students came back with the same bug."],
+      ["other", "Honestly I enjoyed that part of the job the most."]
+    ]},
+    {"id": "s23", "sentences": [
+      ["situation", "For a group project, a warehouse shared recorded video and asked if we could detect when people walked into forklift zones."],
+      ["task", "I was in charge of the detection model and the zone logic."],
+      ["action", "I used a pretrained person detector and drew the restricted zones as polygons on the camera view."],
+      ["action", "I tracked people across frames so one person wasn't counted many times."],
+      ["result", "We flagged ninety percent of the zone entries in the test footage with very few false alarms."]
+    ]},
+    {"id": "s24", "sentences": [
+      ["other", "Let me give you some background first."],
+      ["situation", "I worked in a telco call centre where our team's average call time was well above target."],
+      ["task", "My team leader asked me to look into why calls were taking so long."],
+      ["action", "I listened to twenty recorded calls and noted where the time was spent."],
+      ["action", "Most delays came from looking up account details in two systems, so I wrote a guide that cut out one lookup."],
+      ["result", "Our team's average call time dropped by about a minute within a month."]
+    ]},
+    {"id": "s25", "sentences": [
+      ["situation", "I was using an open-source plotting library that had a bug with date labels."],
+      ["task", "Instead of working around it, I decided to fix it upstream."],
+      ["action", "I reproduced the bug in a small test and found the line that formatted the dates."],
+      ["action", "I opened an issue, discussed the fix with a maintainer, and submitted a pull request."],
+      ["result", "The fix was released in the next version, and it was my first merged open-source contribution."],
+      ["other", "I really enjoy solving problems like that."]
+    ]},
+    {"id": "s26", "sentences": [
+      ["situation", "Our project needed bounding boxes for three thousand images, labelled by five classmates."],
+      ["situation", "When I reviewed a sample, the boxes were inconsistent, especially for partly hidden objects."],
+      ["task", "I needed the labels to be consistent enough to train a reliable model."],
+      ["action", "I wrote a one-page labelling guide with example images for each tricky case."],
+      ["action", "We double-labelled one hundred images and compared them to measure agreement."],
+      ["result", "Agreement went from sixty-eight to ninety-one percent, and the model's precision improved by six points."]
+    ]},
+    {"id": "s27", "sentences": [
+      ["situation", "At my internship, our team was moving a customer database from an old server to a cloud database."],
+      ["task", "I was asked to make sure no records were lost in the migration."],
+      ["action", "I wrote SQL queries that compared row counts and checksums for every table before and after."],
+      ["action", "I ran the checks on a test copy first and found two tables with encoding problems."],
+      ["result", "We fixed the encoding before the real migration, and it finished with zero missing records."],
+      ["other", "That's probably the best example I have."]
+    ]},
+    {"id": "s28", "sentences": [
+      ["situation", "My research supervisor wanted to use a deep learning model on a small tabular dataset."],
+      ["situation", "I thought a simpler model would work just as well and be easier to explain."],
+      ["task", "I needed to make my case without dismissing his idea."],
+      ["action", "I suggested we try both on the same validation split and compare."],
+      ["action", "I prepared a short table with accuracy, training time and how easy each one was to interpret."],
+      ["result", "The simpler model was within one percent, so we used it, and he appreciated that we had tested both."]
+    ]},
+    {"id": "s29", "sentences": [
+      ["other", "Sorry, just to check, you mean a time I missed a deadline?"],
+      ["situation", "I once underestimated how long a data cleaning task would take for a client report."],
+      ["situation", "Two days before it was due, I realised I wouldn't finish."],
+      ["task", "I had to tell the client and still deliver something useful."],
+      ["action", "I called them the same day, explained where I was, and offered a partial report on time with the rest three days later."],
+      ["action", "I worked out which sections mattered most to them and finished those first."],
+      ["result", "They accepted the plan and renewed the contract the next quarter."],
+      ["result", "Now I add a buffer to every estimate and flag risks early."]
+    ]},
+    {"id": "s30", "sentences": [
+      ["situation", "Our student society's website was very hard to use with a screen reader."],
+      ["task", "I wanted to make it accessible before enrolment week."],
+      ["action", "I ran an automated accessibility audit and fixed missing image descriptions and form labels."],
+      ["action", "Then I asked a visually impaired friend to try signing up and noted where she got stuck."],
+      ["result", "The audit score went from fifty-five to ninety-two, and she could complete sign-up on her own."]
+    ]},
+    {"id": "s31", "sentences": [
+      ["situation", "Last year my group project demo was scheduled the day before my hardest exam."],
+      ["task", "I had to prepare for both without letting the group down."],
+      ["action", "I finished my part of the demo a week early so the last few days were free for study."],
+      ["action", "I made a revision timetable and stuck to it."],
+      ["result", "The demo went well and I passed the exam with a credit."],
+      ["other", "I always try to stay calm under pressure."]
+    ]},
+    {"id": "s32", "sentences": [
+      ["situation", "In my casual IT support job, a new team member joined during our busiest month."],
+      ["task", "My supervisor asked me to get him handling tickets on his own within two weeks."],
+      ["action", "I let him shadow me for two days and then reversed it so I watched him."],
+      ["action", "I wrote a short list of the ten most common tickets and how to solve each one."],
+      ["result", "He was closing tickets on his own after eight days."]
+    ]},
+    {"id": "s33", "sentences": [
+      ["situation", "In a team project, our API took around four seconds to return search results."],
+      ["task", "I set myself the goal of getting it under half a second."],
+      ["action", "I profiled the endpoint and found it was loading the whole dataset on every request."],
+      ["action", "I loaded it once at startup and added an index on the search column."],
+      ["result", "and yeah average response time fell to like two hundred milliseconds"],
+      ["other", "uh yeah so"]
+    ]},
+    {"id": "s34", "sentences": [
+      ["situation", "I volunteered as a data analyst for a small charity that runs youth programs."],
+      ["situation", "They had five years of feedback forms but had never analysed them."],
+      ["task", "They wanted to know which programs young people valued most."],
+      ["action", "I digitised the forms into a spreadsheet and grouped the comments into themes."],
+      ["action", "I presented the top findings to their board with simple charts."],
+      ["result", "They expanded the mentoring program, which had the highest ratings."]
+    ]},
+    {"id": "s35", "sentences": [
+      ["other", "Is it okay if I use an example from a freelance job?"],
+      ["situation", "A client sent a sharply worded email to our team because a feature had shipped with a bug."],
+      ["task", "As the developer who wrote it, I needed to respond and fix it."],
+      ["action", "I replied within the hour, acknowledged the problem and gave a clear time for the fix."],
+      ["action", "I fixed and tested the bug that afternoon and sent a short summary of what went wrong."],
+      ["result", "The client thanked us for the quick response and the relationship stayed positive."]
+    ]},
+    {"id": "s36", "sentences": [
+      ["situation", "At my internship at an online retailer, the team wanted to change the product recommendation widget."],
+      ["task", "I was asked to help design a test to see whether the new version increased clicks."],
+      ["action", "I worked out the sample size we needed and set up a random split of users."],
+      ["action", "I also added guardrail metrics like page load time."],
+      ["result", "The new widget increased click-through by three percent and was rolled out to all users."],
+      ["other", "I think data should drive decisions like that."]
+    ]},
+    {"id": "s37", "sentences": [
+      ["situation", "In the robotics club, our robot kept drifting off the line during competition practice."],
+      ["task", "I was responsible for the sensor code."],
+      ["action", "I logged the sensor readings and found they changed a lot under different lighting."],
+      ["action", "I added a quick calibration step at the start of each run."],
+      ["result", "The robot finished the course in every practice run after that, and we came third at the state competition."]
+    ]},
+    {"id": "s38", "sentences": [
+      ["situation", "My university's coding club had no budget for its annual workshop."],
+      ["task", "I volunteered to raise enough money to cover the venue and food."],
+      ["action", "I wrote to fifteen local tech companies with a one-page proposal."],
+      ["action", "I followed up by phone with the ones who didn't reply."],
+      ["result", "Three companies sponsored us and we raised two thousand dollars."],
+      ["other", "Anyway, that's how I approach things in general."]
+    ]},
+    {"id": "s39", "sentences": [
+      ["situation", "My parents run a small printing shop and were losing track of orders on paper."],
+      ["task", "I wanted to give them a simple system they would actually use."],
+      ["action", "I asked them to show me how they handled an order from start to finish."],
+      ["action", "I set up a shared spreadsheet with an order form that matched their existing steps."],
+      ["result", "Missed orders dropped to almost zero, and they still use it today."]
+    ]},
+    {"id": "s40", "sentences": [
+      ["situation", "While evaluating a CV screening model in a class project, I noticed it scored applicants from some universities much lower."],
+      ["task", "I needed to find out whether this was a real bias before we presented."],
+      ["action", "I compared scores across groups with similar qualifications."],
+      ["action", "I found the model was relying on the university name, so I removed that feature and retrained it."],
+      ["result", "The gap between groups shrank sharply while overall accuracy barely changed."],
+      ["result", "Our lecturer used our analysis as an example in the next lecture."]
+    ]},
+    {"id": "s41", "sentences": [
+      ["other", "I'm passionate about machine learning, so this one is close to my heart."],
+      ["situation", "I entered a Kaggle competition on predicting house prices."],
+      ["task", "My personal goal was to finish in the top twenty percent."],
+      ["action", "um so i started with a simple baseline and added features one at a time checking the validation score each time"],
+      ["action", "I combined three models in a simple average at the end."],
+      ["result", "I finished in the top fifteen percent."]
+    ]},
+    {"id": "s42", "sentences": [
+      ["situation", "The night before our group presentation, one member messaged that she was sick."],
+      ["situation", "She was meant to present the results section."],
+      ["task", "Someone had to cover her part without the presentation falling apart."],
+      ["action", "I offered to take it and went through her slides with her on a quick call."],
+      ["action", "I rehearsed it three times that night."],
+      ["result", "The presentation went smoothly and we got eighty-five percent."],
+      ["other", "To be honest, it was a bit stressful."]
+    ]},
+    {"id": "s43", "sentences": [
+      ["situation", "At my IT support job, we had a backlog of over two hundred open tickets."],
+      ["task", "My manager asked me to help clear it within a month."],
+      ["action", "I sorted the tickets by type and found that a third were password resets."],
+      ["action", "I wrote a self-service guide for password resets and linked it in our auto-reply."],
+      ["result", "We cleared the backlog in three weeks and new password tickets halved."]
+    ]},
+    {"id": "s44", "sentences": [
+      ["other", "So this one is about a mobile app."],
+      ["situation", "A week after we launched our student app, users started reporting crashes on older phones."],
+      ["task", "I needed to find the cause fast because our reviews were dropping."],
+      ["action", "I checked the crash reports and saw they all came from the same image screen."],
+      ["action", "I resized images before loading them and tested on an old phone I borrowed."],
+      ["result", "The crash reports stopped and our rating went back above four stars."]
+    ]},
+    {"id": "s45", "sentences": [
+      ["situation", "When I joined a research lab, setting up the code took me two full days because the README was out of date."],
+      ["task", "I wanted to make it easier for the next student."],
+      ["action", "I rewrote the setup instructions step by step while doing a fresh install."],
+      ["action", "I added a script that checked all the dependencies were installed correctly."],
+      ["result", "The next new student was set up in under an hour."],
+      ["other", "I think that's all I wanted to say about it."]
+    ]},
+    {"id": "s46", "sentences": [
+      ["situation", "I got a part-time data role where most of the work was in SQL, which I had only used briefly."],
+      ["task", "I needed to be writing my own reports within the first month."],
+      ["action", "I practised on our test database every evening with real questions from the team."],
+      ["action", "I asked a senior analyst to review my queries each Friday."],
+      ["result", "By week three I was delivering reports on my own."]
+    ]},
+    {"id": "s47", "sentences": [
+      ["situation", "Our student project was running on a cloud account with limited free credits."],
+      ["situation", "Halfway through semester we had used almost all of them."],
+      ["task", "I had to cut our costs so the app stayed online until the final demo."],
+      ["action", "I checked the billing breakdown and found a large database instance running all day."],
+      ["action", "I moved to a smaller instance and set the test servers to shut down at night."],
+      ["result", "Our monthly cost dropped by seventy percent and the credits lasted until the end."],
+      ["other", "Is that the kind of example you were looking for?"]
+    ]},
+    {"id": "s48", "sentences": [
+      ["situation", "Our chess club only advertised its events on a printed noticeboard."],
+      ["task", "I offered to build a website so more students could find us."],
+      ["action", "I built a simple static site with an events page and a sign-up form."],
+      ["result", "Membership grew from twenty to fifty-five people in one semester."]
+    ]},
+    {"id": "s49", "sentences": [
+      ["situation", "At a retail internship, I was looking at online order data for a project."],
+      ["action", "I noticed that many customers abandoned their cart at the delivery fee step."],
+      ["action", "I put together a short analysis showing how many orders we were losing."],
+      ["task", "My aim was to convince the team to test a free-delivery threshold."],
+      ["result", "They tested it for a month and orders increased by eight percent."]
+    ]},
+    {"id": "s50", "sentences": [
+      ["other", "Um, yeah, I have one about teamwork."],
+      ["situation", "In a group project, two teammates kept arguing about code formatting in every pull request."],
+      ["task", "I wanted to stop the arguments so reviews focused on actual bugs."],
+      ["action", "I suggested we adopt an automatic formatter and agree on its settings once."],
+      ["action", "I set it up to run before every commit."],
+      ["result", "The formatting comments disappeared and our reviews got much faster."]
+    ]},
+    {"id": "s51", "sentences": [
+      ["other", "That's a good question."],
+      ["situation", "In my first month as a junior tester, I found that our regression tests took six hours to run."],
+      ["task", "My lead wanted them under an hour so we could run them on every pull request."],
+      ["action", "I measured each test's runtime and found ten slow tests that set up the same database again and again."],
+      ["action", "I changed them to share one database and ran the suite in parallel."],
+      ["result", "The suite now runs in fifty minutes."],
+      ["other", "I'm a very hard-working person, so I enjoyed the challenge."]
+    ]},
+    {"id": "s52", "sentences": [
+      ["situation", "our tutor gave us a dataset of hospital wait times that was missing whole weeks"],
+      ["task", "we had to forecast the next month for the presentation"],
+      ["action", "i filled the short gaps with interpolation and left the long ones out and said so clearly"],
+      ["action", "um and i compared a seasonal model against just repeating last year"],
+      ["result", "the seasonal model had about twenty percent lower error so we went with that"],
+      ["other", "uh does that make sense"]
+    ]},
+    {"id": "s53", "sentences": [
+      ["situation", "When our team lead went on leave, nobody was running the weekly stand-up meeting."],
+      ["task", "I stepped in to keep the team coordinated for those three weeks."],
+      ["action", "I kept each stand-up to fifteen minutes and wrote the blockers in a shared document."],
+      ["action", "I followed up on every blocker the same day."],
+      ["result", "We hit both sprint goals while she was away, and she kept the shared document afterwards."]
+    ]},
+    {"id": "s54", "sentences": [
+      ["other", "Sorry, could you repeat the question?"],
+      ["other", "Oh right, a time I had to learn something quickly."],
+      ["situation", "My first internship project used Docker, and I had never written a Dockerfile."],
+      ["task", "I needed to containerise our service by the end of the first sprint."],
+      ["action", "I followed the official getting-started guide and then wrote a Dockerfile for a tiny test app."],
+      ["action", "Once that worked, I applied the same steps to our real service and asked a senior engineer to check it."],
+      ["result", "The image built correctly on the first review and was used in our staging environment."]
+    ]},
+    {"id": "s55", "sentences": [
+      ["situation", "Our capstone team disagreed about whether to use a relational or a document database."],
+      ["task", "We had to decide within a week so development could start."],
+      ["action", "I wrote down our five most common queries and tried each one in both databases."],
+      ["action", "We met for thirty minutes, looked at the results together and voted."],
+      ["result", "We chose the relational database, and nobody reopened the debate for the rest of the project."],
+      ["other", "I'd say communication is one of my strengths."]
+    ]},
+    {"id": "s56", "sentences": [
+      ["situation", "While working at a library, I noticed that many international students couldn't find the printing instructions."],
+      ["task", "I wanted to make it easier for them without adding work for the desk staff."],
+      ["action", "I wrote short instructions in four languages with screenshots and put a QR code on every printer."],
+      ["result", "Printing questions at the desk dropped by roughly half over the next month."]
+    ]},
+    {"id": "s57", "sentences": [
+      ["situation", "In a machine learning subject, my model's validation accuracy was ninety-nine percent, which seemed too good."],
+      ["task", "I needed to check whether it was real before submitting."],
+      ["action", "I looked at the features and found one that was calculated using the label."],
+      ["action", "I removed it, re-split the data by patient instead of by row, and retrained."],
+      ["result", "Accuracy dropped to eighty-one percent, but it was an honest number and the marker praised the leakage check."],
+      ["other", "So that's the story."]
+    ]},
+    {"id": "s58", "sentences": [
+      ["situation", "At my retail job, the store's stock counts were often wrong at the end of the month."],
+      ["task", "The manager asked me to find where the errors came from."],
+      ["action", "I compared the system counts with physical counts for twenty products every day for two weeks."],
+      ["action", "I found most errors came from returns that were put back on shelves without being scanned, so I added a returns checklist at the counter."],
+      ["result", "Stock errors fell from about eight percent to under two percent."]
+    ]},
+    {"id": "s59", "sentences": [
+      ["other", "Let me explain what happened next, because that's the interesting part."],
+      ["situation", "Our hackathon idea was a sign-language translator, but the model only recognised five signs on demo day."],
+      ["task", "We still had to present something convincing to the judges."],
+      ["action", "I suggested we focus the demo on those five signs and explain clearly how more data would extend it."],
+      ["action", "I prepared a slide showing our accuracy per sign and the data we would need for more."],
+      ["result", "The judges said our honesty about the limits stood out, and we won the social impact prize."]
+    ]},
+    {"id": "s60", "sentences": [
+      ["situation", "As a tutor, I had one student who failed the first two quizzes in an algorithms course."],
+      ["task", "I wanted to help him pass the final exam."],
+      ["action", "I asked him to explain his reasoning on a few problems and saw he was memorising code instead of understanding it."],
+      ["action", "We switched to tracing algorithms by hand on paper before writing any code."],
+      ["result", "He passed the final with a credit."],
+      ["result", "It taught me to diagnose how someone is learning before trying to teach them."]
+    ]}
+  ]
+}

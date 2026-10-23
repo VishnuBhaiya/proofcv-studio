@@ -3,7 +3,10 @@ import { Mic, Square, Volume2 } from 'lucide-react';
 import { api } from '../api';
 
 type Delivery = { word_count: number; speaking_seconds: number; words_per_minute: number; pauses: { after: string; seconds: number }[]; long_pauses: number; fillers: { word: string; start: number }[]; fillers_per_minute: number; thinking_seconds: number; duration: number; notes: string[] };
-type Answer = { question_id: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery };
+type StarLabel = 'situation' | 'task' | 'action' | 'result' | 'other';
+type Star = { sentences: { text: string; label: StarLabel; confidence: number; uncertain: boolean }[]; present: Record<Exclude<StarLabel, 'other'>, boolean>; notes: string[]; model: { trained_on: { stories: number; sentences: number } } };
+type Answer = { question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star };
+const STAR_PARTS: [Exclude<StarLabel, 'other'>, string][] = [['situation', 'Situation'], ['task', 'Task'], ['action', 'Action'], ['result', 'Result']];
 const MAX_SECONDS = 300;
 
 function toBase64(blob: Blob) {
@@ -79,7 +82,13 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText }
                 <span><strong>{d.long_pauses}</strong> long pauses</span>
             </div>
             <ul className="coach-notes">{d.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
-            <p className="coach-method">Transcribed on this computer by {answer.model}. The recording was not saved. Content feedback comes in a later step.</p>
+            {answer.star && <div className="coach-star">
+                <div className="coach-star-parts">{STAR_PARTS.map(([key, name]) => <span key={key} className={`star-part ${key} ${answer.star!.present[key] ? 'present' : 'missing'}`}>{answer.star!.present[key] ? '✓' : '✗'} {name}</span>)}</div>
+                <ol className="coach-star-sentences">{answer.star.sentences.map((s, i) => <li key={i} className={`star-${s.label}`}><span className="star-tag" title={`Confidence ${Math.round(s.confidence * 100)}%`}>{s.label}{s.uncertain ? '?' : ''}</span>{s.text}</li>)}</ol>
+                <ul className="coach-notes">{answer.star.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+                <p className="coach-method">STAR labels come from our own classifier, trained on {answer.star.model.trained_on.sentences} labelled sentences. “?” marks a low-confidence label.</p>
+            </div>}
+            <p className="coach-method">Transcribed on this computer by {answer.model}. The recording was not saved.</p>
         </div>}
     </div>;
 }
