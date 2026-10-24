@@ -80,5 +80,20 @@ class PickerTests(unittest.TestCase):
         self.assertEqual(pick('rag_agent_engineer')[1], pick('rag_agent_engineer')[1])
 
 
+
+class TopicalTests(unittest.TestCase):
+    def test_two_exact_tag_matches_make_a_question_on_topic(self):
+        import numpy as np
+        from .questions import topical
+        requirements = [{'category': 'skill', 'keywords': ['rag', 'retrieval', 'embeddings']}, {'category': 'practice', 'keywords': ['model evaluation']},
+                        {'category': 'soft', 'keywords': ['algorithms', 'collaborated']}]
+        questions = [{'tags': ['rag', 'retrieval']}, {'tags': ['object detection', 'model evaluation']}, {'tags': ['algorithms', 'data structures']}, {'tags': []}]
+        weak = np.full((4, 3), 0.2)  # All embed weakly, as short topic labels often do.
+        weak[3] = 0.6  # Strong meaning match on every requirement.
+        eligible, strength = topical(questions, requirements, weak)
+        self.assertEqual(list(eligible), [True, False, False, True])  # One tag is not enough; soft-skill keywords do not count.
+        self.assertGreater(strength[3], strength[0])
+
+
 if __name__ == '__main__':
     unittest.main()

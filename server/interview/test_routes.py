@@ -270,6 +270,7 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertIn('tip', result['days'][-1])  # Panel interview advice.
         first = result['days'][0]['tasks'][0]
         self.assertTrue(first['key_points'])
+        self.assertTrue(first['resources'] and first['resources'][0]['url'].startswith('https://'))
         ticked = json.loads(self.request('POST', url + '/plan/tick', {'date': result['days'][0]['date'], 'key': first['key'], 'done': True}, header)[1])
         self.assertTrue(ticked['days'][0]['tasks'][0]['done'])
         unticked = json.loads(self.request('POST', url + '/plan/tick', {'date': result['days'][0]['date'], 'key': first['key'], 'done': False}, header)[1])
@@ -385,6 +386,9 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertEqual(sum(len(evaluation[g]) for g in ('strong', 'developing', 'weak')), 4)
         latest = json.loads(self.request('GET', url + '/skill-check')[1])['session']
         self.assertEqual((latest['id'], latest['evaluation']['finished']), (check['id'], True))
+        practice = json.loads(self.request('GET', url + '/questions')[1])['rounds']['technical']
+        self.assertEqual([q['id'] for q in practice], [q['id'] for q in check['questions']])  # Practice uses the skill check's questions.
+        self.assertTrue(practice[0]['reason'].startswith('From your skill check:'))
         restarted = json.loads(self.request('POST', url + '/skill-check', {'restart': True}, header)[1])
         self.assertNotEqual(restarted['id'], check['id'])
 

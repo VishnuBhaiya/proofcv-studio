@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, Briefcase, CalendarDays, ListChecks } from 'lucide-react';
+import { ArrowRight, BookOpen, Briefcase, CalendarDays, Check, ListChecks, Star } from 'lucide-react';
 import { api } from '../api';
 import { Fit } from './FitPanel';
 
@@ -46,6 +46,8 @@ export default function SetupPanel({ workspaceId, status, onSaved, onCancel }: {
     const today = new Date();
     const last = new Date(today.getFullYear(), today.getMonth(), today.getDate() + MAX_DAYS);
     const chosen = status.jobs.find(j => j.document_id === job);
+    // The CV's job first, then the user's top matches, then every other job.
+    const orderedJobs = [...status.jobs].sort((a, b) => Number(b.cv_target) - Number(a.cv_target) || Number(b.match_score != null) - Number(a.match_score != null));
     const learnable = fit?.to_learn.slice(0, SHOWN_SKILLS) || [];
     const ready = job && date && stage && daily && (learn !== null || (fit && !fit.to_learn.length));
     async function start() {
@@ -71,13 +73,17 @@ export default function SetupPanel({ workspaceId, status, onSaved, onCancel }: {
         <section className="ic-setup-card">
             <h3><span>1</span><Briefcase size={18} />Which job are you preparing for?</h3>
             <p>You can pick any job in the list, not only the one your CV is tailored to.</p>
-            <select className="ic-setup-select" value={job} onChange={e => setJob(e.target.value)} aria-label="Job to prepare for">
-                {status.jobs.map(j => <option key={j.document_id} value={j.document_id}>{jobLabel(j)}{j.location ? ` (${j.location})` : ''}{j.cv_target ? ' · your CV’s job' : j.match_score != null ? ' · a top match' : ''}</option>)}
-            </select>
+            <div className="ic-job-cards" role="radiogroup" aria-label="Job to prepare for">{orderedJobs.map(j =>
+                <button type="button" role="radio" key={j.document_id} aria-checked={job === j.document_id} onClick={() => setJob(j.document_id)}
+                    className={`ic-job-card ${j.cv_target ? 'cv' : ''} ${job === j.document_id ? 'on' : ''}`}>
+                    {j.cv_target && <span className="ic-job-badge"><Star size={12} />Your CV is tailored to this job</span>}
+                    {!j.cv_target && j.match_score != null && <span className="ic-job-badge match">One of your top matches</span>}
+                    <strong>{j.title}</strong>
+                    <small>{[j.focus, j.location].filter(Boolean).join(' · ')}</small>
+                    {job === j.document_id && <Check size={18} className="ic-job-check" />}
+                </button>)}</div>
             {chosen && <div className="ic-setup-fit">
-                {chosen.cv_target && <span className="ic-chip good">Your CV is tailored to this job</span>}
-                {chosen.match_score != null && !chosen.cv_target && <span className="ic-chip">One of your top matches</span>}
-                {fit ? <span>Your profile shows <strong>{fit.counts.strong}</strong> of its requirements clearly, <strong>{fit.counts.partial}</strong> partly and <strong>{fit.counts.gap}</strong> not yet.</span>
+                {fit ? <span>For <strong>{jobLabel(chosen)}</strong>, your profile shows <strong>{fit.counts.strong}</strong> of its requirements clearly, <strong>{fit.counts.partial}</strong> partly and <strong>{fit.counts.gap}</strong> not yet.</span>
                     : <span className="live-progress"><span className="live-dot" /> Comparing this job with your profile…</span>}
             </div>}
         </section>

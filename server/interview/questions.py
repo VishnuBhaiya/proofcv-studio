@@ -17,6 +17,17 @@ ROUNDS = ('self_introduction', 'behavioural', 'technical', 'motivation_fit')
 SLOTS = ('job_title', 'project', 'strength', 'gap', 'eligibility')
 TAG_BONUS = 0.15
 MIN_TECHNICAL_RELEVANCE = 0.45  # Below this a technical question is not about this job.
+# A question can match one generic requirement ("evaluate models") and still be off-topic for the job
+# (object-detection metrics for a RAG role scored 0.21 here, against 0.54 for the vision role). Its fit
+# to the whole job is the mean of its three best matches to the job's technical requirements.
+MIN_JOB_FIT = 0.30
+JOB_FIT_TOP = 3
+TECHNICAL_CATEGORIES = ('skill', 'practice')
+# Questions' tags and requirements' keywords are curated exact terms. Two tags matching the job's
+# technical keywords mark a question as on-topic even when the short topic label embeds weakly
+# ("retrieval-augmented generation pipelines" scored 0.40 against "Design and optimise RAG pipelines").
+MIN_TAG_HITS = 2
+TAG_HIT_WEIGHT = 0.1
 TECHNICAL_SHOW, TECHNICAL_PREPARE = 3, 2
 BEHAVIOURAL_COUNT = 5  # Including both project questions.
 
@@ -73,9 +84,38 @@ def relevance(questions, requirements, backend):
     for i, q in enumerate(questions):
         tags = set(q.get('tags') or [])
         for j, r in enumerate(requirements):
-            if tags & set(r.get('keywords') or []):
+            if tags & keywords(r):
                 scores[i, j] += TAG_BONUS
     return scores
+
+
+def keywords(requirement):
+    """A requirement's exact keywords: from the requirement map, or from a fit result's found and missing lists."""
+    return set(requirement.get('keywords') or []) | set(requirement.get('keywords_found') or []) | set(requirement.get('keywords_missing') or [])
+
+
+def tag_hits(questions, requirements):
+    """How many of each question's tags are keywords of the job's technical requirements."""
+    job_terms = set().union(*(keywords(r) for r in requirements if r.get('category') in TECHNICAL_CATEGORIES)) if requirements else set()
+    return np.array([len(set(q.get('tags') or []) & job_terms) for q in questions])
+
+
+def topical(questions, requirements, scores):
+    """Which technical questions are about this job, and how strongly: meaning (best requirement plus whole-job fit)
+    or exact tag matches."""
+    fits, hits = job_fit(scores, requirements), tag_hits(questions, requirements)
+    best = scores.max(axis=1) if scores.size else np.zeros(len(questions))
+    eligible = ((best >= MIN_TECHNICAL_RELEVANCE) & (fits >= MIN_JOB_FIT)) | (hits >= MIN_TAG_HITS)
+    return eligible, best + fits + TAG_HIT_WEIGHT * hits
+
+
+def job_fit(scores, requirements):
+    """Each question's fit to the whole job, from its relevance row over the technical requirements."""
+    columns = [j for j, r in enumerate(requirements) if r.get('category') in TECHNICAL_CATEGORIES] or list(range(len(requirements)))
+    if not columns:
+        return np.zeros(len(scores))
+    best = np.sort(scores[:, columns], axis=1)[:, -JOB_FIT_TOP:]
+    return best.mean(axis=1)
 
 
 def entry(question, text, reason, requirement=None):
@@ -112,7 +152,8 @@ def pick_questions(job, fit_items, keywords_by_id, profile, bank, backend):
     # Technical: link each question to its best requirement; one question per requirement.
     technical = by_round['technical']
     scores = relevance(technical, judged, backend)
-    candidates = sorted((i for i in range(len(technical)) if judged and scores[i].max() >= MIN_TECHNICAL_RELEVANCE), key=lambda i: (-scores[i].max(), i))
+    eligible, strength = topical(technical, judged, scores)
+    candidates = sorted((i for i in range(len(technical)) if judged and eligible[i]), key=lambda i: (-strength[i], i))
     show, prepare, picked, used = [], [], set(), set()
     for i in candidates:
         requirement = judged[int(scores[i].argmax())]

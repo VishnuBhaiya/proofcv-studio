@@ -1,0 +1,780 @@
+{
+ "checked": "2026-10-25",
+ "note": "Free, reputable learning material (official docs and well-known free courses), matched to topics by exact terms. Every link returned HTTP 200 when checked.",
+ "entries": [
+  {
+   "terms": [
+    "pytorch",
+    "training loop",
+    "deep-learning framework",
+    "tensorflow"
+   ],
+   "links": [
+    {
+     "title": "Learn the Basics",
+     "url": "https://pytorch.org/tutorials/beginner/basics/intro.html",
+     "source": "PyTorch"
+    },
+    {
+     "title": "Optimizing model parameters (the training loop)",
+     "url": "https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html",
+     "source": "PyTorch"
+    },
+    {
+     "title": "TensorFlow tutorials",
+     "url": "https://www.tensorflow.org/tutorials",
+     "source": "TensorFlow"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "overfitting",
+    "generalisation",
+    "regularisation",
+    "machine-learning fundamentals",
+    "machine learning fundamentals"
+   ],
+   "links": [
+    {
+     "title": "Machine Learning Crash Course",
+     "url": "https://developers.google.com/machine-learning/crash-course",
+     "source": "Google"
+    },
+    {
+     "title": "Intro to Machine Learning",
+     "url": "https://www.kaggle.com/learn/intro-to-machine-learning",
+     "source": "Kaggle Learn"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "object detection",
+    "yolo",
+    "image classification",
+    "object detection evaluation"
+   ],
+   "links": [
+    {
+     "title": "YOLO performance metrics (precision, recall, mAP, IoU)",
+     "url": "https://docs.ultralytics.com/guides/yolo-performance-metrics/",
+     "source": "Ultralytics"
+    },
+    {
+     "title": "Ultralytics YOLO docs",
+     "url": "https://docs.ultralytics.com/",
+     "source": "Ultralytics"
+    },
+    {
+     "title": "Computer Vision course",
+     "url": "https://www.kaggle.com/learn/computer-vision",
+     "source": "Kaggle Learn"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "evaluation metrics",
+    "metrics",
+    "model evaluation",
+    "evaluate models"
+   ],
+   "links": [
+    {
+     "title": "Metrics and scoring",
+     "url": "https://scikit-learn.org/stable/modules/model_evaluation.html",
+     "source": "scikit-learn"
+    },
+    {
+     "title": "Machine Learning Crash Course",
+     "url": "https://developers.google.com/machine-learning/crash-course",
+     "source": "Google"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "leakage",
+    "validation",
+    "splits",
+    "cross-validation"
+   ],
+   "links": [
+    {
+     "title": "Cross-validation",
+     "url": "https://scikit-learn.org/stable/modules/cross_validation.html",
+     "source": "scikit-learn"
+    },
+    {
+     "title": "Intro to Machine Learning",
+     "url": "https://www.kaggle.com/learn/intro-to-machine-learning",
+     "source": "Kaggle Learn"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "statistics",
+    "significance",
+    "a/b",
+    "hypothesis",
+    "experiments"
+   ],
+   "links": [
+    {
+     "title": "Statistics and probability",
+     "url": "https://www.khanacademy.org/math/statistics-probability",
+     "source": "Khan Academy"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "video",
+    "tracking"
+   ],
+   "links": [
+    {
+     "title": "Multi-object tracking",
+     "url": "https://docs.ultralytics.com/modes/track/",
+     "source": "Ultralytics"
+    },
+    {
+     "title": "Ultralytics YOLO docs",
+     "url": "https://docs.ultralytics.com/",
+     "source": "Ultralytics"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "edge",
+    "jetson",
+    "gpu",
+    "onnx",
+    "model optimisation",
+    "deploying",
+    "deployment",
+    "model deployment"
+   ],
+   "links": [
+    {
+     "title": "ONNX Runtime docs",
+     "url": "https://onnxruntime.ai/docs/",
+     "source": "ONNX Runtime"
+    },
+    {
+     "title": "TensorRT docs",
+     "url": "https://docs.nvidia.com/deeplearning/tensorrt/",
+     "source": "NVIDIA"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "convolutional",
+    "cnn",
+    "computer vision",
+    "computer-vision",
+    "transfer learning",
+    "fine-tuning pretrained",
+    "augmentation",
+    "robustness"
+   ],
+   "links": [
+    {
+     "title": "CS231n: CNNs for Visual Recognition (notes)",
+     "url": "https://cs231n.github.io/",
+     "source": "Stanford"
+    },
+    {
+     "title": "Practical Deep Learning",
+     "url": "https://course.fast.ai/",
+     "source": "fast.ai"
+    },
+    {
+     "title": "Computer Vision course",
+     "url": "https://www.kaggle.com/learn/computer-vision",
+     "source": "Kaggle Learn"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "imbalance",
+    "imbalanced"
+   ],
+   "links": [
+    {
+     "title": "imbalanced-learn user guide",
+     "url": "https://imbalanced-learn.org/stable/",
+     "source": "imbalanced-learn"
+    },
+    {
+     "title": "Metrics and scoring",
+     "url": "https://scikit-learn.org/stable/modules/model_evaluation.html",
+     "source": "scikit-learn"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "annotation",
+    "labelling",
+    "labeling",
+    "labelled"
+   ],
+   "links": [
+    {
+     "title": "Label Studio guide",
+     "url": "https://labelstud.io/guide/",
+     "source": "Label Studio"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "api",
+    "serving",
+    "fastapi",
+    "rest",
+    "grpc",
+    "services"
+   ],
+   "links": [
+    {
+     "title": "FastAPI tutorial",
+     "url": "https://fastapi.tiangolo.com/tutorial/",
+     "source": "FastAPI"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "docker",
+    "container",
+    "reproducible deployment"
+   ],
+   "links": [
+    {
+     "title": "Get started with Docker",
+     "url": "https://docs.docker.com/get-started/",
+     "source": "Docker"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "monitoring",
+    "drift",
+    "mlops",
+    "retraining",
+    "versioning",
+    "mlflow",
+    "production"
+   ],
+   "links": [
+    {
+     "title": "Evidently docs (ML monitoring)",
+     "url": "https://docs.evidentlyai.com/",
+     "source": "Evidently"
+    },
+    {
+     "title": "MLflow docs",
+     "url": "https://mlflow.org/docs/latest/index.html",
+     "source": "MLflow"
+    },
+    {
+     "title": "Made With ML (MLOps course)",
+     "url": "https://madewithml.com/",
+     "source": "Made With ML"
+    },
+    {
+     "title": "DVC docs (data versioning)",
+     "url": "https://docs.dvc.org/",
+     "source": "DVC"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "ci/cd",
+    "continuous integration",
+    "testing",
+    "pipelines",
+    "pytest"
+   ],
+   "links": [
+    {
+     "title": "GitHub Actions docs",
+     "url": "https://docs.github.com/en/actions",
+     "source": "GitHub"
+    },
+    {
+     "title": "pytest docs",
+     "url": "https://docs.pytest.org/",
+     "source": "pytest"
+    },
+    {
+     "title": "Made With ML (MLOps course)",
+     "url": "https://madewithml.com/",
+     "source": "Made With ML"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "git",
+    "version control",
+    "shared codebase"
+   ],
+   "links": [
+    {
+     "title": "Pro Git (free book)",
+     "url": "https://git-scm.com/book/en/v2",
+     "source": "git-scm.com"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "sql",
+    "window functions"
+   ],
+   "links": [
+    {
+     "title": "Intro to SQL",
+     "url": "https://www.kaggle.com/learn/intro-to-sql",
+     "source": "Kaggle Learn"
+    },
+    {
+     "title": "Advanced SQL",
+     "url": "https://www.kaggle.com/learn/advanced-sql",
+     "source": "Kaggle Learn"
+    },
+    {
+     "title": "Window functions tutorial",
+     "url": "https://www.postgresql.org/docs/current/tutorial-window.html",
+     "source": "PostgreSQL"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "data cleaning",
+    "cleaning",
+    "noisy",
+    "incomplete",
+    "pandas",
+    "clean large datasets"
+   ],
+   "links": [
+    {
+     "title": "Data Cleaning",
+     "url": "https://www.kaggle.com/learn/data-cleaning",
+     "source": "Kaggle Learn"
+    },
+    {
+     "title": "Getting started with pandas",
+     "url": "https://pandas.pydata.org/docs/getting_started/index.html",
+     "source": "pandas"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "feature engineering"
+   ],
+   "links": [
+    {
+     "title": "Feature Engineering",
+     "url": "https://www.kaggle.com/learn/feature-engineering",
+     "source": "Kaggle Learn"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "hyperparameter"
+   ],
+   "links": [
+    {
+     "title": "Optuna docs",
+     "url": "https://optuna.readthedocs.io/",
+     "source": "Optuna"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "visualisation",
+    "visualization",
+    "communicating results"
+   ],
+   "links": [
+    {
+     "title": "Data Visualization",
+     "url": "https://www.kaggle.com/learn/data-visualization",
+     "source": "Kaggle Learn"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "streaming",
+    "batch"
+   ],
+   "links": [
+    {
+     "title": "Introduction to Apache Kafka",
+     "url": "https://kafka.apache.org/intro",
+     "source": "Apache Kafka"
+    },
+    {
+     "title": "Spark quick start",
+     "url": "https://spark.apache.org/docs/latest/quick-start.html",
+     "source": "Apache Spark"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "big-data",
+    "big data",
+    "large-scale",
+    "large datasets",
+    "large dataset",
+    "spark",
+    "parquet"
+   ],
+   "links": [
+    {
+     "title": "Spark quick start",
+     "url": "https://spark.apache.org/docs/latest/quick-start.html",
+     "source": "Apache Spark"
+    },
+    {
+     "title": "Parquet docs",
+     "url": "https://parquet.apache.org/docs/",
+     "source": "Apache Parquet"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "cloud",
+    "scaling",
+    "aws",
+    "gcp",
+    "azure",
+    "cloud ai platforms"
+   ],
+   "links": [
+    {
+     "title": "Amazon SageMaker docs",
+     "url": "https://docs.aws.amazon.com/sagemaker/",
+     "source": "AWS"
+    },
+    {
+     "title": "Vertex AI docs",
+     "url": "https://cloud.google.com/vertex-ai/docs",
+     "source": "Google Cloud"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "kubernetes",
+    "terraform",
+    "orchestration",
+    "infrastructure as code"
+   ],
+   "links": [
+    {
+     "title": "Kubernetes basics",
+     "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/",
+     "source": "Kubernetes"
+    },
+    {
+     "title": "Terraform tutorials",
+     "url": "https://developer.hashicorp.com/terraform/tutorials",
+     "source": "HashiCorp"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "embeddings",
+    "semantic similarity",
+    "semantic search"
+   ],
+   "links": [
+    {
+     "title": "Sentence Transformers docs",
+     "url": "https://www.sbert.net/",
+     "source": "SBERT"
+    },
+    {
+     "title": "LLM Course",
+     "url": "https://huggingface.co/learn/llm-course",
+     "source": "Hugging Face"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "vector database",
+    "vector databases",
+    "nearest-neighbour",
+    "graph database",
+    "graph databases"
+   ],
+   "links": [
+    {
+     "title": "What is a vector database?",
+     "url": "https://www.pinecone.io/learn/vector-database/",
+     "source": "Pinecone"
+    },
+    {
+     "title": "FAISS wiki",
+     "url": "https://github.com/facebookresearch/faiss/wiki",
+     "source": "Meta AI"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "retrieval-augmented",
+    "rag",
+    "retrieval",
+    "knowledge systems",
+    "hallucination",
+    "grounding"
+   ],
+   "links": [
+    {
+     "title": "Retrieval-augmented generation explained",
+     "url": "https://www.pinecone.io/learn/retrieval-augmented-generation/",
+     "source": "Pinecone"
+    },
+    {
+     "title": "LlamaIndex docs",
+     "url": "https://docs.llamaindex.ai/",
+     "source": "LlamaIndex"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "agent",
+    "agents",
+    "agentic",
+    "tool use",
+    "langgraph",
+    "langchain",
+    "llamaindex",
+    "workflows"
+   ],
+   "links": [
+    {
+     "title": "Building effective agents",
+     "url": "https://www.anthropic.com/research/building-effective-agents",
+     "source": "Anthropic"
+    },
+    {
+     "title": "LangGraph docs",
+     "url": "https://langchain-ai.github.io/langgraph/",
+     "source": "LangChain"
+    },
+    {
+     "title": "LangChain docs",
+     "url": "https://python.langchain.com/docs/introduction/",
+     "source": "LangChain"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "observability",
+    "tracing",
+    "debug"
+   ],
+   "links": [
+    {
+     "title": "LangSmith docs (tracing and evaluation)",
+     "url": "https://docs.smith.langchain.com/",
+     "source": "LangChain"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "structured outputs",
+    "function calling"
+   ],
+   "links": [
+    {
+     "title": "Pydantic docs",
+     "url": "https://docs.pydantic.dev/",
+     "source": "Pydantic"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "prompt"
+   ],
+   "links": [
+    {
+     "title": "Prompt Engineering Guide",
+     "url": "https://www.promptingguide.ai/",
+     "source": "DAIR.AI"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "llm",
+    "large language",
+    "fine-tuning large",
+    "transformer",
+    "self-attention",
+    "generative ai",
+    "llm-powered"
+   ],
+   "links": [
+    {
+     "title": "LLM Course",
+     "url": "https://huggingface.co/learn/llm-course",
+     "source": "Hugging Face"
+    },
+    {
+     "title": "The Illustrated Transformer",
+     "url": "https://jalammar.github.io/illustrated-transformer/",
+     "source": "Jay Alammar"
+    },
+    {
+     "title": "PEFT docs (efficient fine-tuning)",
+     "url": "https://huggingface.co/docs/peft",
+     "source": "Hugging Face"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "nlp",
+    "text preprocessing",
+    "text classifier"
+   ],
+   "links": [
+    {
+     "title": "LLM Course (NLP chapters)",
+     "url": "https://huggingface.co/learn/llm-course",
+     "source": "Hugging Face"
+    },
+    {
+     "title": "Hugging Face Learn",
+     "url": "https://huggingface.co/learn",
+     "source": "Hugging Face"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "multimodal"
+   ],
+   "links": [
+    {
+     "title": "Transformers docs (vision, audio and multimodal models)",
+     "url": "https://huggingface.co/docs/transformers",
+     "source": "Hugging Face"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "recommendation",
+    "personalisation",
+    "personalization",
+    "ranking"
+   ],
+   "links": [
+    {
+     "title": "Recommendation Systems course",
+     "url": "https://developers.google.com/machine-learning/recommendation",
+     "source": "Google"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "moderation",
+    "trust and safety",
+    "harmful content"
+   ],
+   "links": [
+    {
+     "title": "Perspective API (toxicity scoring)",
+     "url": "https://perspectiveapi.com/",
+     "source": "Jigsaw / Google"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "regulated",
+    "healthcare",
+    "medical"
+   ],
+   "links": [
+    {
+     "title": "AI/ML-enabled medical devices",
+     "url": "https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-and-machine-learning-aiml-enabled-medical-devices",
+     "source": "US FDA"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "hashing",
+    "hash",
+    "data structures"
+   ],
+   "links": [
+    {
+     "title": "Hash table",
+     "url": "https://en.wikipedia.org/wiki/Hash_table",
+     "source": "Wikipedia"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "binary search",
+    "searching",
+    "time complexity",
+    "algorithms"
+   ],
+   "links": [
+    {
+     "title": "Binary search",
+     "url": "https://en.wikipedia.org/wiki/Binary_search",
+     "source": "Wikipedia"
+    }
+   ]
+  },
+  {
+   "terms": [
+    "python"
+   ],
+   "links": [
+    {
+     "title": "The Python Tutorial",
+     "url": "https://docs.python.org/3/tutorial/",
+     "source": "Python"
+    }
+   ]
+  }
+ ]
+}

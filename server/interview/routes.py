@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, cheatsheet, content, diagnostic, evaluate, factcheck, followup, gemini_speech, mock, model_answer, plan, setup, slides, speech, star, voice
+from . import attempts, cheatsheet, content, diagnostic, evaluate, factcheck, followup, gemini_speech, mock, model_answer, plan, resources, setup, slides, speech, star, voice
 from ..gemini import GeminiError
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
@@ -87,7 +87,14 @@ def questions(service, state, job_id=None):
     job = next(j for j in service.jobs if j['document_id'] == result['job']['document_id'])
     keywords = {r['id']: r.get('keywords', []) for r in requirements(service.jobs)['jobs'][job['document_id']]}
     with _embedding_lock:
-        return pick_questions(job, result['requirements'], keywords, state['confirmed_profile'], bank(), service.retriever.backend)
+        picked = pick_questions(job, result['requirements'], keywords, state['confirmed_profile'], bank(), service.retriever.backend)
+    # Once there is a skill check for this job, its ten questions are the technical round, so Practice,
+    # the mock interview and the plan all work on the same job-specific topics.
+    check = attempt_store(service).latest_diagnostic(state['id'], job['document_id'])
+    if check:
+        picked['rounds']['technical'] = [{'id': q['id'], 'round': 'technical', 'text': q['text'], 'reason': f"From your skill check: {q['topic']}",
+                                          'requirement': {k: q['requirement'][k] for k in ('id', 'text', 'status')}} for q in check['questions']]
+    return picked
 
 
 MAX_AUDIO_BYTES = 5_000_000
@@ -305,13 +312,15 @@ def plan_topics(check):
     topics = []
     for position, question in enumerate(check['questions']):
         covered = set((check['answers'].get(str(position)) or {}).get('covered', []))
+        bank_question = by_id.get(question['id'], {})
         topics.append({'id': question['id'], 'question_id': question['id'], 'topic': question['topic'], 'question': question['text'],
                        'requirement': question['requirement'], 'learning': question.get('learning', False),
-                       'key_points': [{'text': k, 'covered': k in covered} for k in by_id.get(question['id'], {}).get('key_points', [])]})
+                       'key_points': [{'text': k, 'covered': k in covered} for k in bank_question.get('key_points', [])],
+                       'resources': resources.for_text(question['topic'], ' '.join(bank_question.get('tags') or []))})
     asked = {q['requirement']['text'] for q in check['questions'] if q.get('learning')}
     for i, skill in enumerate(s for s in check['job'].get('learn_skills', []) if s not in asked):
         topics.append({'id': f'learn-{i}', 'question_id': None, 'topic': skill, 'question': None, 'requirement': {'text': skill},
-                       'learning': True, 'key_points': []})
+                       'learning': True, 'key_points': [], 'resources': resources.for_text(skill)})
     return topics
 
 

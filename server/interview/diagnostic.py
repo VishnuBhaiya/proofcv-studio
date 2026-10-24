@@ -1,7 +1,7 @@
 """Skill check: ten technical questions for the chosen job, and where the user is strong or weak.
 
 Runs locally, without Gemini. Questions come from the question bank, matched to the
-job's requirements with MiniLM (questions.relevance). They cover as many different
+job's requirements with MiniLM and exact tags (questions.relevance, questions.topical). They cover as many different
 requirements as possible; any skill the user chose to learn in setup gets one. The
 first four are compulsory and cover the job's most important required skills.
 
@@ -12,10 +12,11 @@ that were missed become concrete things to study.
 from statistics import mean
 
 from .mock import components, overall
-from .questions import MIN_TECHNICAL_RELEVANCE, relevance, spread
+from .questions import MIN_TECHNICAL_RELEVANCE, relevance, topical
 
 QUESTION_COUNT = 10
 COMPULSORY = 4
+PER_REQUIREMENT = 2
 STRONG, DEVELOPING = 0.7, 0.4  # Share of key points covered.
 LEVEL_ORDER = {'required': 0, 'preferred': 1, 'responsibility': 2}
 
@@ -27,11 +28,13 @@ def pick(bank, fit_items, learn_ids, backend):
     if not judged:
         return []
     scores = relevance(technical, judged, backend)
+    eligible, strengths = topical(technical, judged, scores)
     best = {i: int(scores[i].argmax()) for i in range(len(technical))}
-    relevant = sorted((i for i in best if scores[i].max() >= MIN_TECHNICAL_RELEVANCE), key=lambda i: (-scores[i].max(), i))
+    strength = lambda i: strengths[i]
+    relevant = sorted((i for i in best if eligible[i]), key=lambda i: (-strength(i), i))
     # Compulsory: one question each for different requirements, required ones first, most relevant first.
     compulsory, used = [], set()
-    for i in sorted(relevant, key=lambda i: (LEVEL_ORDER.get(judged[best[i]]['level'], 3), -scores[i].max(), i)):
+    for i in sorted(relevant, key=lambda i: (LEVEL_ORDER.get(judged[best[i]]['level'], 3), -strength(i), i)):
         if best[i] not in used and len(compulsory) < COMPULSORY:
             compulsory.append(i)
             used.add(best[i])
@@ -42,12 +45,18 @@ def pick(bank, fit_items, learn_ids, backend):
         column = next((c for c, r in enumerate(judged) if r['id'] == skill_id), None)
         if column is not None:
             choice = max((i for i in range(len(technical)) if i not in compulsory + learning), key=lambda i: scores[i, column], default=None)
-            if choice is not None and scores[choice, column] >= MIN_TECHNICAL_RELEVANCE:
+            if choice is not None and scores[choice, column] >= MIN_TECHNICAL_RELEVANCE and eligible[choice]:
                 learning.append(choice)
-    rest = spread([i for i in relevant if i not in compulsory and i not in learning], lambda i: best[i], QUESTION_COUNT)
+    # The rest: the best-fitting questions, at most PER_REQUIREMENT for any one requirement, so the check
+    # stays on the job's core topics without asking five questions about one of them.
+    rest, per_requirement = [], {}
+    for i in relevant:
+        if i not in compulsory and i not in learning and per_requirement.get(best[i], 0) < PER_REQUIREMENT:
+            rest.append(i)
+            per_requirement[best[i]] = per_requirement.get(best[i], 0) + 1
     order = compulsory + (learning + rest)[:QUESTION_COUNT - len(compulsory)]
-    if len(order) < QUESTION_COUNT:  # A job with few technical requirements: fill with the next closest questions.
-        order += sorted((i for i in range(len(technical)) if i not in order), key=lambda i: -scores[i].max())[:QUESTION_COUNT - len(order)]
+    if len(order) < QUESTION_COUNT:  # A job with few technical requirements: fill with the questions that fit it best.
+        order += sorted((i for i in range(len(technical)) if i not in order), key=lambda i: (-strength(i), i))[:QUESTION_COUNT - len(order)]
     picked = []
     for position, i in enumerate(order):
         requirement = judged[best[i]]

@@ -157,7 +157,7 @@ def build(start, today, interview, topics, attempts, mocks, ticks, daily_minutes
             previous = {t['id'] for t in chosen}
             recent += [t['id'] for t in chosen]
             tasks = [{'kind': 'study', 'key': f"study:{t['id']}", 'topic_id': t['id'], 'text': t['topic'], 'question_id': t['question_id'],
-                      'question': t['question'], 'key_points': t['key_points'], 'level': topic_level(t, known(t, day)),
+                      'question': t['question'], 'key_points': t['key_points'], 'resources': t.get('resources', []), 'level': topic_level(t, known(t, day)),
                       'done': ticked(day, f"study:{t['id']}") or bool(t['question_id'] and evidence.answered(t['question_id'], day))} for t in chosen]
         elif kind == 'test':
             asked = [t for t in topics if t['id'] in recent and t['question_id']]
@@ -171,7 +171,7 @@ def build(start, today, interview, topics, attempts, mocks, ticks, daily_minutes
         elif kind == 'mock':
             tasks = [{'kind': 'mock', 'key': 'mock', 'text': 'Full mock interview (5 questions with follow-ups) and its report', 'done': day in finished_mocks}]
         elif kind == 'focus':
-            tasks = [{'kind': 'focus', 'key': f"focus:{t['id']}", 'topic_id': t['id'], 'text': t['topic'], 'key_points': t['key_points'],
+            tasks = [{'kind': 'focus', 'key': f"focus:{t['id']}", 'topic_id': t['id'], 'text': t['topic'], 'key_points': t['key_points'], 'resources': t.get('resources', []),
                       'level': topic_level(t, known(t, day)), 'done': ticked(day, f"focus:{t['id']}")} for t in sorted(topics, key=lambda t: need(t, day))[:FOCUS_TOPICS]]
             tasks.append({'kind': 'cheatsheet', 'key': 'cheatsheet', 'text': 'Read your cheat sheet and fill in any [brackets]', 'done': ticked(day, 'cheatsheet')})
         else:
@@ -185,7 +185,7 @@ def build(start, today, interview, topics, attempts, mocks, ticks, daily_minutes
             entry['tip'] = STAGE_TIPS[stage]
         days.append(entry)
 
-    tracker = [{'id': t['id'], 'topic': t['topic'], 'requirement': t['requirement'], 'learning': t['learning'], 'question_id': t['question_id'],
+    tracker = [{'id': t['id'], 'topic': t['topic'], 'requirement': t['requirement'], 'learning': t['learning'], 'question_id': t['question_id'], 'resources': t.get('resources', []),
                 'start': topic_level(t, known(t, start)), 'start_knowledge': pct(known(t, start)),
                 'level': topic_level(t, known(t, None)), 'knowledge': pct(known(t, None))} for t in topics]
     days_left = (interview - today).days

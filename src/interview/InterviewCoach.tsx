@@ -16,7 +16,8 @@ import './interview.css';
 
 type Tab = 'practice' | 'plan' | 'check' | 'mock' | 'reports' | 'fit' | 'deck';
 const TABS: { id: Tab; label: string; icon: typeof Mic }[] = [
-    { id: 'practice', label: 'Practice', icon: Mic }, { id: 'plan', label: 'Plan', icon: CalendarDays }, { id: 'check', label: 'Skill check', icon: ClipboardCheck }, { id: 'mock', label: 'Mock interview', icon: Flag }, { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'check', label: 'Skill check', icon: ClipboardCheck }, { id: 'plan', label: 'Plan', icon: CalendarDays }, { id: 'practice', label: 'Practice', icon: Mic },
+    { id: 'mock', label: 'Mock interview', icon: Flag }, { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'fit', label: 'Your fit', icon: Target }, { id: 'deck', label: 'Intro deck', icon: Presentation },
 ];
 
@@ -28,7 +29,7 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
     const [questions, setQuestions] = useState<Questions | null>(null);
     const [overview, setOverview] = useState<Overview>({});
     const [reports, setReports] = useState<ReportItem[]>([]);
-    const [tab, setTab] = useState<Tab>('practice');
+    const [tab, setTab] = useState<Tab>('plan');
     const [plan, setPlan] = useState<Plan | null>(null);
     const [focus, setFocus] = useState<{ id: string } | null>(null);
     // The voice (Piper) and speech recognition (Accurate) are fixed; this only tells the page what is installed.
@@ -76,7 +77,7 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
         </section>
     </div>;
     if (!status.setup || editing) return <div className="page-content interview-coach">
-        <SetupPanel workspaceId={workspace.id} status={status} onSaved={next => { setStatus(next); setEditing(false); setTab('practice'); }}
+        <SetupPanel workspaceId={workspace.id} status={status} onSaved={next => { setStatus(next); setEditing(false); setTab('plan'); }}
             onCancel={status.setup ? () => setEditing(false) : undefined} />
     </div>;
 
