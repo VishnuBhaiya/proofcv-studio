@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "label": "Avery Morgan � fictional demonstration, not a real candidate",
+  "profile_hash": "7bbb90de53089c80139cb26fc500df20284d4a74955f66d92efb28539d662a7f",
+  "headline": "Aspiring Computer Vision and Machine Learning Engineer",
+  "bio": "Artificial Intelligence diploma student with hands-on experience in object detection, video analytics, and dataset quality assurance. Proficient in Python, PyTorch, and OpenCV, with a focus on building reproducible prototypes and documenting model limitations. Committed to responsible AI practices and collaborative problem-solving.",
+  "source_ids": [
+    "name",
+    "education",
+    "experience",
+    "achievements",
+    "goal",
+    "p0-304208d881eb",
+    "p1-db457602adb6",
+    "p2-ff1aee39c06d",
+    "p3-b5224acfee01",
+    "s0",
+    "s1",
+    "s2"
+  ],
+  "views": [
+    {
+      "id": "general",
+      "title": "Complete profile",
+      "project_ids": [
+        "p0-304208d881eb",
+        "p1-db457602adb6",
+        "p2-ff1aee39c06d",
+        "p3-b5224acfee01"
+      ],
+      "skills": [
+        "Python",
+        "OpenCV",
+        "PyTorch",
+        "NumPy",
+        "pandas",
+        "scikit-learn",
+        "Machine Learning",
+        "Computer Vision",
+        "YOLO",
+        "Object Detection",
+        "Image Classification",
+        "Data Annotation",
+        "Model Evaluation",
+        "Git",
+        "Docker",
+        "FastAPI",
+        "SQL",
+        "Jupyter Notebook"
+      ],
+      "rationale": "This view highlights the breadth of technical skills and project experience, showcasing the ability to handle end-to-end workflows from dataset preparation to model evaluation and deployment tooling."
+    },
+    {
+      "id": "graduate_ai_engineer",
+      "title": "Graduate AI Engineer",
+      "project_ids": [
+        "p2-ff1aee39c06d",
+        "p0-304208d881eb",
+        "p1-db457602adb6",
+        "p3-b5224acfee01"
+      ],
+      "skills": [
+        "Python",
+        "PyTorch",
+        "pandas",
+        "scikit-learn",
+        "Machine Learning",
+        "Data Annotation",
+        "Model Evaluation",
+        "Git",
+        "Docker",
+        "FastAPI",
+        "SQL"
+      ],
+      "rationale": "Focuses on software engineering practices, data pipeline management, and experimental rigor, aligning with the requirement for clean, maintainable code and systematic model validation."
+    },
+    {
+      "id": "computer_vision_engineer",
+      "title": "AI Computer Vision Engineer",
+      "project_ids": [
+        "p0-304208d881eb",
+        "p1-db457602adb6",
+        "p3-b5224acfee01"
+      ],
+      "skills": [
+        "Python",
+        "OpenCV",
+        "PyTorch",
+        "Computer Vision",
+        "YOLO",
+        "Object Detection",
+        "Image Classification",
+        "Model Evaluation"
+      ],
+      "rationale": "Emphasizes core computer vision competencies, including object detection, video analytics, and model performance analysis, directly addressing the role's focus on video-intelligence platforms."
+    }
+  ],
+  "settings": {
+    "theme": "technical",
+    "avatar": "leaf",
+    "show_email": false,
+    "show_phone": false,
+    "show_location": true,
+    "show_links": false
+  },
+  "video": {
+    "file": "solarvision-demo.mp4",
+    "sha256": "bdfe41d338dc0fa6d383aeedad2407deeae9f57629dac9c480a75cece2b4a91b"
+  }
+}

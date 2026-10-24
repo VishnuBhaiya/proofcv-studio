@@ -51,9 +51,32 @@ class Store:
 
     def purge_trash(self):
         """Permanently delete only workspaces already moved to trash."""
+        candidates, retained, snapshots = set(), set(), []
         with self.lock, self.connect() as connection:
             count = connection.execute('SELECT COUNT(*) FROM workspace_trash').fetchone()[0]
+            # Remove portfolio records only for explicitly purged trashed workspaces.
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            from .portfolio_cleanup import media_keys
+            for table in ('portfolios', 'portfolio_snapshots'):
+                if table in tables:
+                    for raw, removed in connection.execute(f'SELECT state, workspace IN (SELECT id FROM workspace_trash) FROM {table}'):
+                        value = json.loads(raw)
+                        (candidates if removed else retained).update(media_keys(value))
+                        if removed and table == 'portfolio_snapshots': snapshots.append(value['id'])
+            for table in ('portfolios', 'portfolio_snapshots'):
+                if table in tables:
+                    connection.execute(f'DELETE FROM {table} WHERE workspace IN (SELECT id FROM workspace_trash)')
             connection.execute('DELETE FROM workspace_trash')
+        from .portfolio_cleanup import cleanup
+        with self.lock:
+            # Recheck references committed after the deletion transaction before
+            # removing shared blobs; in-flight uploads are validated at commit.
+            with self.connect() as connection:
+                for table in ('portfolios', 'portfolio_snapshots'):
+                    if table in tables:
+                        for (raw,) in connection.execute(f'SELECT state FROM {table}'):
+                            retained.update(media_keys(json.loads(raw)))
+            cleanup(self.path.parent, candidates, retained, snapshots)
         return {'deleted': count}
 
     @contextmanager

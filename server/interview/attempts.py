@@ -7,6 +7,7 @@ import json
 import sqlite3
 import threading
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -103,8 +104,16 @@ class AttemptStore:
             connection.execute('CREATE TABLE IF NOT EXISTS plan_ticks (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, day TEXT NOT NULL, '
                                'task TEXT NOT NULL, PRIMARY KEY (workspace_id, job_id, day, task))')
 
+    @contextmanager
     def connect(self):
-        return sqlite3.connect(self.path, timeout=20)
+        # sqlite3's transaction context commits/rolls back but does not close.
+        # Always release the handle, especially before Windows temp-file cleanup.
+        connection = sqlite3.connect(self.path, timeout=20)
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def history(self, workspace_id, question_id):
         with self.connect() as connection:

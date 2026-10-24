@@ -1,0 +1,12 @@
+export type Hotspot = {id:string; title:string;rect:number[];visible:string;contribution:string;outcome:string;source_ids:string[]};
+export type Analysis = {caption:string;alt:string;description:string;transcript:string;hotspots:Hotspot[];chapters:{time:number;title:string;description:string}[];questions:string[];warnings:string[]};
+export type Asset = {id:string;project_id:string;name?:string;key:string;sha256:string;mime:string;width:number;height:number;duration:number;published?:boolean;analysis?:Analysis;url?:string};
+export type Project = {id:string;title:string;description:string;technologies:string};
+export type RoleView = {id:string;title:string;project_ids:string[];skills:string[];rationale:string};
+export type Settings = {theme:'editorial'|'technical'|'minimal';avatar:'orbit'|'leaf'|'none';show_email:boolean;show_phone:boolean;show_location:boolean;show_links:boolean};
+export type Narration = {key:string;script:string;sha256:string;mime:string;url?:string};
+export type PublicSite = {owner_chat?:{url:string;snapshot_id:string;approved_at?:string};reader_url?:string;id?:string;approved_at?:string;cv_url?:string;renderer_version?:string;source_revision:number;person:{name:string;goal:string;education:string;experience:string;achievements:string;skills:string[];email?:string;phone?:string;location?:string;links:{label:string;url:string}[]};headline:string;bio:string;projects:Project[];views:RoleView[];assets:Asset[];sources:Record<string,string>;theme:Settings['theme'];avatar:Settings['avatar'];narration:Narration|null};
+export type SiteProposal = {headline:string;bio:string;source_ids:string[];views:RoleView[]};
+export type Pending = {id:string;kind:'analysis'|'site'|'narration';value:Analysis|SiteProposal|Narration;asset_id?:string;model:string;at:string};
+export type Portfolio = {revision:number;source_revision:number;profile:Record<string,unknown>;projects:Project[];sources:Record<string,string>;assets:Asset[];pending:Pending|null;headline:string;bio:string;bio_sources:string[];views:RoleView[];settings:Settings;narration:Narration|null;snapshots:{id:string;approved_at:string;theme:string;digest:string;renderer_version?:string;project_count?:number;source_revision?:number;portfolio_revision?:number}[];events:{at:string;kind:string;model?:string;proposal_kind?:string}[]};
+export type PortfolioResponse = {portfolio:Portfolio|null;confirmed:boolean;stale:boolean;jobs:{document_id:string;title:string}[]};

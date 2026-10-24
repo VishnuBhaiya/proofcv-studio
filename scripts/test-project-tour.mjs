@@ -1,0 +1,58 @@
+// CPU/controller checks, not a claim of real GPU capture or video decoding.
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+async function module(name){const source=await readFile(new URL('../src/portfolio/'+name+'.ts',import.meta.url),'utf8');return import('data:text/javascript;base64,'+Buffer.from(ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText).toString('base64'));}
+const {projectTour,tourChapterAt,isDemoPortfolio,profileEntries,TOUR_SECONDS}=await module('projectTour');
+const {recordSceneTour,sceneRecordingSupported}=await module('sceneRecorder');
+const {createTourVoice,spokenExcerpt}=await module('tourVoice');
+const {connectedReaderUrl,ownerChatTarget}=await module('readerLink');
+const project={id:'p-test',title:'Confirmed project',description:'Exact supplied description. No invented result.',technologies:'Python, SQL'};
+let count=0;function test(label,run){run();count++;console.log('PASS '+label);}
+test('Tour has three bounded 12-second chapters',()=>{const c=projectTour(project);assert.equal(c.length,3);assert.deepEqual(c.map(x=>[x.start,x.end]),[[0,12],[12,24],[24,36]]);assert.equal(TOUR_SECONDS,36);});
+test('Project description is exact, not reauthored',()=>assert.equal(projectTour(project)[0].text,project.description));
+test('Listed technologies are exact, not proficiency claims',()=>assert.equal(projectTour(project)[1].text,project.technologies));
+test('Tour distinguishes scenes from actual working-project footage',()=>assert.match(projectTour(project)[2].text,/not footage of the working project/));
+test('Missing information has an honest fallback',()=>assert.match(projectTour({...project,description:'',technologies:''})[0].text,/No project description/));
+test('Chapter boundaries are safe for non-finite input',()=>assert.deepEqual([-3,0,11.9,12,24,36,NaN,Infinity].map(tourChapterAt),[0,0,0,1,2,2,0,0]));
+test('Only explicit example names get automatic Demo CV labelling',()=>{assert.equal(isDemoPortfolio('Avery Morgan'),true);assert.equal(isDemoPortfolio('Vishnu Bhaiya'),false);});
+test('CV entry counts ignore empty/none fields',()=>assert.deepEqual(profileEntries('Degree\nCollege\n\nCertificate\n\nnone'),['Degree\nCollege','Certificate']));
+test('Spoken excerpts are bounded exact source prefixes, not generated claims',()=>{assert.equal(spokenExcerpt('One two three four five',3),'One two three…');assert.equal(spokenExcerpt('Short source.'),'Short source.');assert.equal(spokenExcerpt(''), '');});
+test('Voice detection is safe when browser speech is unavailable',()=>{const voice=createTourVoice(undefined,undefined,()=>{});assert.equal(voice.supported,false);voice.speak('Title','Text');voice.stop();});
+let spoken=[],cancelled=0,voiceErrors=0;
+class Utterance{constructor(text){this.text=text;}}
+const synth={getVoices:()=>[{lang:'en-US',localService:true,name:'US'},{lang:'en-AU',localService:true,name:'AU'}],speak(value){spoken.push(value);},cancel(){cancelled++;}};
+const voice=createTourVoice(synth,Utterance,()=>{voiceErrors++;});
+test('Creating a narrator never autoplays',()=>assert.equal(spoken.length,0));
+test('Explicit play speaks with a preferred local English voice',()=>{voice.speak('The project',project.description);assert.equal(spoken[0].text,'The project. '+project.description);assert.equal(spoken[0].voice.name,'AU');});
+test('Chapter changes cancel the previous voice instead of queuing overlaps',()=>{voice.speak('Tools',project.technologies);assert.equal(cancelled,1);assert.equal(spoken.length,2);assert.equal(spoken[0].onerror,null);});
+test('Pause/close clears active speech and tolerates repeated stop',()=>{voice.stop();voice.stop();assert.equal(cancelled,2);});
+test('A browser voice error reports a readable fallback',()=>{voice.speak('Project','Text');spoken.at(-1).onerror({error:'audio-busy'});assert.equal(voiceErrors,1);});
+test('User interruptions do not become misleading voice failures',()=>{voice.speak('Project','Text');spoken.at(-1).onerror({error:'interrupted'});assert.equal(voiceErrors,1);});
+test('No available local voice safely uses the browser default',()=>{const v=createTourVoice({...synth,getVoices:()=>[]},Utterance,()=>{});v.speak('Project','Text');assert.equal(spoken.at(-1).voice,null);v.stop();});
+test('Speech engine exceptions are caught rather than breaking the tour',()=>{createTourVoice({...synth,speak(){throw Error('Unavailable');}},Utterance,()=>{voiceErrors++;}).speak('Project','Text');assert.equal(voiceErrors,2);});
+const sid='a'.repeat(32);
+test('Approved versions link directly to their connected AI section',()=>assert.equal(connectedReaderUrl({id:sid}),`http://127.0.0.1:8001/site/${sid}/#ask`));
+test('Drafts use only an explicitly supplied installed-reader link',()=>{assert.equal(connectedReaderUrl({}), '');assert.equal(connectedReaderUrl({reader_url:`http://localhost:8001/site/${sid}/`}),`http://localhost:8001/site/${sid}/#ask`);});
+test('Reader handoff rejects external, credentialed, query and malformed URLs',()=>{for(const reader_url of [`https://evil.test/site/${sid}/`,`http://127.0.0.1:8000/site/${sid}/`,`http://user@localhost:8001/site/${sid}/`,`http://localhost:8001/site/${sid}/?question=private`,'javascript:alert(1)','http://localhost:8001/site/../api/'])assert.equal(connectedReaderUrl({reader_url}),'');});
+const owner_chat={url:`/api/workspaces/${sid}/portfolio-chat`,snapshot_id:'b'.repeat(32)};
+test('Inline preview chat binds to the current workspace and same-origin owner route',()=>assert.equal(ownerChatTarget({owner_chat},{port:'8000',pathname:`/portfolio-preview/${sid}/`}),owner_chat));
+test('Static exports, recruiter routes and other workspaces cannot activate owner chat',()=>{for(const location of [{port:'',pathname:`/portfolio-preview/${sid}/`},{port:'8001',pathname:`/portfolio-preview/${sid}/`},{port:'8000',pathname:`/site/${sid}/`},{port:'8000',pathname:'/portfolio-preview/'+'c'.repeat(32)+'/'}])assert.equal(ownerChatTarget({owner_chat},location),null);});
+test('Injected external chat targets and malformed snapshot IDs are rejected',()=>{const location={port:'8000',pathname:`/portfolio-preview/${sid}/`};assert.equal(ownerChatTarget({owner_chat:{...owner_chat,url:'https://evil.test/chat'}},location),null);assert.equal(ownerChatTarget({owner_chat:{...owner_chat,snapshot_id:'../../private'}},location),null);assert.equal(ownerChatTarget({},location),null);});
+test('Recorder is safely unavailable in a non-browser environment',()=>assert.equal(sceneRecordingSupported(),false));
+let stopped=0;const labels=[];
+const ctx={fillStyle:'',font:'',fillRect(){},save(){},beginPath(){},rect(){},clip(){},drawImage(){},restore(){},fillText(text){labels.push(text);},measureText:s=>({width:s.length*10})};
+globalThis.HTMLCanvasElement=class {captureStream(){return {getTracks:()=>[{stop(){stopped++;}}]};}getContext(){return ctx;}};
+globalThis.document={createElement:()=>new HTMLCanvasElement()};
+globalThis.MediaRecorder=class {static isTypeSupported(s){return s==='video/webm';}constructor(){this.state='inactive';}start(){this.state='recording';}stop(){this.state='inactive';this.ondataavailable?.({data:new Blob(['test-frames'])});this.onstop?.();}};
+test('Browser support is feature-detected',()=>assert.equal(sceneRecordingSupported(),true));
+const capture=recordSceneTour(project,'Demo Candidate',7,projectTour(project));capture.start();capture.capture({width:1200,height:600},1);capture.stop();const saved=await capture.result;
+test('Recording produces a local blob URL rather than uploading',()=>{assert.match(saved.url,/^blob:/);assert.ok(saved.bytes>0);});
+test('Recorded overlay includes a demo/illustration watermark',()=>assert.ok(labels.some(s=>s.includes('DEMO CV'))));
+test('Recorded overlay retains project source text',()=>assert.ok(labels.some(s=>s.includes('Exact supplied description'))));
+test('Recorded overlay identifies source revision',()=>assert.ok(labels.some(s=>s.includes('source revision 7'))));
+test('Stopping releases all capture tracks',()=>assert.equal(stopped,1));
+URL.revokeObjectURL(saved.url);
+const abandoned=recordSceneTour(project,'Demo Candidate',7,projectTour(project));abandoned.start();abandoned.discard();const discarded=await abandoned.result;
+test('Closing/discarding cannot leave a downloadable unrequested recording',()=>{assert.equal(discarded.url,'');assert.equal(stopped,2);});
+console.log(`${count} project-tour and recording-controller tests passed.`);

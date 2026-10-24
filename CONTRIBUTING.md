@@ -16,7 +16,11 @@ powershell -ExecutionPolicy Bypass -File .\start-proofcv.ps1
 
 Open http://127.0.0.1:8000. Python 3.12 or 3.13 is required. Initial dependency
 installation and the first MiniLM download need internet access and can take time.
-The baseline requires no personal profile database: create your own workspace.
+The app requires no personal profile database. Create your own workspace, or
+select the labelled four-project Avery sample. To prepare its complete fictional
+portfolio and supplied SolarVision recording before opening Portfolio Studio, run
+`.\.venv\Scripts\python.exe -m server.prepare_team_demo --apply` once. It does not
+publish a recruiter version or overwrite an existing custom portfolio.
 
 ## Make a change
 
@@ -43,7 +47,8 @@ git status --short
 git diff --check
 ```
 
-Inspect the diff, including the updated `dist/` for frontend changes. Stage only
+Inspect the diff, including updated `dist/` and `portfolio-runtime/` for frontend
+changes. Run `pnpm run test:portfolio` when changing the portfolio. Stage only
 the files you intend to share, commit them, and push your feature branch:
 
 ```powershell
