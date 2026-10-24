@@ -344,7 +344,7 @@ def practice_plan(service, state, job_id=None, today=None):
 
 
 def tick_plan(service, state, data):
-    """Mark a study, focus or cheat-sheet task done (or not) for a day of the plan."""
+    """Mark a study, focus or cheat-sheet task done (or not) for a day of the plan, or a test question taken early."""
     saved = attempt_store(service).setup(state['id'])
     if not saved:
         raise ValueError('Set up your interview preparation first.')
@@ -353,7 +353,7 @@ def tick_plan(service, state, data):
     except (TypeError, ValueError):
         raise ValueError('Give the day as YYYY-MM-DD.')
     key = str(data.get('key') or '')
-    if not re.fullmatch(r'(study|focus):[A-Za-z0-9_-]{1,60}|cheatsheet', key):
+    if not re.fullmatch(r'(study|focus|test):[A-Za-z0-9_-]{1,60}|cheatsheet', key):
         raise ValueError('Unknown plan task.')
     attempt_store(service).tick(state['id'], saved['job'], day.isoformat(), key, bool(data.get('done')))
     return practice_plan(service, state, saved['job'])

@@ -275,6 +275,9 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertTrue(ticked['days'][0]['tasks'][0]['done'])
         unticked = json.loads(self.request('POST', url + '/plan/tick', {'date': result['days'][0]['date'], 'key': first['key'], 'done': False}, header)[1])
         self.assertFalse(unticked['days'][0]['tasks'][0]['done'])
+        test_day = next(d for d in result['days'] if d['kind'] == 'test')
+        early = json.loads(self.request('POST', url + '/plan/tick', {'date': test_day['date'], 'key': test_day['tasks'][0]['key'], 'done': True}, header)[1])
+        self.assertEqual(json.loads(json.dumps(early))['status'], 'active')  # A test question can be ticked for a future day (taken early).
         code, body = self.request('POST', url + '/plan/tick', {'date': result['days'][0]['date'], 'key': 'rm -rf', 'done': True}, header)
         self.assertEqual((code, json.loads(body)['error']), (400, 'Unknown plan task.'))
 

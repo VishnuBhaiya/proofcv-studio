@@ -101,6 +101,17 @@ class ProgressTests(unittest.TestCase):
         first = plan['days'][2]['tasks'][0]
         self.assertEqual((first['question_id'], first['before'], first['after'], first['done']), ('weak', 0, 60, True))
 
+    def test_a_test_taken_early_counts_for_its_day(self):
+        test_day = START + timedelta(2)
+        plan = make(START + timedelta(9), CHECK + [answer('weak', START + timedelta(1), 0.7)], today=START + timedelta(1),
+                    ticks={(test_day.isoformat(), 'test:weak')})
+        early = next(t for t in plan['days'][2]['tasks'] if t['question_id'] == 'weak')
+        self.assertEqual((early['done'], early['early'], early['before'], early['after']), (True, True, 0, 70))  # Before is from the skill check.
+        others = [t for t in plan['days'][2]['tasks'] if t['question_id'] != 'weak']
+        self.assertFalse(any(t['done'] for t in others))
+        untaken = make(START + timedelta(9), CHECK + [answer('weak', START + timedelta(1), 0.7)], today=START + timedelta(1))
+        self.assertFalse(next(t for t in untaken['days'][2]['tasks'] if t['question_id'] == 'weak')['done'])  # Practice alone does not tick a future test.
+
     def test_better_answers_change_the_days_after_but_not_today(self):
         day1 = START + timedelta(1)
         before = make(START + timedelta(9), today=day1)

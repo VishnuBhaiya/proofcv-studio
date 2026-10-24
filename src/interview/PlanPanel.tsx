@@ -7,7 +7,7 @@ type Level = 'strong' | 'developing' | 'weak' | 'not_assessed' | 'to_learn';
 type Point = { text: string; covered: boolean };
 type Resource = { title: string; url: string; source: string };
 type Task = { kind: 'study' | 'test' | 'mock' | 'focus' | 'cheatsheet' | 'warmup'; key: string; text: string; done: boolean; topic_id?: string; topic?: string;
-    question_id?: string | null; question?: string | null; key_points?: Point[]; resources?: Resource[]; level?: Level; before?: number | null; after?: number | null };
+    question_id?: string | null; question?: string | null; key_points?: Point[]; resources?: Resource[]; level?: Level; before?: number | null; after?: number | null; early?: boolean };
 type DayKind = 'study' | 'test' | 'mock' | 'focus' | 'interview';
 type Day = { date: string; label: string; kind: DayKind; title: string; note: string; tasks: Task[]; done: number; total: number; tip?: string; mock_next_steps?: string[] };
 type TopicRow = { id: string; topic: string; requirement: { text: string }; learning: boolean; start: Level; start_knowledge: number | null; level: Level; knowledge: number | null; resources?: Resource[] };
@@ -45,7 +45,9 @@ function Resources({ links }: { links?: Resource[] }) {
 
 // One day of the plan, opened from the calendar: its tasks, with actions for today and earlier days.
 // A test day's questions, asked one after another like the skill check, then each topic's knowledge before and after.
-function TestRunner({ day, plan, workspaceId, onAnswered }: { day: Day; plan: Plan; workspaceId: string; onAnswered: () => void }) {
+// A future test can be taken early: each answer is ticked for the test's day so it counts there.
+function TestRunner({ day, plan, workspaceId, onAnswered, future, markTaken }: {
+    day: Day; plan: Plan; workspaceId: string; onAnswered: () => void; future: boolean; markTaken: (task: Task) => Promise<void> }) {
     const [running, setRunning] = useState(false);
     const questions = day.tasks.filter(t => t.kind === 'test');
     const answered = questions.filter(t => t.done).length;
@@ -58,8 +60,10 @@ function TestRunner({ day, plan, workspaceId, onAnswered }: { day: Day; plan: Pl
     </div>;
     if (!running) return <div className="ic-test-start">
         <div><strong>{plural(questions.length, 'question')}, out loud, one after another</strong>
-            <small>{answered ? `${answered} of ${questions.length} answered so far. ` : ''}No feedback until the end, like the real interview.</small></div>
-        <button type="button" className="button dark" onClick={() => setRunning(true)}><Mic size={15} />{answered ? 'Continue the test' : 'Start the test'}</button>
+            <small>{answered ? `${answered} of ${questions.length} answered so far. ` : ''}{future
+                ? `Planned for ${asDate(day.date).toLocaleDateString(undefined, { weekday: 'long' })}, but you can take it now; it will count for that day.`
+                : 'No feedback until the end, like the real interview.'}</small></div>
+        <button type="button" className="button dark" onClick={() => setRunning(true)}><Mic size={15} />{answered ? 'Continue the test' : future ? 'Take the test now' : 'Start the test'}</button>
     </div>;
     const position = questions.indexOf(current);
     return <div className="ic-test-run">
@@ -67,12 +71,12 @@ function TestRunner({ day, plan, workspaceId, onAnswered }: { day: Day; plan: Pl
             <small>Question {position + 1} of {questions.length} · {cap(current.topic || '')}</small></div>
         <p className="ic-question">{current.text}</p>
         <AnswerRecorder key={current.key} workspaceId={workspaceId} questionId={current.question_id!} questionText={current.text} jobId={plan.job.document_id}
-            onResult={onAnswered} hideFeedback targetSeconds={TECHNICAL_SECONDS} />
+            onResult={() => void (future ? markTaken(current) : Promise.resolve()).then(onAnswered)} hideFeedback targetSeconds={TECHNICAL_SECONDS} />
     </div>;
 }
 
-function DayDetails({ day, plan, workspaceId, today, tick, onAnswered, practise, startMock, openReports, close }: {
-    day: Day; plan: Plan; workspaceId: string; today: string; tick: (day: Day, task: Task) => void; onAnswered: () => void;
+function DayDetails({ day, plan, workspaceId, today, tick, markDone, onAnswered, practise, startMock, openReports, close }: {
+    day: Day; plan: Plan; workspaceId: string; today: string; tick: (day: Day, task: Task) => void; markDone: (day: Day, key: string) => Promise<void>; onAnswered: () => void;
     practise: (questionId: string) => void; startMock: () => void; openReports: () => void; close: () => void }) {
     const [open, setOpen] = useState<string | null>(null); // The task whose question is open for an answer.
     const isToday = day.date === today;
@@ -87,9 +91,9 @@ function DayDetails({ day, plan, workspaceId, today, tick, onAnswered, practise,
             <button type="button" className="icon-button ic-plan-close" aria-label="Close this day" onClick={close}><X size={18} /></button>
         </div>
         {future && <p className="ic-plan-ahead">{day.kind === 'test'
-            ? `This test opens on ${asDate(day.date).toLocaleDateString(undefined, { weekday: 'long' })}. It will ask these ${plural(day.tasks.length, 'question')} on the topics you study before it; they may change if your answers improve.`
+            ? `This test is planned for ${asDate(day.date).toLocaleDateString(undefined, { weekday: 'long' })}, on the topics you study before it. Take it now if you feel ready; until then the questions may change if your answers improve.`
             : 'Coming up. You can read ahead now; questions open on the day, and the topics may change if your answers improve.'}</p>}
-        {day.kind === 'test' && !future && <TestRunner day={day} plan={plan} workspaceId={workspaceId} onAnswered={onAnswered} />}
+        {day.kind === 'test' && <TestRunner day={day} plan={plan} workspaceId={workspaceId} onAnswered={onAnswered} future={future} markTaken={task => markDone(day, task.key)} />}
         {day.tip && <p className="ic-plan-tip">{day.tip}</p>}
         {day.mock_next_steps && <div className="ic-plan-steps"><strong>From your mock interview report</strong><ul>{day.mock_next_steps.map(s => <li key={s}>{s}</li>)}</ul></div>}
         <ol className="ic-plan-tasks">{day.tasks.map(task => <li key={task.key} className={task.done ? 'done' : ''}>
@@ -104,7 +108,7 @@ function DayDetails({ day, plan, workspaceId, today, tick, onAnswered, practise,
                         <Resources links={task.resources} />
                     </> : task.kind === 'test' ? <>
                         <strong>{task.text}</strong>
-                        <small>{cap(task.topic || '')} · {task.before != null ? `${task.before}% of key points before` : 'not answered before'}{task.after != null && <b> → {task.after}% now</b>}</small>
+                        <small>{cap(task.topic || '')} · {task.before != null ? `${task.before}% of key points before` : 'not answered before'}{task.after != null && <b> → {task.after}% now</b>}{task.early && ' · taken early'}</small>
                     </> : <strong>{task.text}</strong>}
                 </div>
             </div>
@@ -133,11 +137,12 @@ export default function PlanPanel({ workspaceId, plan, setPlan, onAnswered, prac
     const [error, setError] = useState('');
     if (!plan || !plan.days) return <p className="live-progress"><span className="live-dot" /> Loading your plan…</p>;
     if (plan.status === 'passed') return <section className="ic-plan-setup"><h3>Your interview date has passed</h3><p>Use Edit setup to choose a new date, and the plan will start again from your latest results.</p></section>;
-    async function tick(day: Day, task: Task) {
+    async function save(day: Day, key: string, done: boolean) {
         setError('');
-        try { setPlan(await api<Plan>(`/interview/${workspaceId}/plan/tick`, { date: day.date, key: task.key, done: !task.done })); }
+        try { setPlan(await api<Plan>(`/interview/${workspaceId}/plan/tick`, { date: day.date, key, done })); }
         catch (e) { setError(e instanceof Error ? e.message : 'Could not save that.'); }
     }
+    const tick = (day: Day, task: Task) => save(day, task.key, !task.done);
     const today = plan.today!;
     const topics = plan.topics || [];
     const count = (level: Level, key: 'start' | 'level') => topics.filter(t => t[key] === level).length;
@@ -175,12 +180,13 @@ export default function PlanPanel({ workspaceId, plan, setPlan, onAnswered, prac
                         <span className="ic-cal-kind"><Icon size={13} />{KIND[day.kind].short}</span>
                         {contents(day) && <span className="ic-cal-count">{contents(day)}</span>}
                         {finished ? <span className="ic-cal-status done"><Check size={14} /></span>
-                            : day.date <= today && day.done > 0 ? <span className="ic-cal-status">{day.done}/{day.total}</span> : null}
+                            : day.done > 0 ? <span className="ic-cal-status">{day.done}/{day.total}</span> : null}
                     </button>
                 </li>;
             })}</ol>
             {!open && <p className="coach-method">Choose a day to see what to do. Today is highlighted; finished days get a tick.</p>}
-            {open && <DayDetails key={open.date} day={open} plan={plan} workspaceId={workspaceId} today={today} tick={(d, t) => void tick(d, t)} onAnswered={onAnswered}
+            {open && <DayDetails key={open.date} day={open} plan={plan} workspaceId={workspaceId} today={today} tick={(d, t) => void tick(d, t)}
+                markDone={(d, key) => save(d, key, true)} onAnswered={onAnswered}
                 practise={practise} startMock={startMock} openReports={openReports} close={() => setSelected(null)} />}
         </section>
 

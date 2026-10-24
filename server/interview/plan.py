@@ -105,6 +105,11 @@ class Evidence:
     def answered(self, question_id, day):
         return question_id in self.answered_on.get(day, set())
 
+    def last_answered(self, question_id, before):
+        """The latest day before a date on which the question was answered (after the skill check), or None."""
+        days = [day for day, ids in self.answered_on.items() if day < before and question_id in ids]
+        return max(days) if days else None
+
 
 def topic_level(topic, knowledge):
     if knowledge is not None:
@@ -164,9 +169,12 @@ def build(start, today, interview, topics, attempts, mocks, ticks, daily_minutes
             asked += [t for t in sorted(topics, key=lambda t: need(t, day)) if t['question_id'] and t not in asked]
             tasks = []
             for t in asked[:MAX_TEST_QUESTIONS]:
-                done = evidence.answered(t['question_id'], day)
+                # A test can be taken early: its answers are given on an earlier day and the question is ticked for this one.
+                taken = day if evidence.answered(t['question_id'], day) else (
+                    evidence.last_answered(t['question_id'], day) if ticked(day, f"test:{t['id']}") else None)
                 tasks.append({'kind': 'test', 'key': f"test:{t['id']}", 'topic_id': t['id'], 'text': t['question'], 'topic': t['topic'], 'question_id': t['question_id'],
-                              'before': pct(known(t, day)), 'after': pct(evidence.knowledge(t['question_id'], day + timedelta(1))) if done else None, 'done': done})
+                              'before': pct(known(t, taken or day)), 'after': pct(evidence.knowledge(t['question_id'], taken + timedelta(1))) if taken else None,
+                              'done': taken is not None, 'early': bool(taken and taken < day)})
             recent = []
         elif kind == 'mock':
             tasks = [{'kind': 'mock', 'key': 'mock', 'text': 'Full mock interview (5 questions with follow-ups) and its report', 'done': day in finished_mocks}]
