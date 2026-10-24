@@ -26,3 +26,9 @@ export function questionStatus(overview: Overview, id: string): 'new' | 'work' |
 export function tone(score: number | null | undefined) {
     return score == null ? 'none' : score >= 80 ? 'good' : score >= 60 ? 'fair' : 'poor';
 }
+
+// Target answer length in seconds; matches ROUND_TARGET_SECONDS on the server.
+const ROUND_TARGET: Record<string, number> = { behavioural: 90, technical: 75, motivation_fit: 60 };
+export function targetFor(question: Question) {
+    return question.seconds ?? ROUND_TARGET[question.round] ?? null;
+}

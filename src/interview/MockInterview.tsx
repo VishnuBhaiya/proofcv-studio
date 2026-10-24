@@ -4,7 +4,7 @@ import { api } from '../api';
 import AnswerRecorder from './AnswerRecorder';
 import ReportView from './ReportView';
 import { speak } from './speech';
-import { Question, Report, ROUND_INFO } from './types';
+import { Question, Report, ROUND_INFO, targetFor } from './types';
 import { Bubble } from './ui';
 
 type Session = { id: string; created_at: string; job: { document_id: string; title: string }; questions: Question[]; answers: Record<string, unknown> };
@@ -87,7 +87,7 @@ export default function MockInterview({ workspaceId, jobId, onFinished, openRepo
             <Bubble who="interviewer" meta={`${ROUND_INFO[question!.round]?.title} · question ${index + 1} of ${session.questions.length}`}><span className="ic-question">{question!.text}</span></Bubble>
             <AnswerRecorder key={`${session.id}-${index}`} workspaceId={workspaceId} questionId={question!.id} questionText={question!.text} jobId={session.job.document_id}
                 requirementId={question!.requirement?.id} hideFeedback readAloud={readAloud} extra={{ mock_session: session.id, mock_position: index }}
-                onResult={() => setAnswered(a => [...new Set([...a, index])])} />
+                onResult={() => setAnswered(a => [...new Set([...a, index])])} targetSeconds={targetFor(question!)} />
         </div>
         <div className="ic-stage-nav">
             <span className="coach-method">{answered.length} of {session.questions.length} answered</span>

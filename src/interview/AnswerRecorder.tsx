@@ -3,6 +3,7 @@ import { Mic, Square, Volume2 } from 'lucide-react';
 import { api } from '../api';
 import { speak, SpeechState, stopSpeaking } from './speech';
 import { PART_LABEL } from './types';
+import LiveMeter from './LiveMeter';
 import { Bar, Bubble, ScoreRing } from './ui';
 
 type Delivery = { word_count: number; speaking_seconds: number; words_per_minute: number; pauses: { after: string; seconds: number }[]; long_pauses: number; fillers: { word: string; start: number }[]; fillers_per_minute: number; thinking_seconds: number; duration: number; notes: string[] };
@@ -23,6 +24,7 @@ const POINT_MARK = { covered: '✓', partial: '~', missed: '✗' };
 const CLAIM_LABEL = { supported: 'Matches your profile', weak: 'Loosely matches', unmatched: 'Not in your profile' };
 const ARROW = { better: '↑', worse: '↓', same: '=' };
 const MAX_SECONDS = 300;
+const FOLLOW_UP_SECONDS = 45; // Matches followup.FOLLOW_UP_SECONDS on the server.
 const show = (metric: string, value: number) => metric === 'key_points' ? `${Math.round(value * 100)}%` : metric === 'length_gap' ? `${value}%` : String(value);
 
 function toBase64(blob: Blob) {
@@ -132,13 +134,14 @@ function Scorecard({ answer }: { answer: Answer }) {
     </div>;
 }
 
-export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId, onResult, extra, hideFeedback, readAloud, nested }: {
+export default function AnswerRecorder({ workspaceId, questionId, questionText, jobId, requirementId, onResult, extra, hideFeedback, readAloud, nested, targetSeconds }: {
     workspaceId: string; questionId: string; questionText: string; jobId?: string; requirementId?: string; onResult?: () => void;
-    extra?: Record<string, unknown>; hideFeedback?: boolean; readAloud?: boolean; nested?: boolean }) {
+    extra?: Record<string, unknown>; hideFeedback?: boolean; readAloud?: boolean; nested?: boolean; targetSeconds?: number | null }) {
     const [phase, setPhase] = useState<'idle' | 'recording' | 'processing'>('idle');
     const [seconds, setSeconds] = useState(0);
     const [answer, setAnswer] = useState<Answer | null>(null);
     const [error, setError] = useState('');
+    const [stream, setStream] = useState<MediaStream | null>(null);
     const recorder = useRef<MediaRecorder | null>(null);
     const timer = useRef<number | undefined>(undefined);
     useEffect(() => () => { window.clearInterval(timer.current); recorder.current?.stream.getTracks().forEach(t => t.stop()); }, []);
@@ -155,6 +158,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
             media.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
             media.onstop = async () => {
                 stream.getTracks().forEach(t => t.stop());
+                setStream(null);
                 window.clearInterval(timer.current);
                 setPhase('processing');
                 try {
@@ -168,6 +172,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 }
             };
             recorder.current = media;
+            setStream(stream);
             media.start();
             setSeconds(0);
             setPhase('recording');
@@ -189,6 +194,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 <span>{phase === 'recording' ? 'Tap the button to stop' : phase === 'processing' ? 'Transcribing and scoring on this computer' : 'Tap the microphone and speak naturally'}</span>
             </div>
             {!nested && <SpeakButton text={questionText} label="Hear question" />}
+            {phase === 'recording' && stream && <LiveMeter stream={stream} seconds={seconds} target={targetSeconds ?? null} />}
         </div>
         {error && <p className="live-error" role="alert">{error}</p>}
         {answer && <>
@@ -197,7 +203,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
             {answer.follow_up && <>
                 <Bubble who="interviewer" kind="follow-up" meta={<>Why: {answer.follow_up.why} <SpeakButton text={answer.follow_up.question} label="Hear it" /></>}>{answer.follow_up.question}</Bubble>
                 <AnswerRecorder key={answer.follow_up.question} workspaceId={workspaceId} questionId={questionId} questionText={answer.follow_up.question} jobId={jobId}
-                    requirementId={requirementId} onResult={onResult} extra={{ ...extra, follow_up: answer.follow_up }} hideFeedback={hideFeedback} readAloud={readAloud} nested />
+                    requirementId={requirementId} onResult={onResult} extra={{ ...extra, follow_up: answer.follow_up }} hideFeedback={hideFeedback} readAloud={readAloud} nested targetSeconds={FOLLOW_UP_SECONDS} />
             </>}
         </>}
     </div>;

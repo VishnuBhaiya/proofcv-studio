@@ -310,3 +310,11 @@
 .interview-coach .ic-detail-tabs > span { align-self: center; margin-right: 2px; font-size: 12px; font-weight: 700; color: var(--ic-muted); text-transform: uppercase; letter-spacing: .06em; }
 .interview-coach .ic-detail-tabs { margin-bottom: 0; }
 .interview-coach .ic-detail-panel { margin-top: 12px; }
+.interview-coach .ic-meter { flex-basis: 100%; display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--ic-cream); }
+.interview-coach .ic-meter-row { display: grid; grid-template-columns: 58px 1fr auto; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ic-muted); }
+.interview-coach .ic-meter-row strong { min-width: 74px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ic-ink); }
+.interview-coach .ic-meter-track { position: relative; height: 10px; border-radius: 99px; background: var(--ic-line); overflow: hidden; }
+.interview-coach .ic-meter-track > span { display: block; height: 100%; border-radius: 99px; background: var(--tone); transition: width .25s linear; }
+.interview-coach .ic-meter-track.ic-level > span { transition: width .08s linear; }
+.interview-coach .ic-meter-track i { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ic-dark); opacity: .55; }
+.interview-coach .ic-meter-hint { margin: 0; font-size: 13px; font-weight: 600; color: var(--ic-ink); }

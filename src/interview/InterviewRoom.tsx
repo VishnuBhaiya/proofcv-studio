@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import AnswerRecorder from './AnswerRecorder';
 import { speak } from './speech';
-import { Overview, Question, Questions, questionStatus, ROUND_INFO, ROUNDS } from './types';
+import { Overview, Question, Questions, questionStatus, ROUND_INFO, ROUNDS, targetFor } from './types';
 import { Bubble } from './ui';
 
 // Practice tab: questions grouped by round on the left, one interview conversation on the right.
@@ -40,7 +40,7 @@ export default function InterviewRoom({ workspaceId, questions, overview, onAnsw
             <div className="ic-thread">
                 <Bubble who="interviewer" meta={`Why this question: ${question.reason}`}><span className="ic-question">{question.text}</span></Bubble>
                 <AnswerRecorder key={`${round}-${index}`} workspaceId={workspaceId} questionId={question.id} questionText={question.text}
-                    jobId={questions.job.document_id} requirementId={question.requirement?.id} onResult={onAnswered} readAloud={readAloud} />
+                    jobId={questions.job.document_id} requirementId={question.requirement?.id} onResult={onAnswered} readAloud={readAloud} targetSeconds={targetFor(question)} />
             </div>
             <div className="ic-stage-nav">
                 <button type="button" className="button subtle" disabled={position <= 0} onClick={() => go(-1)}><ArrowLeft size={15} />Previous</button>

@@ -50,7 +50,7 @@ export default function SlideDeck({ workspaceId, jobId }: { workspaceId: string;
         <div className="deck-rehearse">
             <h4>Rehearse with the deck</h4>
             <p className="coach-method">Record yourself presenting while you move through the slides. You will see which slides you talked about, plus the usual delivery feedback and fact check.</p>
-            <AnswerRecorder workspaceId={workspaceId} questionId="si-120" questionText="Present your two-minute introduction using your slide deck." jobId={jobId} extra={{ rehearsal: true }} />
+            <AnswerRecorder workspaceId={workspaceId} questionId="si-120" questionText="Present your two-minute introduction using your slide deck." jobId={jobId} extra={{ rehearsal: true }} targetSeconds={deck.target_seconds} />
         </div>
     </div>;
 }
