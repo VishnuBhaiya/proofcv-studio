@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, ArrowUpRight, Check, FileText, GitCompareArrows, Globe, History, LayoutDashboard, Menu, MessageCircle, Mic, Plus, RotateCcw, Save, ShieldCheck, Sparkles, Target, UserRound, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, FileText, GitCompareArrows, History, LayoutDashboard, Menu, MessageCircle, Mic, Plus, RotateCcw, Save, ShieldCheck, Sparkles, Target, UserRound, X } from 'lucide-react';
 import { api, Draft, Profile, Workspace, ProfileProposal, Design } from './api';
 import './live.css';
 import './suggestions.css';
@@ -17,7 +17,7 @@ import ProposalReview from './ProposalReview';
 import CVProposalReview from './CVProposalReview';
 import InterviewCoach from './interview/InterviewCoach';
 import PortfolioWebsite from './portfolio/PortfolioWebsite';
-type Page = 'overview' | 'profile' | 'jobs' | 'studio' | 'history' | 'interview' | 'portfolio';
+type Page = 'overview' | 'profile' | 'jobs' | 'studio' | 'portfolio' | 'history' | 'interview';
 type GeminiStatus = {
     configured: boolean;
     model: string;
@@ -99,7 +99,7 @@ function CVChat({ workspace, busy, error, send, review }: { workspace: Workspace
         <details className="tool-trace"><summary>Actual CV tool activity · {(workspace.cv_trace || []).length} steps</summary><p>Stopping condition: {workspace.cv_stop_reason || 'Not run'}</p><pre>{JSON.stringify(workspace.cv_trace || [], null, 2)}</pre></details>
     </section>;
 }
-const routes = [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }, { id: 'profile', label: 'My profile', icon: UserRound }, { id: 'jobs', label: 'Discover jobs', icon: Target }, { id: 'studio', label: 'CV studio', icon: FileText }, { id: 'history', label: 'Versions & comparison', icon: GitCompareArrows }, { id: 'interview', label: 'Interview Coach', icon: Mic }, { id: 'portfolio', label: 'Portfolio website', icon: Globe }] as const;
+const routes = [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }, { id: 'profile', label: 'My profile', icon: UserRound }, { id: 'jobs', label: 'Discover jobs', icon: Target }, { id: 'studio', label: 'CV studio', icon: FileText }, { id: 'portfolio', label: 'Portfolio Studio', icon: Sparkles }, { id: 'history', label: 'Versions & comparison', icon: GitCompareArrows }, { id: 'interview', label: 'Interview Coach', icon: Mic }] as const;
 function LiveOverview({ workspace: w, confirmed, go, start, busy }: { workspace: Workspace; confirmed: boolean; go: (page: Page) => void; start: (reuse: boolean, name: string) => Promise<void>; busy: boolean }) {
     const [showStart, setShowStart] = useState(false);
     const [newName, setNewName] = useState('');
