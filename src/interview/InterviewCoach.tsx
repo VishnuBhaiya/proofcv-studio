@@ -118,7 +118,7 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
         <div className="ic-panel">
             {!questions ? <p className="live-progress"><span className="live-dot" /> Picking questions for {current.title}…</p> : <>
                 {tab === 'practice' && <InterviewRoom key={questions.job.document_id} workspaceId={workspace.id} questions={questions} overview={overview} onAnswered={refresh} focus={focus} />}
-                {tab === 'plan' && <PlanPanel workspaceId={workspace.id} plan={plan} setPlan={setPlan} practise={id => { setFocus({ id }); setTab('practice'); }}
+                {tab === 'plan' && <PlanPanel workspaceId={workspace.id} plan={plan} setPlan={setPlan} onAnswered={refresh} practise={id => { setFocus({ id }); setTab('practice'); }}
                     startMock={() => setTab('mock')} openReports={() => setTab('reports')} />}
                 {tab === 'check' && <SkillCheck workspaceId={workspace.id} jobId={jobId} jobTitle={jobLabel(current)}
                     onChange={c => { if (c && !c.finished_at) setCheckDone(false); }} onDone={() => setTab('plan')} />}

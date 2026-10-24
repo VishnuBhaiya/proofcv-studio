@@ -97,13 +97,11 @@ class AttemptStore:
                                'question_id TEXT NOT NULL, created_at TEXT NOT NULL, transcript TEXT NOT NULL, summary TEXT NOT NULL)')
             connection.execute('CREATE TABLE IF NOT EXISTS mock_sessions (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, created_at TEXT NOT NULL, '
                                'job TEXT NOT NULL, questions TEXT NOT NULL, answers TEXT NOT NULL)')
-            connection.execute('CREATE TABLE IF NOT EXISTS practice_plans (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, interview_date TEXT NOT NULL, '
-                               'PRIMARY KEY (workspace_id, job_id))')
             connection.execute('CREATE TABLE IF NOT EXISTS diagnostics (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, job TEXT NOT NULL, '
                                'created_at TEXT NOT NULL, questions TEXT NOT NULL, answers TEXT NOT NULL, finished_at TEXT)')
             connection.execute('CREATE TABLE IF NOT EXISTS coach_setup (workspace_id TEXT PRIMARY KEY, setup TEXT NOT NULL, saved_at TEXT NOT NULL)')
-            connection.execute('CREATE TABLE IF NOT EXISTS plan_days (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, day TEXT NOT NULL, '
-                               'questions TEXT NOT NULL, PRIMARY KEY (workspace_id, job_id, day))')
+            connection.execute('CREATE TABLE IF NOT EXISTS plan_ticks (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, day TEXT NOT NULL, '
+                               'task TEXT NOT NULL, PRIMARY KEY (workspace_id, job_id, day, task))')
 
     def connect(self):
         return sqlite3.connect(self.path, timeout=20)
@@ -182,31 +180,18 @@ class AttemptStore:
             with self.connect() as connection:
                 connection.execute('UPDATE mock_sessions SET answers=? WHERE id=?', (json.dumps(current['answers']), session_id))
 
-    def interview_date(self, workspace_id, job_id):
+    def plan_ticks(self, workspace_id, job_id):
+        """Plan tasks the user marked done, as {(iso day, task key)}."""
         with self.connect() as connection:
-            row = connection.execute('SELECT interview_date FROM practice_plans WHERE workspace_id=? AND job_id=?', (workspace_id, job_id)).fetchone()
-        return row[0] if row else None
+            rows = connection.execute('SELECT day, task FROM plan_ticks WHERE workspace_id=? AND job_id=?', (workspace_id, job_id)).fetchall()
+        return set(rows)
 
-    def set_interview_date(self, workspace_id, job_id, interview_date):
-        """Save or clear (None) the interview date; a new date drops the frozen daily lists."""
+    def tick(self, workspace_id, job_id, day, task, done):
         with self.lock, self.connect() as connection:
-            connection.execute('DELETE FROM plan_days WHERE workspace_id=? AND job_id=?', (workspace_id, job_id))
-            if interview_date is None:
-                connection.execute('DELETE FROM practice_plans WHERE workspace_id=? AND job_id=?', (workspace_id, job_id))
+            if done:
+                connection.execute('INSERT OR IGNORE INTO plan_ticks (workspace_id, job_id, day, task) VALUES (?, ?, ?, ?)', (workspace_id, job_id, day, task))
             else:
-                connection.execute('INSERT OR REPLACE INTO practice_plans (workspace_id, job_id, interview_date) VALUES (?, ?, ?)',
-                                   (workspace_id, job_id, interview_date))
-
-    def plan_days(self, workspace_id, job_id):
-        """Frozen daily question lists, keyed by ISO date."""
-        with self.connect() as connection:
-            rows = connection.execute('SELECT day, questions FROM plan_days WHERE workspace_id=? AND job_id=?', (workspace_id, job_id)).fetchall()
-        return {day: json.loads(ids) for day, ids in rows}
-
-    def freeze_day(self, workspace_id, job_id, day, question_ids):
-        with self.lock, self.connect() as connection:
-            connection.execute('INSERT OR IGNORE INTO plan_days (workspace_id, job_id, day, questions) VALUES (?, ?, ?, ?)',
-                               (workspace_id, job_id, day, json.dumps(question_ids)))
+                connection.execute('DELETE FROM plan_ticks WHERE workspace_id=? AND job_id=? AND day=? AND task=?', (workspace_id, job_id, day, task))
 
     def setup(self, workspace_id):
         """The saved Interview Coach setup for a workspace, or None before the user has done it."""

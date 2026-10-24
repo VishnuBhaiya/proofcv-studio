@@ -1,99 +1,127 @@
 import { useState } from 'react';
-import { CalendarDays, Check, Circle, FileText, Flag, Mic } from 'lucide-react';
+import { BookOpen, Check, Circle, ClipboardList, FileText, Flag, Mic, Sparkles, Target } from 'lucide-react';
 import { api } from '../api';
-import { ROUND_INFO } from './types';
+import AnswerRecorder from './AnswerRecorder';
 
-type Task = { kind: 'question' | 'mock' | 'cheatsheet'; question_id?: string; text: string; round?: string; reason?: string | null; done: boolean };
-type Day = { date: string; label: string; tasks: Task[] };
-export type Plan = { job: { document_id: string; title: string }; interview_date: string | null; today?: string; days_left?: number;
-    status?: 'active' | 'interview_today' | 'passed'; counts?: { new: number; work: number; strong: number }; total?: number; days?: Day[]; unplanned?: string[] };
+type Level = 'strong' | 'developing' | 'weak' | 'not_assessed' | 'to_learn';
+type Point = { text: string; covered: boolean };
+type Task = { kind: 'study' | 'test' | 'mock' | 'focus' | 'cheatsheet' | 'warmup'; key: string; text: string; done: boolean; topic_id?: string; topic?: string;
+    question_id?: string | null; question?: string | null; key_points?: Point[]; level?: Level; before?: number | null; after?: number | null };
+type Day = { date: string; label: string; kind: 'study' | 'test' | 'mock' | 'focus' | 'interview'; title: string; note: string; tasks: Task[]; done: number; total: number;
+    tip?: string; mock_next_steps?: string[] };
+type TopicRow = { id: string; topic: string; requirement: { text: string }; learning: boolean; start: Level; start_knowledge: number | null; level: Level; knowledge: number | null };
+export type Plan = { job: { document_id: string; title?: string }; status: 'active' | 'interview_today' | 'passed' | 'needs_setup' | 'needs_check'; interview_date: string | null;
+    today?: string; days_left?: number; per_day?: number; topics?: TopicRow[]; days?: Day[] };
 
-const NAMED = ['Today', 'Tomorrow', 'Interview day']; // Other days are labelled with the browser's own date format.
-const MAX_DAYS = 60; // Matches plan.MAX_DAYS on the server.
-const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const LEVEL: Record<Level, [string, string]> = {
+    strong: ['Strong', 'good'], developing: ['Developing', 'fair'], weak: ['Weak', 'poor'], not_assessed: ['Not assessed', 'none'], to_learn: ['To learn', 'none'],
+};
+const KIND_ICON = { study: BookOpen, test: ClipboardList, mock: Flag, focus: Target, interview: Sparkles };
+const TECHNICAL_SECONDS = 75; // Matches ROUND_TARGET_SECONDS['technical'] on the server.
+const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 export const longDate = (value: string) => new Date(`${value}T00:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 export const countdown = (plan: Plan) => plan.status === 'interview_today' ? 'Interview today' : plan.days_left === 1 ? 'Interview tomorrow' : `Interview in ${plan.days_left} days`;
 
-function DatePicker({ value, onSave, onCancel, busy }: { value: string; onSave: (date: string) => void; onCancel?: () => void; busy: boolean }) {
-    const [date, setDate] = useState(value);
-    const today = new Date();
-    const last = new Date(today.getFullYear(), today.getMonth(), today.getDate() + MAX_DAYS);
-    return <form className="ic-plan-date" onSubmit={e => { e.preventDefault(); if (date) onSave(date); }}>
-        <label>Interview date<input type="date" value={date} min={iso(today)} max={iso(last)} required onChange={e => setDate(e.target.value)} /></label>
-        <button type="submit" className="button dark" disabled={!date || busy}>{busy ? 'Planning…' : value ? 'Update plan' : 'Make my plan'}</button>
-        {onCancel && <button type="button" className="button subtle" onClick={onCancel}>Cancel</button>}
-    </form>;
+function LevelChip({ level, value }: { level: Level; value?: number | null }) {
+    const [label, tone] = LEVEL[level];
+    return <span className={`ic-level tone-${tone}`}>{label}{value != null ? ` · ${value}%` : ''}</span>;
 }
 
-// Plan tab: a day-by-day countdown to the interview, ticked off automatically as the user practises.
-export default function PlanPanel({ workspaceId, plan, setPlan, practise, startMock, openReports }: {
-    workspaceId: string; plan: Plan | null; setPlan: (plan: Plan) => void; practise: (questionId: string) => void; startMock: () => void; openReports: () => void }) {
-    const [editing, setEditing] = useState(false);
-    const [busy, setBusy] = useState(false);
+// Plan tab: the adaptive day-by-day plan from the skill check to the interview.
+export default function PlanPanel({ workspaceId, plan, setPlan, onAnswered, practise, startMock, openReports }: {
+    workspaceId: string; plan: Plan | null; setPlan: (plan: Plan) => void; onAnswered: () => void; practise: (questionId: string) => void;
+    startMock: () => void; openReports: () => void }) {
+    const [open, setOpen] = useState<string | null>(null); // The task whose question is open for an answer.
     const [error, setError] = useState('');
-    if (!plan) return <p className="live-progress"><span className="live-dot" /> Loading your plan…</p>;
-    async function save(date: string | null) {
-        setBusy(true);
+    if (!plan || !plan.days) return <p className="live-progress"><span className="live-dot" /> Loading your plan…</p>;
+    if (plan.status === 'passed') return <section className="ic-plan-setup"><h3>Your interview date has passed</h3><p>Use Edit setup to choose a new date, and the plan will start again from your latest results.</p></section>;
+    async function tick(day: Day, task: Task) {
         setError('');
-        try { setPlan(await api<Plan>(`/interview/${workspaceId}/plan`, { job: plan!.job.document_id, interview_date: date })); setEditing(false); }
-        catch (e) { setError(e instanceof Error ? e.message : 'Could not save the date.'); }
-        finally { setBusy(false); }
+        try { setPlan(await api<Plan>(`/interview/${workspaceId}/plan/tick`, { date: day.date, key: task.key, done: !task.done })); }
+        catch (e) { setError(e instanceof Error ? e.message : 'Could not save that.'); }
     }
-    const errorLine = error && <p className="live-error" role="alert">{error}</p>;
-    if (!plan.interview_date || plan.status === 'passed' || editing) return <section className="ic-plan-setup">
-        <CalendarDays size={28} />
-        <h3>{plan.status === 'passed' && !editing ? 'Your interview date has passed' : 'When is your interview?'}</h3>
-        <p>Pick the date of your {plan.job.title} interview. The coach lays out a few questions a day, starting with the ones you have not practised and the
-            ones that still need work, with a full mock interview the day before. Tasks tick off by themselves as you practise.</p>
-        <DatePicker value={editing ? plan.interview_date || '' : ''} onSave={date => void save(date)} onCancel={editing ? () => setEditing(false) : undefined} busy={busy} />
-        {errorLine}
-    </section>;
+    const today = plan.days.find(d => d.date === plan.today) || plan.days.find(d => d.date > plan.today!) || plan.days[plan.days.length - 1];
+    const later = plan.days.filter(d => d.date > today.date);
+    const earlier = plan.days.filter(d => d.date < today.date);
+    const topics = plan.topics || [];
+    const count = (level: Level, key: 'start' | 'level') => topics.filter(t => t[key] === level).length;
+    const recorder = (task: Task) => open === task.key && task.question_id && <div className="ic-plan-answer">
+        <AnswerRecorder workspaceId={workspaceId} questionId={task.question_id} questionText={task.question || task.text} jobId={plan.job.document_id}
+            onResult={onAnswered} targetSeconds={TECHNICAL_SECONDS} />
+    </div>;
+    const KindIcon = KIND_ICON[today.kind];
 
-    const [today, ...later] = plan.days || [];
-    const done = today.tasks.filter(t => t.done).length;
-    const counts = plan.counts!;
-    const action = (task: Task) => task.kind === 'question' ? <button type="button" className="ic-ghost" onClick={() => practise(task.question_id!)}><Mic size={14} />Practise</button>
-        : task.kind === 'mock' ? <button type="button" className="ic-ghost" onClick={startMock}><Flag size={14} />Start mock</button>
-        : <button type="button" className="ic-ghost" onClick={openReports}><FileText size={14} />Open cheat sheet</button>;
     return <div className="ic-plan">
         <section className="ic-plan-head">
             <div>
                 <span className="ic-eyebrow-dark">{plan.job.title}</span>
                 <h3>{countdown(plan)}</h3>
-                <p>{longDate(plan.interview_date)}</p>
+                <p>{longDate(plan.interview_date!)} · {plan.per_day} topic{plan.per_day === 1 ? '' : 's'} per study day</p>
             </div>
-            <div className="ic-plan-head-actions">
-                <button type="button" className="button subtle" onClick={() => setEditing(true)}>Change date</button>
-                <button type="button" className="text-button" disabled={busy} onClick={() => void save(null)}>Remove plan</button>
+            <div className="ic-plan-shift">
+                <span><strong>{count('weak', 'start')}</strong> weak at the skill check</span>
+                <span><strong>{count('weak', 'level')}</strong> weak now</span>
+                <span><strong>{count('strong', 'level')}</strong> strong now</span>
             </div>
-            <div className="ic-plan-progress" aria-label={`${counts.strong} strong, ${counts.work} need work, ${counts.new} not practised`}>
-                <span className="strong" style={{ flex: counts.strong }} /><span className="work" style={{ flex: counts.work }} /><span className="new" style={{ flex: counts.new }} />
-            </div>
-            <p className="ic-plan-legend"><i className="strong" />{counts.strong} strong <i className="work" />{counts.work} need work <i className="new" />{counts.new} not practised · {plan.total} questions for this job</p>
         </section>
-        {errorLine}
-        <section className="ic-plan-today">
-            <div className="ic-section-head"><h3>{today.label}</h3><span className={`ic-plan-done ${done === today.tasks.length ? 'all' : ''}`}>{done} of {today.tasks.length} done</span></div>
-            <ol>{today.tasks.map((task, i) => <li key={i} className={task.done ? 'done' : ''}>
-                {task.done ? <Check size={18} className="ic-plan-tick" /> : <Circle size={18} className="ic-plan-tick" />}
-                <span className="ic-plan-task">
-                    <strong>{task.text}</strong>
-                    <small>{task.round ? ROUND_INFO[task.round]?.title : task.kind === 'mock' ? 'Mock interview' : 'Cheat sheet'}{task.reason ? ` · ${task.reason}` : ''}</small>
-                </span>
-                {!task.done && action(task)}
+        {error && <p className="live-error" role="alert">{error}</p>}
+
+        <section className={`ic-plan-today kind-${today.kind}`}>
+            <div className="ic-plan-day-head">
+                <KindIcon size={22} />
+                <div><span className="ic-eyebrow-dark">{today.label || longDate(today.date)} · {longDate(today.date)}</span><h3>{today.title}</h3><p>{today.note}</p></div>
+                <span className={`ic-plan-done ${today.done === today.total ? 'all' : ''}`}>{today.done} of {today.total} done</span>
+            </div>
+            {today.tip && <p className="ic-plan-tip">{today.tip}</p>}
+            {today.mock_next_steps && <div className="ic-plan-steps"><strong>From your mock interview report</strong><ul>{today.mock_next_steps.map(s => <li key={s}>{s}</li>)}</ul></div>}
+            <ol className="ic-plan-tasks">{today.tasks.map(task => <li key={task.key} className={task.done ? 'done' : ''}>
+                <div className="ic-plan-task-row">
+                    {task.done ? <Check size={18} className="ic-plan-tick" /> : <Circle size={18} className="ic-plan-tick" />}
+                    <div className="ic-plan-task">
+                        {task.kind === 'study' || task.kind === 'focus' ? <>
+                            <strong>{cap(task.text)} {task.level && <LevelChip level={task.level} />}</strong>
+                            {task.key_points && task.key_points.length > 0 ? <ul className="ic-points">{task.key_points.map(p => <li key={p.text} className={p.covered ? 'covered' : ''}>
+                                {p.covered ? '✓' : '○'} {p.text}{p.covered && <em> (you covered this in the skill check)</em>}</li>)}</ul>
+                                : <small>A skill you chose to learn: read up on it and make notes on how it relates to your projects.</small>}
+                        </> : task.kind === 'test' ? <>
+                            <strong>{task.text}</strong>
+                            <small>{cap(task.topic || '')} · {task.before != null ? `${task.before}% of key points before` : 'not answered before'}{task.after != null && <b> → {task.after}% now</b>}</small>
+                        </> : <strong>{task.text}</strong>}
+                    </div>
+                </div>
+                <div className="ic-plan-actions">
+                    {(task.kind === 'study' || task.kind === 'focus' || task.kind === 'cheatsheet') &&
+                        <button type="button" className="ic-ghost" aria-pressed={task.done} onClick={() => void tick(today, task)}><Check size={14} />{task.done ? 'Done' : task.kind === 'cheatsheet' ? 'Mark as read' : 'Mark as studied'}</button>}
+                    {(task.kind === 'study' || task.kind === 'test') && task.question_id &&
+                        <button type="button" className="ic-ghost" onClick={() => setOpen(open === task.key ? null : task.key)}><Mic size={14} />{open === task.key ? 'Close' : task.kind === 'test' ? (task.done ? 'Answer again' : 'Answer') : 'Try the question'}</button>}
+                    {task.kind === 'cheatsheet' && <button type="button" className="ic-ghost" onClick={openReports}><FileText size={14} />Open cheat sheet</button>}
+                    {task.kind === 'mock' && <button type="button" className="ic-ghost" onClick={task.done ? openReports : startMock}><Flag size={14} />{task.done ? 'See the report' : 'Start the mock interview'}</button>}
+                    {task.kind === 'warmup' && <button type="button" className="ic-ghost" onClick={() => practise(task.question_id!)}><Mic size={14} />Warm up</button>}
+                </div>
+                {recorder(task)}
             </li>)}</ol>
-            {done === today.tasks.length && today.tasks.length > 0 && <p className="coach-method">All done for today. Extra practice is welcome, but rest counts too.</p>}
         </section>
-        {plan.unplanned && plan.unplanned.length > 0 && <p className="ic-plan-warning">
-            Not enough days to cover everything: {plan.unplanned.length === 1 ? '1 question that still needs work is' : `${plan.unplanned.length} questions that still need work are`} not in the plan. The plan puts the ones you have never tried first.
-        </p>}
+
+        {topics.length > 0 && <section>
+            <div className="ic-section-head"><h3>Your topics</h3></div>
+            <ul className="ic-plan-topics">{topics.map(t => <li key={t.id}>
+                <span>{cap(t.topic)}</span>
+                <span className="ic-plan-move"><LevelChip level={t.start} value={t.start_knowledge} />{(t.level !== t.start || t.knowledge !== t.start_knowledge) && <>→<LevelChip level={t.level} value={t.knowledge} /></>}</span>
+            </li>)}</ul>
+        </section>}
+
         {later.length > 0 && <section>
             <div className="ic-section-head"><h3>Coming up</h3></div>
-            <ol className="ic-plan-days">{later.map(day => <li key={day.date} className={day.label === 'Interview day' ? 'interview' : ''}>
-                <strong>{NAMED.includes(day.label) ? day.label : longDate(day.date)}</strong>{NAMED.includes(day.label) && <small>{longDate(day.date)}</small>}
-                <ul>{day.tasks.map((t, i) => <li key={i} className={t.kind}>{t.kind === 'question' ? t.text : t.kind === 'mock' ? 'Mock interview' : t.text}</li>)}</ul>
+            <ol className="ic-plan-days">{later.map(day => <li key={day.date} className={`kind-${day.kind}`}>
+                <span className="ic-plan-kind">{day.title}</span>
+                <strong>{day.label || longDate(day.date)}</strong>{day.label && <small>{longDate(day.date)}</small>}
+                <ul>{day.tasks.map(t => <li key={t.key}>{t.kind === 'test' ? cap(t.topic || t.text) : cap(t.text)}</li>)}</ul>
             </li>)}</ol>
-            <p className="coach-method">Later days are recalculated from your real practice each time you open the plan; today’s list stays fixed until tomorrow.</p>
+            <p className="coach-method">Later days update from your answers: a topic you answer well moves down the list, a weak one comes back sooner. Today’s list stays fixed until tomorrow.</p>
         </section>}
+
+        {earlier.length > 0 && <details className="ic-plan-earlier"><summary>Earlier days ({earlier.reduce((n, d) => n + d.done, 0)} of {earlier.reduce((n, d) => n + d.total, 0)} tasks done)</summary>
+            <ul>{earlier.map(d => <li key={d.date}><span>{longDate(d.date)} · {d.title}</span><span>{d.done} of {d.total} done</span></li>)}</ul>
+        </details>}
     </div>;
 }

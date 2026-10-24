@@ -1,6 +1,7 @@
 """HTTP entry point for the Interview Coach module."""
 import base64
 import binascii
+import re
 import threading
 import time
 from concurrent.futures import TimeoutError as FutureTimeout
@@ -73,13 +74,10 @@ def fit(service, state, job_id=None):
 
 
 def save_setup(service, state, data, today=None):
-    """Check and store the setup form; the interview date also drives the countdown plan."""
+    """Check and store the setup form; its date and daily time drive the plan."""
     chosen = fit(service, state, data.get('job') if isinstance(data.get('job'), str) else None) if data.get('job') in {j['document_id'] for j in service.jobs} else None
     clean = setup.validate(data, {j['document_id'] for j in service.jobs}, {s['id'] for s in (chosen or {}).get('to_learn', [])}, today)
-    store = attempt_store(service)
-    store.save_setup(state['id'], clean)
-    if store.interview_date(state['id'], clean['job']) != clean['interview_date']:
-        store.set_interview_date(state['id'], clean['job'], clean['interview_date'])
+    attempt_store(service).save_setup(state['id'], clean)
     return status(service, state)
 
 
@@ -301,30 +299,55 @@ def cheat_sheet(service, state, job_id=None):
                                 by_id, service.retriever.backend, readiness=latest)
 
 
+def plan_topics(check):
+    """The plan's topics: one per skill-check question, plus chosen skills to learn that had no question of their own."""
+    by_id = {q['id']: q for q in bank()['questions']}
+    topics = []
+    for position, question in enumerate(check['questions']):
+        covered = set((check['answers'].get(str(position)) or {}).get('covered', []))
+        topics.append({'id': question['id'], 'question_id': question['id'], 'topic': question['topic'], 'question': question['text'],
+                       'requirement': question['requirement'], 'learning': question.get('learning', False),
+                       'key_points': [{'text': k, 'covered': k in covered} for k in by_id.get(question['id'], {}).get('key_points', [])]})
+    asked = {q['requirement']['text'] for q in check['questions'] if q.get('learning')}
+    for i, skill in enumerate(s for s in check['job'].get('learn_skills', []) if s not in asked):
+        topics.append({'id': f'learn-{i}', 'question_id': None, 'topic': skill, 'question': None, 'requirement': {'text': skill},
+                       'learning': True, 'key_points': []})
+    return topics
+
+
 def practice_plan(service, state, job_id=None, today=None):
-    """The countdown plan for a job, or just the job when no interview date is set yet."""
-    picked = questions(service, state, job_id)
-    job = picked['job']['document_id']
+    """The adaptive day-by-day plan for the setup's job, once its skill check is finished."""
     store = attempt_store(service)
-    when = store.interview_date(state['id'], job)
-    if when is None:
-        return {'job': picked['job'], 'interview_date': None}
-    today = today or date.today()
-    flat = [q for r in ROUNDS for q in picked['rounds'].get(r, [])]
-    frozen = {date.fromisoformat(day): ids for day, ids in store.plan_days(state['id'], job).items()}
-    mocks = [m for m in mock_list(service, state) if m['job']['document_id'] == job]
-    result = plan.build(date.fromisoformat(when), today, flat, store.all(state['id']), mocks, frozen)
-    if today not in frozen and plan.todays_questions(result):
-        store.freeze_day(state['id'], job, today.isoformat(), plan.todays_questions(result))
-    return {'job': picked['job'], **result}
+    saved = store.setup(state['id'])
+    job_id = current_job_id(service, state, job_id)
+    if not saved or saved['job'] != job_id:
+        return {'job': {'document_id': job_id}, 'status': 'needs_setup', 'interview_date': None}
+    check = store.latest_diagnostic(state['id'], job_id)
+    if not check or not check['finished_at']:
+        return {'job': {'document_id': job_id}, 'status': 'needs_check', 'interview_date': saved['interview_date']}
+    mocks = [m for m in mock_list(service, state) if m['job']['document_id'] == job_id]
+    finished = [m for m in mocks if m['answered'] and m['answered'] == m['total']]
+    next_steps = mock_report(service, state, finished[0]['id'])['next_steps'] if finished else []
+    result = plan.build(plan.local_day(check['finished_at']), today or date.today(), date.fromisoformat(saved['interview_date']), plan_topics(check),
+                        store.all(state['id']), mocks, store.plan_ticks(state['id'], job_id), saved['daily_minutes'], saved['stage'], next_steps,
+                        since=check['finished_at'])
+    return {'job': {k: check['job'][k] for k in ('document_id', 'title')}, 'skill_check': check['id'], **result}
 
 
-def set_plan(service, state, data, today=None):
-    picked = questions(service, state, data.get('job'))
-    chosen = data.get('interview_date')
-    when = None if chosen is None else plan.parse_date(chosen, today or date.today()).isoformat()
-    attempt_store(service).set_interview_date(state['id'], picked['job']['document_id'], when)
-    return practice_plan(service, state, picked['job']['document_id'], today)
+def tick_plan(service, state, data):
+    """Mark a study, focus or cheat-sheet task done (or not) for a day of the plan."""
+    saved = attempt_store(service).setup(state['id'])
+    if not saved:
+        raise ValueError('Set up your interview preparation first.')
+    try:
+        day = date.fromisoformat(data.get('date'))
+    except (TypeError, ValueError):
+        raise ValueError('Give the day as YYYY-MM-DD.')
+    key = str(data.get('key') or '')
+    if not re.fullmatch(r'(study|focus):[A-Za-z0-9_-]{1,60}|cheatsheet', key):
+        raise ValueError('Unknown plan task.')
+    attempt_store(service).tick(state['id'], saved['job'], day.isoformat(), key, bool(data.get('done')))
+    return practice_plan(service, state, saved['job'])
 
 
 def recognition_settings(service):
@@ -380,8 +403,8 @@ def handle_post(service, path, data):
         return finish_check(service, service.store.get(parts[2]), parts[4])
     if len(parts) == 4 and parts[3] == 'setup':
         return save_setup(service, service.store.get(parts[2]), data)
-    if len(parts) == 4 and parts[3] == 'plan':
-        return set_plan(service, service.store.get(parts[2]), data)
+    if len(parts) == 5 and parts[3] == 'plan' and parts[4] == 'tick':
+        return tick_plan(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'speak':
         service.store.get(parts[2])
         speaker = voice.speaker(runtime_dir(service))

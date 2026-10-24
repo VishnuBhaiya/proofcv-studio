@@ -244,22 +244,38 @@ class InterviewRouteTests(unittest.TestCase):
             code, body = self.post_answer(state['id'], {'question_id': 'si-30', 'audio': base64.b64encode(b'x').decode(), 'recognition': 'small.en'})
         self.assertEqual((code, json.loads(body)['error']), (400, 'That speech recognition model is not installed.'))
 
-    def test_countdown_plan_is_saved_per_job_and_freezes_today(self):
+    def test_plan_needs_setup_and_skill_check_then_builds_days_and_ticks(self):
         from datetime import date, timedelta
+        class FakeTranscriber:
+            def transcribe(self, audio, prompt=None):
+                text = 'I would report precision and recall for each class.'
+                return {'text': text, 'words': words(text), 'duration': 5, 'model': 'fake'}
         state = self.confirmed_state()
-        url = f"/api/interview/{state['id']}/plan"
-        json_header = {'Content-Type': 'application/json'}
-        self.assertIsNone(json.loads(self.request('GET', url)[1])['interview_date'])
-        when = (date.today() + timedelta(3)).isoformat()
-        result = json.loads(self.request('POST', url, {'job': 'graduate_ai_engineer', 'interview_date': when}, json_header)[1])
-        self.assertEqual((result['interview_date'], result['days_left'], len(result['days'])), (when, 3, 4))
-        today = [t['question_id'] for t in result['days'][0]['tasks'] if t['kind'] == 'question']
-        again = json.loads(self.request('GET', url + '?job=graduate_ai_engineer')[1])
-        self.assertEqual([t['question_id'] for t in again['days'][0]['tasks'] if t['kind'] == 'question'], today)
-        code, body = self.request('POST', url, {'job': 'graduate_ai_engineer', 'interview_date': '2020-01-01'}, json_header)
-        self.assertEqual((code, json.loads(body)['error']), (400, 'The interview date is in the past.'))
-        cleared = json.loads(self.request('POST', url, {'job': 'graduate_ai_engineer', 'interview_date': None}, json_header)[1])
-        self.assertIsNone(cleared['interview_date'])
+        url, header = f"/api/interview/{state['id']}", {'Content-Type': 'application/json'}
+        self.assertEqual(json.loads(self.request('GET', url + '/plan')[1])['status'], 'needs_setup')
+        when = (date.today() + timedelta(9)).isoformat()
+        self.request('POST', url + '/setup', {'job': 'computer_vision_engineer', 'interview_date': when, 'learn_skills': [], 'stage': 'panel',
+                                              'daily_minutes': 30, 'notes': ''}, header)
+        self.assertEqual(json.loads(self.request('GET', url + '/plan')[1])['status'], 'needs_check')
+        check = json.loads(self.request('POST', url + '/skill-check', {}, header)[1])
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
+            for position in range(4):
+                self.post_answer(state['id'], {'question_id': check['questions'][position]['id'], 'audio': base64.b64encode(b'x').decode(),
+                                               'diagnostic': check['id'], 'diagnostic_position': position})
+        self.request('POST', f"{url}/skill-check/{check['id']}/finish", {}, header)
+        result = json.loads(self.request('GET', url + '/plan')[1])
+        self.assertEqual((result['status'], result['interview_date'], result['days_left'], result['per_day']), ('active', when, 9, 1))
+        self.assertEqual([d['kind'] for d in result['days']], ['study', 'study', 'test'] * 2 + ['study', 'mock', 'focus', 'interview'])
+        self.assertEqual(len(result['topics']), 10)
+        self.assertIn('tip', result['days'][-1])  # Panel interview advice.
+        first = result['days'][0]['tasks'][0]
+        self.assertTrue(first['key_points'])
+        ticked = json.loads(self.request('POST', url + '/plan/tick', {'date': result['days'][0]['date'], 'key': first['key'], 'done': True}, header)[1])
+        self.assertTrue(ticked['days'][0]['tasks'][0]['done'])
+        unticked = json.loads(self.request('POST', url + '/plan/tick', {'date': result['days'][0]['date'], 'key': first['key'], 'done': False}, header)[1])
+        self.assertFalse(unticked['days'][0]['tasks'][0]['done'])
+        code, body = self.request('POST', url + '/plan/tick', {'date': result['days'][0]['date'], 'key': 'rm -rf', 'done': True}, header)
+        self.assertEqual((code, json.loads(body)['error']), (400, 'Unknown plan task.'))
 
     def test_off_topic_introduction_with_another_name_is_not_strong(self):
         class FakeTranscriber:
@@ -332,7 +348,7 @@ class InterviewRouteTests(unittest.TestCase):
         saved = json.loads(self.request('POST', url + '/setup', form, header)[1])['setup']
         self.assertEqual((saved['job'], saved['interview_date'], saved['learn_skills'], saved['notes']), ('rag_agent_engineer', when, learnable[:2], 'Two interviewers.'))
         self.assertEqual(json.loads(self.request('GET', url + '/fit')[1])['job']['document_id'], 'rag_agent_engineer')  # The setup's job is now the default.
-        self.assertEqual(json.loads(self.request('GET', url + '/plan?job=rag_agent_engineer')[1])['interview_date'], when)
+        self.assertEqual(json.loads(self.request('GET', url + '/plan')[1])['interview_date'], when)  # Waiting for the skill check.
         for bad, message in (({'job': 'nope'}, 'Choose a job from the list.'), ({'learn_skills': ['not-a-skill']}, 'Choose skills to learn from the list for this job.'),
                              ({'stage': 'chat'}, 'Choose the interview stage.'), ({'daily_minutes': 45}, 'Choose how much time you have each day.'),
                              ({'interview_date': '2020-01-01'}, 'The interview date is in the past.')):

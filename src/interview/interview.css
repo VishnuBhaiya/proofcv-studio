@@ -338,45 +338,60 @@
 
 /* Plan */
 .interview-coach .ic-plan { display: grid; gap: 22px; }
-.interview-coach .ic-plan-setup { display: grid; justify-items: start; gap: 8px; padding: 26px; border-radius: var(--ic-radius); background: var(--ic-cream); color: var(--ic-green); }
-.interview-coach .ic-plan-setup h3 { margin: 4px 0 0; font-size: 21px; color: var(--ic-ink); }
-.interview-coach .ic-plan-setup p { margin: 0 0 6px; max-width: 62ch; color: var(--ic-muted); font-size: 14px; line-height: 1.55; }
-.interview-coach .ic-plan-date { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
-.interview-coach .ic-plan-date label { display: grid; gap: 5px; font-size: 12.5px; font-weight: 700; color: var(--ic-ink); }
-.interview-coach .ic-plan-date input { padding: 9px 12px; border-radius: 10px; border: 1px solid #cdd3cd; background: var(--ic-paper); font: inherit; color: var(--ic-ink); }
-.interview-coach .ic-plan-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 18px; align-items: start; padding: 22px; border-radius: var(--ic-radius); background: var(--ic-cream); }
+.interview-coach .ic-plan-setup { display: grid; gap: 8px; padding: 26px; border-radius: var(--ic-radius); background: var(--ic-cream); }
+.interview-coach .ic-plan-setup h3 { margin: 0; font-size: 20px; }
+.interview-coach .ic-plan-setup p { margin: 0; color: var(--ic-muted); }
+.interview-coach .ic-plan-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px 24px; padding: 22px; border-radius: var(--ic-radius); background: var(--ic-cream); }
 .interview-coach .ic-plan-head h3 { margin: 4px 0 2px; font-size: 26px; }
 .interview-coach .ic-plan-head p { margin: 0; color: var(--ic-muted); font-size: 14px; }
-.interview-coach .ic-plan-head-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.interview-coach .ic-plan-progress { grid-column: 1 / -1; display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: #e1e5df; }
-.interview-coach .ic-plan-progress .strong, .interview-coach .ic-plan-legend .strong { background: var(--ic-good); }
-.interview-coach .ic-plan-progress .work, .interview-coach .ic-plan-legend .work { background: var(--ic-fair); }
-.interview-coach .ic-plan-progress .new, .interview-coach .ic-plan-legend .new { background: #c3c9c3; }
-.interview-coach .ic-plan-legend { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; font-size: 12.5px; color: var(--ic-muted); }
-.interview-coach .ic-plan-legend i { display: inline-block; width: 9px; height: 9px; margin-left: 6px; border-radius: 50%; }
-.interview-coach .ic-plan-legend i:first-child { margin-left: 0; }
+.interview-coach .ic-plan-shift { display: flex; flex-wrap: wrap; gap: 8px; }
+.interview-coach .ic-plan-shift span { display: grid; min-width: 104px; padding: 10px 14px; border-radius: 14px; background: var(--ic-paper); font-size: 12px; color: var(--ic-muted); }
+.interview-coach .ic-plan-shift strong { font-family: Manrope, sans-serif; font-size: 22px; color: var(--ic-ink); }
+.interview-coach .ic-plan-today { display: grid; gap: 12px; padding: 22px; border-radius: var(--ic-radius); border: 1px solid var(--ic-line); border-top: 4px solid var(--kind, var(--ic-green)); background: var(--ic-paper); }
+.interview-coach .kind-test { --kind: var(--ic-blue); }
+.interview-coach .kind-mock { --kind: var(--ic-fair); }
+.interview-coach .kind-focus { --kind: var(--ic-poor); }
+.interview-coach .kind-interview { --kind: var(--ic-good); }
+.interview-coach .ic-plan-day-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+.interview-coach .ic-plan-day-head > svg { flex: none; margin-top: 4px; color: var(--kind, var(--ic-green)); }
+.interview-coach .ic-plan-day-head > div { flex: 1; min-width: 220px; }
+.interview-coach .ic-plan-day-head h3 { margin: 2px 0; font-size: 21px; }
+.interview-coach .ic-plan-day-head p { margin: 0; color: var(--ic-muted); font-size: 14px; }
 .interview-coach .ic-plan-done { font-size: 13px; font-weight: 700; color: var(--ic-muted); }
 .interview-coach .ic-plan-done.all { color: var(--ic-good); }
-.interview-coach .ic-plan-today ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-.interview-coach .ic-plan-today li { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-radius: 14px; border: 1px solid var(--ic-line); background: var(--ic-paper); }
-.interview-coach .ic-plan-today li.done { background: var(--ic-mint); border-color: transparent; }
-.interview-coach .ic-plan-today li.done strong { color: var(--ic-muted); text-decoration: line-through; text-decoration-color: rgba(0, 0, 0, .25); }
-.interview-coach .ic-plan-tick { flex: none; color: #b5bcb5; }
+.interview-coach .ic-plan-tip, .interview-coach .ic-plan-steps { margin: 0; padding: 10px 14px; border-radius: 12px; background: #fbf3e2; color: #6b4c0f; font-size: 13.5px; line-height: 1.5; }
+.interview-coach .ic-plan-steps ul { margin: 6px 0 0; padding-left: 18px; }
+.interview-coach .ic-plan-tasks { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.interview-coach .ic-plan-tasks > li { display: grid; gap: 10px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--ic-line); background: var(--ic-paper); }
+.interview-coach .ic-plan-tasks > li.done { background: var(--ic-mint); border-color: transparent; }
+.interview-coach .ic-plan-task-row { display: flex; gap: 12px; align-items: flex-start; }
+.interview-coach .ic-plan-tick { flex: none; margin-top: 2px; color: #b5bcb5; }
 .interview-coach li.done .ic-plan-tick { color: var(--ic-good); }
-.interview-coach .ic-plan-task { flex: 1; display: grid; gap: 2px; min-width: 0; }
-.interview-coach .ic-plan-task strong { font-size: 14.5px; line-height: 1.4; }
-.interview-coach .ic-plan-task small { font-size: 12px; color: var(--ic-muted); }
-.interview-coach .ic-plan-warning { margin: 0; padding: 12px 16px; border-radius: 12px; background: #fbf3e2; color: #7a5510; font-size: 13.5px; line-height: 1.5; }
-.interview-coach .ic-plan-days { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
-.interview-coach .ic-plan-days > li { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--ic-line); background: var(--ic-paper); }
-.interview-coach .ic-plan-days > li.interview { border-color: var(--ic-green); background: var(--ic-mint); }
-.interview-coach .ic-plan-days > li > strong { display: block; font-size: 14.5px; }
-.interview-coach .ic-plan-days > li > small { display: block; font-size: 12px; color: var(--ic-muted); }
-.interview-coach .ic-plan-days ul { margin: 8px 0 0; padding-left: 16px; display: grid; gap: 4px; font-size: 13px; line-height: 1.4; color: var(--ic-ink); }
-.interview-coach .ic-plan-days ul .mock { font-weight: 700; color: var(--ic-green); }
+.interview-coach .ic-plan-task { flex: 1; display: grid; gap: 6px; min-width: 0; }
+.interview-coach .ic-plan-task strong { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14.5px; line-height: 1.4; }
+.interview-coach .ic-plan-task small { font-size: 12.5px; color: var(--ic-muted); }
+.interview-coach .ic-points { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 13.5px; line-height: 1.45; }
+.interview-coach .ic-points li.covered { color: var(--ic-muted); }
+.interview-coach .ic-points em { font-size: 12px; }
+.interview-coach .ic-plan-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 30px; }
+.interview-coach .ic-plan-actions .ic-ghost[aria-pressed='true'] { background: var(--ic-green); border-color: var(--ic-green); color: #fff; }
+.interview-coach .ic-plan-answer { padding-left: 30px; }
+.interview-coach .ic-plan-answer .ic-turn, .interview-coach .ic-plan-answer .ic-scorecard, .interview-coach .ic-plan-answer .ic-saved { margin-left: 0; }
+.interview-coach .ic-level { display: inline-flex; padding: 2px 9px; border-radius: 99px; background: color-mix(in srgb, var(--tone) 14%, white); color: var(--tone); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.interview-coach .ic-plan-topics { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.interview-coach .ic-plan-topics li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; padding: 10px 14px; border-radius: 12px; background: var(--ic-cream); font-size: 14px; }
+.interview-coach .ic-plan-move { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--ic-muted); }
+.interview-coach .ic-plan-days { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.interview-coach .ic-plan-days > li { display: grid; gap: 2px; align-content: start; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--ic-line); border-top: 3px solid var(--kind, var(--ic-green)); background: var(--ic-paper); }
+.interview-coach .ic-plan-kind { font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--kind, var(--ic-green)); }
+.interview-coach .ic-plan-days > li > strong { font-size: 14.5px; }
+.interview-coach .ic-plan-days > li > small { font-size: 12px; color: var(--ic-muted); }
+.interview-coach .ic-plan-days ul { margin: 8px 0 0; padding-left: 16px; display: grid; gap: 3px; font-size: 13px; line-height: 1.4; }
+.interview-coach .ic-plan-earlier summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.interview-coach .ic-plan-earlier ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13.5px; }
+.interview-coach .ic-plan-earlier li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 8px; background: var(--ic-cream); }
 @media (max-width: 640px) {
-  .interview-coach .ic-plan-head { grid-template-columns: 1fr; }
-  .interview-coach .ic-plan-today li { flex-wrap: wrap; }
+  .interview-coach .ic-plan-actions, .interview-coach .ic-plan-answer { padding-left: 0; }
   .interview-coach .ic-countdown { margin: 8px 0 0; }
 }
 

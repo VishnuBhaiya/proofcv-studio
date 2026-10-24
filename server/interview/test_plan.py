@@ -1,106 +1,135 @@
-"""Countdown practice plan scheduling."""
+"""Adaptive preparation plan: day kinds, topic order, tests, progress and adaptation."""
 import unittest
 from datetime import date, timedelta, timezone
 
-from .plan import build, parse_date, schedule, question_states, todays_questions
+from .plan import build, day_kinds, parse_date
 
-TODAY = date(2026, 10, 24)
-QUESTIONS = [{'id': qid, 'round': r, 'text': f'Question {qid}'} for qid, r in [
-    ('si-30', 'self_introduction'), ('si-90', 'self_introduction'), ('bh-a', 'behavioural'), ('bh-b', 'behavioural'), ('bh-c', 'behavioural'),
-    ('tq-a', 'technical'), ('tq-b', 'technical'), ('mf-a', 'motivation_fit'), ('mf-b', 'motivation_fit')]]
-GOOD = {'words_per_minute': 140, 'fillers_per_minute': 0.0, 'long_pauses': 0, 'length_ratio': 1.0, 'flags': 0}
-WEAK = {**GOOD, 'length_ratio': 0.3}
+START = date(2026, 10, 25)
 
 
-def attempt(qid, day, summary=GOOD):
-    return {'question_id': qid, 'created_at': f'{day.isoformat()}T12:00:00+00:00', 'transcript': 'x', 'summary': summary}
+def topic(qid, learning=False, question=True):
+    return {'id': qid, 'question_id': qid if question else None, 'topic': f'topic {qid}', 'question': f'Explain {qid}.' if question else None,
+            'requirement': {'text': f'req {qid}'}, 'learning': learning, 'key_points': [{'text': f'{qid} point', 'covered': False}]}
 
 
-def make(interview, attempts=(), mocks=(), frozen=None, today=TODAY):
-    return build(interview, today, QUESTIONS, list(attempts), list(mocks), frozen or {}, timezone.utc)
+TOPICS = [topic('strong'), topic('weak'), topic('developing'), topic('skipped'), topic('learn-0', learning=True, question=False)]
 
 
-def questions_on(result, index):
-    return [t['question_id'] for t in result['days'][index]['tasks'] if t['kind'] == 'question']
+def answer(qid, day, key_points):
+    return {'question_id': qid, 'created_at': f'{day.isoformat()}T12:00:00+00:00', 'summary': {'key_points': key_points}}
 
 
-class PlanTests(unittest.TestCase):
-    def test_countdown_days_end_with_mock_and_interview_day(self):
-        result = make(TODAY + timedelta(4))
-        self.assertEqual((result['status'], result['days_left']), ('active', 4))
-        self.assertEqual([d['label'] for d in result['days']][:2], ['Today', 'Tomorrow'])
-        self.assertEqual(len(result['days']), 5)
-        before, interview = result['days'][-2], result['days'][-1]
-        self.assertEqual([t['kind'] for t in before['tasks']], ['question', 'question', 'mock', 'cheatsheet'])
-        self.assertEqual(interview['label'], 'Interview day')
-        self.assertEqual([t['kind'] for t in interview['tasks']], ['question', 'cheatsheet'])
-        self.assertEqual(interview['tasks'][0]['question_id'], 'si-30')
+CHECK = [answer('strong', START, 1.0), answer('weak', START, 0.0), answer('developing', START, 0.5)]  # 'skipped' was not answered.
 
-    def test_new_questions_first_and_rounds_take_turns(self):
-        today = questions_on(make(TODAY + timedelta(4)), 0)
-        self.assertEqual(today[0], 'si-30')
-        self.assertEqual(len(today), 3)  # 9 open questions over 3 practice days.
-        rounds = {q['id']: q['round'] for q in QUESTIONS}
-        self.assertEqual(len({rounds[q] for q in today}), 3)
 
-    def test_every_open_question_fits_when_there_is_time(self):
-        result = make(TODAY + timedelta(4))
-        self.assertEqual(result['unplanned'], [])
-        planned = {q for i in range(len(result['days'])) for q in questions_on(result, i)}
-        self.assertEqual(planned, {q['id'] for q in QUESTIONS})
+def make(interview, attempts=CHECK, today=START, ticks=(), minutes=60, mocks=(), next_steps=()):
+    return build(START, today, interview, TOPICS, list(attempts), list(mocks), set(ticks), minutes, 'technical', next_steps, timezone.utc)
 
-    def test_too_little_time_lists_what_will_not_fit(self):
-        result = make(TODAY + timedelta(1))
-        self.assertEqual(len(questions_on(result, 0)), 2)  # The day before is a mock day.
-        self.assertEqual(len(result['unplanned']), 9 - 2)
 
-    def test_strong_answers_rest_and_weak_ones_come_back(self):
-        attempts = [attempt('tq-a', TODAY - timedelta(1)), attempt('tq-b', TODAY - timedelta(1), WEAK), attempt('mf-a', TODAY - timedelta(6))]
-        states = question_states(QUESTIONS, attempts, timezone.utc)
-        self.assertEqual((states['tq-a']['status'], states['tq-b']['status'], states['mf-a']['status']), ('strong', 'work', 'strong'))
-        days = schedule(QUESTIONS, states, TODAY, TODAY + timedelta(10), {})
-        everything = [q for d in days.values() for q in d['questions']]
-        first_tq_a = next(d for d, item in days.items() if 'tq-a' in item['questions'])
-        self.assertGreaterEqual((first_tq_a - (TODAY - timedelta(1))).days, 5)
-        self.assertIn('tq-b', everything)
-        self.assertIn('mf-a', everything)
+def kinds(result):
+    return [d['kind'] for d in result['days']]
 
-    def test_practice_today_ticks_tasks_off(self):
-        result = make(TODAY + timedelta(4))
-        first = questions_on(result, 0)[0]
-        done = make(TODAY + timedelta(4), [attempt(first, TODAY, WEAK)], frozen={TODAY: questions_on(result, 0)})
-        self.assertTrue(done['days'][0]['tasks'][0]['done'])
-        self.assertFalse(done['days'][0]['tasks'][1]['done'])
-        self.assertEqual(questions_on(done, 0), questions_on(result, 0))  # Today's list does not shift.
 
-    def test_follow_up_answers_do_not_count_as_the_main_question(self):
-        result = make(TODAY + timedelta(4), [attempt('si-30:follow-up', TODAY)])
-        self.assertFalse(result['days'][0]['tasks'][0]['done'])
+class DayKindTests(unittest.TestCase):
+    def test_study_study_test_then_mock_focus_interview(self):
+        self.assertEqual(kinds(make(START + timedelta(9))), ['study', 'study', 'test'] * 2 + ['study', 'mock', 'focus', 'interview'])
 
-    def test_finished_mock_ticks_the_mock_task(self):
-        tomorrow = TODAY + timedelta(1)
-        mocks = [{'created_at': f'{TODAY.isoformat()}T09:00:00+00:00', 'answered': 5, 'total': 5}]
-        mock_task = next(t for t in make(tomorrow, mocks=mocks)['days'][0]['tasks'] if t['kind'] == 'mock')
-        self.assertTrue(mock_task['done'])
-        unfinished = [{**mocks[0], 'answered': 2}]
-        self.assertFalse(next(t for t in make(tomorrow, mocks=unfinished)['days'][0]['tasks'] if t['kind'] == 'mock')['done'])
+    def test_short_countdowns_are_compressed(self):
+        span = lambda days: [k for _, k in sorted(day_kinds(START, START + timedelta(days)).items())]
+        self.assertEqual(span(0), ['interview'])
+        self.assertEqual(span(1), ['mock', 'interview'])
+        self.assertEqual(span(2), ['mock', 'focus', 'interview'])
+        self.assertEqual(span(3), ['study', 'mock', 'focus', 'interview'])
+        self.assertEqual(span(4), ['study', 'test', 'mock', 'focus', 'interview'])  # Always a test before the mock when there is room.
 
-    def test_long_countdowns_add_a_midway_mock(self):
-        result = make(TODAY + timedelta(8))
-        mock_days = [d['label'] for d in result['days'] if any(t['kind'] == 'mock' for t in d['tasks'])]
-        self.assertEqual(len(mock_days), 2)
 
-    def test_interview_today_and_passed(self):
-        today = make(TODAY)
-        self.assertEqual((today['status'], len(today['days'])), ('interview_today', 1))
-        self.assertEqual(todays_questions(today), [])
-        self.assertEqual(make(TODAY - timedelta(1))['status'], 'passed')
+class TopicOrderTests(unittest.TestCase):
+    def setUp(self):
+        self.plan = make(START + timedelta(9))
+
+    def studied(self, index):
+        return [t['topic_id'] for t in self.plan['days'][index]['tasks']]
+
+    def test_weakest_first_then_rotation_and_strong_last(self):
+        self.assertEqual(self.studied(0), ['weak', 'skipped'])  # Weak, then not assessed: two topics for an hour a day.
+        self.assertEqual(self.studied(1), ['learn-0', 'developing'])  # A chosen skill to learn, then developing.
+        self.assertEqual(self.studied(3), ['weak', 'skipped'])  # Back round, still weakest first.
+        self.assertNotIn('strong', self.studied(0) + self.studied(1))
+
+    def test_every_topic_gets_a_turn_before_weak_ones_repeat(self):
+        topics = [topic(f'w{i}') for i in range(3)] + [topic(f'n{i}') for i in range(6)]
+        check = [answer(f'w{i}', START, 0.0) for i in range(3)]
+        plan = build(START, START, START + timedelta(14), topics, check, [], set(), 60, 'technical', (), timezone.utc)
+        studied = [t['topic_id'] for d in plan['days'] if d['kind'] == 'study' for t in d['tasks']]
+        self.assertEqual(set(studied[:9]), {t['id'] for t in topics})  # All nine before any repeats.
+        self.assertEqual(studied[:3], ['w0', 'w1', 'w2'])  # Weak first.
+
+    def test_test_session_asks_what_was_studied(self):
+        test = self.plan['days'][2]
+        self.assertEqual([t['question_id'] for t in test['tasks']], ['weak', 'developing', 'skipped', 'strong'])  # Studied first, then weakest.
+        self.assertTrue(all(t['kind'] == 'test' for t in test['tasks']))
+        self.assertEqual(test['tasks'][0]['before'], 0)
+
+    def test_daily_time_sets_topics_per_study_day(self):
+        self.assertEqual(len(make(START + timedelta(9), minutes=30)['days'][0]['tasks']), 1)
+        self.assertEqual(len(make(START + timedelta(9), minutes=180)['days'][0]['tasks']), 4)
+
+    def test_tracker_shows_start_and_now(self):
+        later = make(START + timedelta(9), CHECK + [answer('weak', START + timedelta(1), 0.8)], today=START + timedelta(2))
+        weak = next(t for t in later['topics'] if t['id'] == 'weak')
+        self.assertEqual((weak['start'], weak['start_knowledge'], weak['level'], weak['knowledge']), ('weak', 0, 'strong', 80))
+        self.assertEqual(next(t for t in later['topics'] if t['id'] == 'skipped')['level'], 'not_assessed')
+        self.assertEqual(next(t for t in later['topics'] if t['id'] == 'learn-0')['level'], 'to_learn')
+
+
+class ProgressTests(unittest.TestCase):
+    def test_study_done_by_tick_or_by_answering(self):
+        day = START.isoformat()
+        plan = make(START + timedelta(9), CHECK + [answer('skipped', START, 0.2)], ticks={(day, 'study:weak')})
+        self.assertEqual([t['done'] for t in plan['days'][0]['tasks']], [True, True])
+        self.assertEqual(plan['days'][0]['done'], 2)
+
+    def test_skill_check_answers_do_not_tick_off_the_first_day(self):
+        since = f'{START.isoformat()}T12:30:00+00:00'
+        plan = build(START, START, START + timedelta(9), TOPICS, CHECK, [], set(), 60, 'technical', (), timezone.utc, since)
+        self.assertEqual([t['done'] for t in plan['days'][0]['tasks']], [False, False])
+        self.assertEqual(plan['days'][0]['tasks'][0]['level'], 'weak')  # But they still set the starting level.
+
+    def test_test_answers_show_before_and_after(self):
+        test_day = START + timedelta(2)
+        plan = make(START + timedelta(9), CHECK + [answer('weak', test_day, 0.6)], today=test_day)
+        first = plan['days'][2]['tasks'][0]
+        self.assertEqual((first['question_id'], first['before'], first['after'], first['done']), ('weak', 0, 60, True))
+
+    def test_better_answers_change_the_days_after_but_not_today(self):
+        day1 = START + timedelta(1)
+        before = make(START + timedelta(9), today=day1)
+        improved = make(START + timedelta(9), CHECK + [answer('weak', day1, 0.9)], today=day1)
+        self.assertEqual(before['days'][1]['tasks'], [{**t, 'done': t['done']} for t in improved['days'][1]['tasks']])  # Today stays fixed.
+        self.assertNotIn('weak', [t['topic_id'] for t in improved['days'][3]['tasks']])  # Now strong, so it drops back.
+        self.assertIn('weak', [t['topic_id'] for t in before['days'][3]['tasks']])
+
+    def test_mock_focus_and_interview_days(self):
+        mock_day = START + timedelta(7)
+        mocks = [{'created_at': f'{mock_day.isoformat()}T09:00:00+00:00', 'answered': 5, 'total': 5}]
+        plan = make(START + timedelta(9), mocks=mocks, next_steps=['Slow down.'], ticks={((START + timedelta(8)).isoformat(), 'cheatsheet')})
+        mock, focus, interview = plan['days'][-3:]
+        self.assertEqual((mock['tasks'][0]['done'], mock['mock_next_steps'], 'tip' in mock), (True, ['Slow down.'], True))
+        self.assertEqual([t['topic_id'] for t in focus['tasks'][:-1]], ['weak', 'skipped', 'learn-0'])
+        self.assertEqual((focus['tasks'][-1]['kind'], focus['tasks'][-1]['done'], focus['mock_next_steps']), ('cheatsheet', True, ['Slow down.']))
+        self.assertEqual([t['kind'] for t in interview['tasks']], ['warmup', 'cheatsheet'])
+
+    def test_status_and_labels(self):
+        self.assertEqual(make(START + timedelta(9), today=START + timedelta(10))['status'], 'passed')
+        self.assertEqual(make(START + timedelta(9), today=START + timedelta(9))['status'], 'interview_today')
+        plan = make(START + timedelta(9), today=START + timedelta(1))
+        self.assertEqual([d['label'] for d in plan['days'][:3]], ['Yesterday', 'Today', 'Tomorrow'])
 
     def test_date_validation(self):
-        self.assertEqual(parse_date('2026-10-28', TODAY), date(2026, 10, 28))
-        for bad in ('28/10/2026', None, '2026-10-23', '2027-03-01'):
+        self.assertEqual(parse_date('2026-10-28', START), date(2026, 10, 28))
+        for bad in ('28/10/2026', None, '2026-10-24', '2027-03-01'):
             with self.assertRaises(ValueError):
-                parse_date(bad, TODAY)
+                parse_date(bad, START)
 
 
 if __name__ == '__main__':
