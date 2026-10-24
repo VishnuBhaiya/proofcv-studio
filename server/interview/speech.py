@@ -1,7 +1,8 @@
 """Spoken answers: local Whisper transcription and delivery checks.
 
-Whisper (faster-whisper, base.en, int8 on CPU) turns the recorded audio into
-text with word timings. Delivery is then measured from those timings with
+Whisper (faster-whisper, int8 on CPU) turns the recorded audio into text with
+word timings: small.en when it is downloaded (better with accents), base.en otherwise
+or when the user picks the faster option. Delivery is then measured from those timings with
 plain rules, not a model: speaking pace, pauses, filler words and length.
 Audio is processed in memory and never saved.
 """
@@ -13,6 +14,8 @@ import time
 from pathlib import Path
 
 WHISPER_MODEL = 'base.en'
+# Recognition options the user can pick, best first. small.en is ~486 MB and ~1.2x slower here.
+WHISPER_MODELS = {'small.en': 'Accurate (Whisper small.en)', 'base.en': 'Fast (Whisper base.en)'}
 # Whisper tends to drop disfluencies; a prompt that contains them makes it keep "um" and "uh".
 FILLER_PROMPT = 'Umm, let me think, uh, like, hmm. Okay, so, um, here is what I, uh, did.'
 FILLERS = {'um', 'umm', 'uh', 'uhh', 'er', 'erm', 'ah', 'hmm', 'mm'}
@@ -119,14 +122,36 @@ class WhisperTranscriber:
                 'model': f'whisper-{self.model_name}', 'audio': audio_check}
 
 
-_transcriber = None
+_transcribers = {}
+_installed = {}
 
 
-def transcriber():
-    global _transcriber
-    if _transcriber is None:
-        _transcriber = WhisperTranscriber()
-    return _transcriber
+def installed(model_name):
+    """Whether a Whisper model is already on this computer (never downloads)."""
+    if model_name not in _installed:
+        try:
+            from faster_whisper.utils import download_model
+            download_model(model_name, local_files_only=True)
+            _installed[model_name] = True
+        except Exception:
+            _installed[model_name] = False
+    return _installed[model_name]
+
+
+def recognition_options():
+    options = [{'id': name, 'label': label, 'installed': name == WHISPER_MODEL or installed(name)} for name, label in WHISPER_MODELS.items()]
+    return {'options': options, 'default': next(o['id'] for o in options if o['installed'])}
+
+
+def transcriber(model_name=None):
+    """The shared transcriber for a model; the best installed one when none is named."""
+    if model_name is None:
+        model_name = recognition_options()['default']
+    if model_name not in WHISPER_MODELS:
+        raise ValueError('Unknown speech recognition model.')
+    if model_name not in _transcribers:
+        _transcribers[model_name] = WhisperTranscriber(model_name)
+    return _transcribers[model_name]
 
 
 def plain(word):

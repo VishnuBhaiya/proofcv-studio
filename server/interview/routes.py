@@ -5,7 +5,7 @@ import threading
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, content, evaluate, factcheck, followup, mock, model_answer, slides, speech, star
+from . import attempts, cheatsheet, content, evaluate, factcheck, followup, mock, model_answer, slides, speech, star, voice
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
@@ -91,7 +91,7 @@ def answer(service, state, data):
     depth = int(asked.get('depth', 1)) if asked else 0
     target = followup.FOLLOW_UP_SECONDS if asked else question.get('seconds') or ROUND_TARGET_SECONDS.get(question['round'])
     job_title = next((j['title'] for j in service.jobs if j['document_id'] == data.get('job')), None) or ((state.get('draft') or {}).get('job') or {}).get('title')
-    result = speech.transcriber().transcribe(audio, speech.expected_words(state.get('confirmed_profile') or state.get('profile'), job_title))
+    result = speech.transcriber(recognition(data.get('recognition'))).transcribe(audio, speech.expected_words(state.get('confirmed_profile') or state.get('profile'), job_title))
     response = {'workspace_id': state['id'], 'question_id': question['id'], 'round': question['round'], 'follow_up_of': asked['question'] if asked else None,
                 'transcript': result['text'], 'words': result['words'],
                 'model': result['model'], 'target_seconds': target, 'delivery': speech.delivery(result['words'], result['duration'], target)}
@@ -177,12 +177,43 @@ def deck(service, state, job_id=None):
         return slides.build(state['confirmed_profile'], result['requirements'], result['job'], service.retriever.backend)
 
 
+def cheat_sheet(service, state, job_id=None):
+    """The one-page interview-day sheet for the target job or a matched job, from practice so far."""
+    picked = questions(service, state, job_id)
+    result = fit(service, state, picked['job']['document_id'])
+    by_id = {q['id']: q for qs in picked['rounds'].values() for q in qs}
+    latest = next((m for m in mock_list(service, state) if m['job']['document_id'] == result['job']['document_id'] and m['overall'] is not None), None)
+    with _embedding_lock:
+        return cheatsheet.build(state['confirmed_profile'], result['requirements'], result['job'], attempt_store(service).all(state['id']),
+                                by_id, service.retriever.backend, readiness=latest)
+
+
+def recognition(requested):
+    """The Whisper model to use: the user's pick if it is installed (nothing is ever downloaded here)."""
+    options = speech.recognition_options()
+    if requested is None:
+        return options['default']
+    if not any(o['id'] == requested and o['installed'] for o in options['options']):
+        raise ValueError('That speech recognition model is not installed.')
+    return requested
+
+
+def speech_settings(service):
+    """Which read-aloud voice and recognition models this computer has."""
+    return {'voice': {'id': voice.VOICE, 'label': voice.VOICE_LABEL, 'available': voice.available(runtime_dir(service))},
+            'recognition': speech.recognition_options()}
+
+
+def runtime_dir(service):
+    return Path(service.store.path).parent
+
+
 _attempt_stores = {}
 
 
 def attempt_store(service):
     """The module's own attempt database, next to the core database."""
-    path = str(Path(service.store.path).parent / 'interview.sqlite3')
+    path = str(runtime_dir(service) / 'interview.sqlite3')
     if path not in _attempt_stores:
         _attempt_stores[path] = attempts.AttemptStore(path)
     return _attempt_stores[path]
@@ -195,6 +226,12 @@ def handle_post(service, path, data):
         return answer(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'mock':
         return start_mock(service, service.store.get(parts[2]), data)
+    if len(parts) == 4 and parts[3] == 'speak':
+        service.store.get(parts[2])
+        speaker = voice.speaker(runtime_dir(service))
+        if speaker is None:
+            raise ValueError('The natural voice is not installed.')
+        return speaker.wav(data.get('text'))
     if len(parts) == 4 and parts[3] == 'evaluation-sample':
         service.store.get(parts[2])
         try:
@@ -220,6 +257,9 @@ def handle_get(service, url):
         if 'question' in query:
             return attempt_store(service).history(state['id'], query['question'][0])
         return attempt_store(service).overview(state['id'])
+    if len(parts) == 4 and parts[3] == 'speech':
+        service.store.get(parts[2])
+        return speech_settings(service)
     if len(parts) == 4 and parts[3] == 'status':
         return readiness(service.store.get(parts[2]))
     if len(parts) == 4 and parts[3] == 'fit':
@@ -243,6 +283,9 @@ def handle_get(service, url):
         if parts[5] == 'report':
             return result
         return mock.render_pdf(result, ((state.get('confirmed_profile') or state.get('profile') or {}).get('name') or 'Candidate'))
+    if len(parts) == 4 and parts[3] in ('cheatsheet', 'cheatsheet.pdf'):
+        sheet = cheat_sheet(service, service.store.get(parts[2]), job_id)
+        return sheet if parts[3] == 'cheatsheet' else cheatsheet.render_pdf(sheet)
     if len(parts) == 4 and parts[3] == 'slides.pdf':
         return slides.render_pdf(deck(service, service.store.get(parts[2]), job_id))
     raise ValueError('Endpoint not found.')

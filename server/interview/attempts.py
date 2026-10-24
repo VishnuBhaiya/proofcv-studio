@@ -113,6 +113,12 @@ class AttemptStore:
         return {'id': attempt_id, 'attempt': len(earlier) + 1, 'needs_work': needs_work(summary),
                 'changes': compare(previous, summary) if previous else [], 'summary': summary}
 
+    def all(self, workspace_id):
+        """Every attempt in a workspace, oldest first."""
+        with self.connect() as connection:
+            rows = connection.execute('SELECT id, question_id, created_at, transcript, summary FROM attempts WHERE workspace_id=? ORDER BY id', (workspace_id,)).fetchall()
+        return [{'id': i, 'question_id': q, 'created_at': at, 'transcript': t, 'summary': json.loads(s)} for i, q, at, t, s in rows]
+
     def get(self, workspace_id, attempt_ids):
         """Attempts by id for one workspace, keyed by id."""
         if not attempt_ids:

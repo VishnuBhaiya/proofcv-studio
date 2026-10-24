@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Mic, Square, Volume2 } from 'lucide-react';
 import { api } from '../api';
-import { speak, SpeechState, stopSpeaking } from './speech';
+import { speak, speechChoice, SpeechState, stopSpeaking } from './speech';
 import { PART_LABEL } from './types';
 import LiveMeter from './LiveMeter';
 import { Bar, Bubble, ScoreRing } from './ui';
@@ -38,7 +38,9 @@ function toBase64(blob: Blob) {
 
 export function SpeakButton({ text, label }: { text: string; label: string }) {
     const [state, setState] = useState<SpeechState>('idle');
-    useEffect(() => () => { if (state === 'speaking') stopSpeaking(); }, [state]);
+    const speaking = useRef(false);
+    speaking.current = state === 'speaking';
+    useEffect(() => () => { if (speaking.current) stopSpeaking(); }, []); // Only on unmount: another button may have started speaking.
     return <span className="coach-speak">
         <button type="button" className="ic-ghost" aria-pressed={state === 'speaking'} onClick={() => {
             if (state === 'speaking') { stopSpeaking(); setState('idle'); } else speak(text, setState);
@@ -163,7 +165,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 setPhase('processing');
                 try {
                     const audio = await toBase64(new Blob(chunks, { type: media.mimeType }));
-                    setAnswer(await api<Answer>(`/interview/${workspaceId}/answer`, { ...extra, question_id: questionId, audio, question_text: questionText, job: jobId, requirement_id: requirementId }));
+                    setAnswer(await api<Answer>(`/interview/${workspaceId}/answer`, { ...extra, question_id: questionId, audio, question_text: questionText, job: jobId, requirement_id: requirementId, recognition: speechChoice().recognition ?? undefined }));
                     onResult?.();
                 } catch (e) {
                     setError(e instanceof Error ? e.message : 'Transcription failed.');

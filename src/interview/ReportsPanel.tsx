@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { ArrowLeft, Flag } from 'lucide-react';
 import { api } from '../api';
+import CheatSheet from './CheatSheet';
 import EvaluationRecorder from './EvaluationRecorder';
 import ReportView from './ReportView';
 import { Overview, Questions, questionStatus, Report, ReportItem, ROUND_INFO, ROUNDS } from './types';
 import { Bar, ScoreRing } from './ui';
 
-// Reports tab: every mock interview's readiness report, plus practice progress.
+// Reports tab: every mock interview's readiness report, the interview-day cheat sheet, and practice progress.
 export default function ReportsPanel({ workspaceId, reports, questions, overview, startMock }: {
     workspaceId: string; reports: ReportItem[]; questions: Questions; overview: Overview; startMock: () => void }) {
     const [open, setOpen] = useState<Report | null>(null);
@@ -33,6 +34,7 @@ export default function ReportsPanel({ workspaceId, reports, questions, overview
             </li>)}</ol> : <div className="ic-empty"><Flag size={28} /><strong>No reports yet</strong><p>Finish a mock interview to get your first readiness report.</p><button type="button" className="button dark" onClick={startMock}>Start a mock interview</button></div>}
             {error && <p className="live-error" role="alert">{error}</p>}
         </section>
+        <CheatSheet workspaceId={workspaceId} jobId={questions.job.document_id} practised={Object.keys(overview).length} />
         <section>
             <div className="ic-section-head"><h3>Practice progress</h3></div>
             <div className="ic-progress">{ROUNDS.map(r => {

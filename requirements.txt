@@ -3,3 +3,4 @@ sentence-transformers==3.4.1
 reportlab==4.5.1
 pypdf==5.9.0
 faster-whisper==1.2.1
+piper-tts==1.8.0

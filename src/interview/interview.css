@@ -20,6 +20,9 @@
 .interview-coach .ic-job { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: #c9d6cd; }
 .interview-coach .ic-job select { width: auto; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .25); background: rgba(255, 255, 255, .1); color: #fff; font: inherit; font-weight: 600; }
 .interview-coach .ic-job select option { color: var(--ic-ink); }
+.interview-coach .ic-speech-options { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 10px; }
+.interview-coach .ic-speech-options .ic-job { font-size: 12.5px; }
+.interview-coach .ic-speech-options select { padding: 5px 10px; font-weight: 500; }
 .interview-coach .ic-hero-side { display: flex; align-items: center; gap: 22px; }
 .interview-coach .ic-hero .ic-ring-track { stroke: rgba(255, 255, 255, .14); }
 .interview-coach .ic-hero .ic-ring-value { color: #fff; }
@@ -221,6 +224,18 @@
 .interview-coach .ic-empty { display: grid; justify-items: center; gap: 6px; padding: 34px; border-radius: var(--ic-radius); border: 1px dashed #c9cfc9; text-align: center; color: var(--ic-muted); }
 .interview-coach .ic-empty strong { color: var(--ic-ink); font-size: 16px; }
 .interview-coach .ic-empty p { margin: 0 0 8px; }
+.interview-coach .ic-section-head a { display: inline-flex; align-items: center; gap: 7px; }
+.interview-coach .ic-sheet { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 28px; padding: 20px 22px; border-radius: var(--ic-radius); border: 1px solid var(--ic-line); background: var(--ic-paper); }
+.interview-coach .ic-sheet h4 { margin: 14px 0 6px; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--ic-green); }
+.interview-coach .ic-sheet-col > h4:first-child { margin-top: 0; }
+.interview-coach .ic-sheet p { margin: 0; font-size: 14px; line-height: 1.55; }
+.interview-coach .ic-sheet ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 13.5px; line-height: 1.45; }
+.interview-coach .ic-sheet small { display: block; font-size: 12px; color: var(--ic-muted); }
+.interview-coach .ic-sheet-story { margin-bottom: 10px; }
+.interview-coach .ic-sheet-story > strong { display: block; margin-bottom: 4px; font-size: 14px; }
+.interview-coach .ic-sheet-score { margin-left: 8px; padding: 1px 8px; border-radius: 99px; background: var(--ic-mint); color: var(--ic-green); font-size: 12px; }
+.interview-coach .ic-sheet-prompt { color: var(--ic-fair); }
+.interview-coach .ic-sheet-note { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; margin: 8px 0 0; }
 .interview-coach .ic-progress { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; padding: 18px; border-radius: var(--ic-radius); background: var(--ic-cream); }
 .interview-coach .ic-progress small { display: block; margin-top: 4px; font-size: 12px; color: var(--ic-muted); }
 .interview-coach .ic-eval { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--ic-line); }

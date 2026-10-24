@@ -6,7 +6,8 @@ from http.client import HTTPConnection
 from pathlib import Path
 from unittest import mock
 from .. import test_http
-from . import content, factcheck, speech, star
+from . import content, factcheck, model_answer, speech, star, voice
+from .test_model_answer import FakeStar
 from .test_speech import words
 from ..retrieval import InspectableHashEmbeddingBackend, JobRetriever
 from .test_fit import PROFILE
@@ -91,7 +92,7 @@ class InterviewRouteTests(unittest.TestCase):
         fake = FakeTranscriber()
         workspace = self.create()
         before = self.service.store.get(workspace['id'])
-        with mock.patch.object(speech, '_transcriber', fake):
+        with mock.patch.object(speech, 'transcriber', return_value=fake):
             code, body = self.post_answer(workspace['id'], {'question_id': 'si-30', 'audio': base64.b64encode(b'fake-audio').decode()})
         self.assertEqual(code, 200)
         result = json.loads(body)
@@ -106,7 +107,7 @@ class InterviewRouteTests(unittest.TestCase):
             def transcribe(self, audio, prompt=None):
                 return {'text': 'In my internship a job kept failing. I built a retry step.', 'words': words('In my internship a job kept failing. I built a retry step.'), 'duration': 4, 'model': 'fake'}
         workspace = self.create()
-        with mock.patch.object(speech, '_transcriber', FakeTranscriber()), \
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()), \
                 mock.patch.object(star, 'analyse', return_value={'sentences': [], 'present': {}, 'notes': ['checked'], 'model': {}}) as analyse:
             result = json.loads(self.post_answer(workspace['id'], {'question_id': 'bh-teamwork', 'audio': base64.b64encode(b'x').decode()})[1])
         analyse.assert_called_once()
@@ -126,7 +127,7 @@ class InterviewRouteTests(unittest.TestCase):
                 FakeTranscriber.prompt = prompt
                 return {'text': 'I would report precision and recall.', 'words': words('I would report precision and recall.'), 'duration': 3, 'model': 'fake'}
         state = self.confirmed_state()
-        with mock.patch.object(speech, '_transcriber', FakeTranscriber()), \
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()), \
                 mock.patch.object(content, 'score', return_value={'key_points': [], 'score': 0.5, 'notes': []}) as score, \
                 mock.patch.object(factcheck, 'check', return_value={'claims': [], 'notes': ['ok']}) as check:
             result = json.loads(self.post_answer(state['id'], {'question_id': 'tq-detection-eval', 'audio': base64.b64encode(b'x').decode()})[1])
@@ -141,7 +142,7 @@ class InterviewRouteTests(unittest.TestCase):
         class FakeTranscriber:
             def transcribe(self, audio, prompt=None):
                 return {'text': 'I built it.', 'words': words('I built it.'), 'duration': 1, 'model': 'fake'}
-        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
             result = json.loads(self.post_answer(self.create()['id'], {'question_id': 'mf-why-role', 'audio': base64.b64encode(b'x').decode()})[1])
         self.assertNotIn('fact_check', result)
         self.assertNotIn('content', result)
@@ -154,7 +155,7 @@ class InterviewRouteTests(unittest.TestCase):
                 return {'text': text, 'words': words(text), 'duration': 3, 'model': 'fake'}
         state = self.confirmed_state()
         body = {'question_id': 'mf-why-role', 'audio': base64.b64encode(b'x').decode(), 'question_text': 'Why do you want this role?'}
-        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
             first = json.loads(self.post_answer(state['id'], body)[1])
             second = json.loads(self.post_answer(state['id'], body)[1])
         self.assertEqual((first['progress']['attempt'], second['progress']['attempt']), (1, 2))
@@ -184,13 +185,60 @@ class InterviewRouteTests(unittest.TestCase):
             connection.close()
         self.assertEqual(self.request('GET', f"/api/interview/{self.create()['id']}/slides")[0], 404)
 
+    def test_cheat_sheet_is_served_as_json_and_one_page_pdf(self):
+        class FakeTranscriber:
+            def transcribe(self, audio, prompt=None):
+                text = 'I built a lane detector and measured precision and recall.'
+                return {'text': text, 'words': words(text), 'duration': 4, 'model': 'fake'}
+        state = self.confirmed_state()
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
+            self.post_answer(state['id'], {'question_id': 'si-30', 'audio': base64.b64encode(b'x').decode()})
+        # The shipped STAR weights expect MiniLM-sized vectors, not the test backend's.
+        with mock.patch.object(star, 'classifier', return_value=FakeStar()), mock.patch.object(model_answer, 'classifier', return_value=FakeStar()):
+            sheet = json.loads(self.request('GET', f"/api/interview/{state['id']}/cheatsheet?job=graduate_ai_engineer")[1])
+        self.assertEqual((sheet['job']['document_id'], sheet['practised']), ('graduate_ai_engineer', 1))
+        self.assertTrue(sheet['introduction']['text'] and sheet['questions_to_ask'] and sheet['reminders'])
+        connection = HTTPConnection('127.0.0.1', self.server.server_port, timeout=10)
+        try:
+            with mock.patch.object(star, 'classifier', return_value=FakeStar()), mock.patch.object(model_answer, 'classifier', return_value=FakeStar()):
+                connection.request('GET', f"/api/interview/{state['id']}/cheatsheet.pdf")
+                response = connection.getresponse()
+            self.assertEqual((response.status, response.getheader('Content-Type')), (200, 'application/pdf'))
+            self.assertTrue(response.read().startswith(b'%PDF'))
+        finally:
+            connection.close()
+        self.assertEqual(self.request('GET', f"/api/interview/{self.create()['id']}/cheatsheet")[0], 404)
+
+    def test_natural_voice_and_recognition_choice(self):
+        class FakeSpeaker:
+            def wav(self, text):
+                return b'RIFF' + text.encode()
+        state = self.confirmed_state()
+        settings = json.loads(self.request('GET', f"/api/interview/{state['id']}/speech")[1])
+        self.assertEqual(settings['voice']['id'], 'en_US-lessac-medium')
+        self.assertIn(settings['recognition']['default'], ('small.en', 'base.en'))
+        connection = HTTPConnection('127.0.0.1', self.server.server_port, timeout=10)
+        try:
+            with mock.patch.object(voice, 'speaker', return_value=FakeSpeaker()):
+                connection.request('POST', f"/api/interview/{state['id']}/speak", body=json.dumps({'text': 'Hello there.'}), headers={'Content-Type': 'application/json'})
+                response = connection.getresponse()
+                self.assertEqual((response.status, response.getheader('Content-Type'), response.read()), (200, 'audio/wav', b'RIFFHello there.'))
+        finally:
+            connection.close()
+        with mock.patch.object(voice, 'speaker', return_value=None):
+            code, body = self.request('POST', f"/api/interview/{state['id']}/speak", {'text': 'Hello.'}, {'Content-Type': 'application/json'})
+        self.assertEqual((code, json.loads(body)['error']), (400, 'The natural voice is not installed.'))
+        with mock.patch.object(speech, 'installed', return_value=False):
+            code, body = self.post_answer(state['id'], {'question_id': 'si-30', 'audio': base64.b64encode(b'x').decode(), 'recognition': 'small.en'})
+        self.assertEqual((code, json.loads(body)['error']), (400, 'That speech recognition model is not installed.'))
+
     def test_rehearsal_reports_which_slides_were_covered(self):
         class FakeTranscriber:
             def transcribe(self, audio, prompt=None):
                 text = 'I built a lane detector and measured precision and recall.'
                 return {'text': text, 'words': words(text), 'duration': 4, 'model': 'fake'}
         state = self.confirmed_state()
-        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
             result = json.loads(self.post_answer(state['id'], {'question_id': 'si-120', 'audio': base64.b64encode(b'x').decode(), 'rehearsal': True})[1])
             plain = json.loads(self.post_answer(state['id'], {'question_id': 'si-120', 'audio': base64.b64encode(b'x').decode()})[1])
         coverage = result['slide_coverage']
@@ -210,7 +258,7 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertEqual(len(session['questions']), 5)
         first = session['questions'][0]
         self.assertEqual(self.request('GET', f"/api/interview/{state['id']}/mock/{session['id']}/report")[0], 404)  # Nothing answered yet.
-        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
             self.post_answer(state['id'], {'question_id': first['id'], 'audio': base64.b64encode(b'x').decode(), 'mock_session': session['id'], 'mock_position': 0})
         result = json.loads(self.request('GET', f"/api/interview/{state['id']}/mock/{session['id']}/report")[1])
         self.assertEqual((result['answered'], result['total']), (1, 5))
@@ -233,7 +281,7 @@ class InterviewRouteTests(unittest.TestCase):
                 return {'text': text, 'words': words(text), 'duration': 4, 'model': 'fake'}
         state = self.confirmed_state()
         body = {'question_id': 'tq-detection-eval', 'audio': base64.b64encode(b'x').decode()}
-        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
             first = json.loads(self.post_answer(state['id'], body)[1])
             asked = first['follow_up']
             self.assertEqual(asked['depth'], 1)
@@ -257,7 +305,7 @@ class InterviewRouteTests(unittest.TestCase):
         session = json.loads(self.request('POST', f"/api/interview/{state['id']}/mock", {}, {'Content-Type': 'application/json'})[1])
         first = session['questions'][0]
         body = {'question_id': first['id'], 'audio': base64.b64encode(b'x').decode(), 'mock_session': session['id'], 'mock_position': 0}
-        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
             main = json.loads(self.post_answer(state['id'], body)[1])
             self.assertTrue(0 <= main['score']['overall'] <= 100)
             asked = main['follow_up']

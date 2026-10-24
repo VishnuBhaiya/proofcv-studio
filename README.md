@@ -105,8 +105,10 @@ What it does, in order:
    Degrees and years of experience are never auto-judged.
 2. **Questions:** picks self-introduction, behavioural, technical and motivation
    questions from a question bank, linked to the job's strengths and gaps.
-3. **Spoken answers:** the browser records the answer; local Whisper (`base.en` via
-   faster-whisper) transcribes it with word timings. Audio is never stored.
+3. **Spoken answers:** the browser records the answer; local Whisper (faster-whisper)
+   transcribes it with word timings. Audio is never stored. The user can pick
+   **Accurate** (`small.en`, better with accents) or **Fast** (`base.en`); only installed
+   models are offered.
 4. **Feedback:** pace, pauses, filler words and length; a STAR check for behavioural
    answers from our own trained classifier; key-point coverage for technical answers;
    and a fact check that flags numbers, tools or leadership claims the confirmed profile
@@ -117,11 +119,31 @@ What it does, in order:
 6. **Self-introduction deck:** six slides with speaker notes from the strongest facts
    for the job, viewable full screen, downloadable as PDF, with a rehearsal mode that
    checks which slides were talked about.
+7. **Interview-day cheat sheet:** one A4 page (Reports tab, also as PDF) with the best
+   introduction, top three strengths with evidence, the best STAR stories from practice,
+   honest answers for the two biggest gaps, questions to ask, and delivery reminders
+   taken from the user's own numbers.
+8. **Read aloud:** questions, follow-ups and example answers are read by Piper, a local
+   neural voice (`en_US-lessac-medium`), with the browser's voice as the fallback.
 
-**First run:** after `pip install -r requirements.txt` (which now includes
-`faster-whisper`), the first spoken answer downloads the Whisper `base.en` model
-(about 148 MB) into the Hugging Face cache, like MiniLM. Later runs work offline. The
-browser asks for microphone access the first time.
+**First run:** after `pip install -r requirements.txt` (which includes `faster-whisper`
+and `piper-tts`), the first spoken answer downloads the Whisper `base.en` model (about
+148 MB) into the Hugging Face cache, like MiniLM. Later runs work offline. The browser
+asks for microphone access the first time.
+
+**Optional models** (the app works without them and never downloads them itself):
+
+```sh
+# Accurate recognition: Whisper small.en, about 486 MB, into the Hugging Face cache
+python -c "from faster_whisper import WhisperModel; WhisperModel('small.en', compute_type='int8')"
+# Natural voice: Piper en_US-lessac-medium, about 63 MB, into runtime/models/piper/
+mkdir -p runtime/models/piper && cd runtime/models/piper && \
+  for f in en_US-lessac-medium.onnx en_US-lessac-medium.onnx.json; do \
+  curl -fLO https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/$f; done
+```
+
+To compare the two Whisper models on the recorded evaluation scripts, run
+`python -m server.interview.evaluate --model base.en` and `--model small.en`.
 
 **Data it keeps:** each attempt's transcript and scores in `runtime/interview.sqlite3`
 (never committed, like the other `runtime/` databases). Removing a workspace does not
@@ -139,6 +161,8 @@ yet remove its practice history.
 | `server/interview/content.py`, `factcheck.py` | Key-point coverage and fact check |
 | `server/interview/model_answer.py`, `attempts.py` | Example answers and attempt tracking |
 | `server/interview/slides.py` | Self-introduction deck and PDF |
+| `server/interview/cheatsheet.py` | Interview-day cheat sheet and PDF |
+| `server/interview/voice.py` | Piper read-aloud voice |
 | `server/interview/data/` | Requirement map, question bank, STAR data, model and evaluation |
 | `src/interview/` | Interview Coach screens |
 
@@ -173,9 +197,10 @@ real API calls and consume quota. Live tests use the five supplied synthetic pro
 and save predictions before retrieval. Read each actual status under
 `runtime/evaluation/`; a single passed journey is not five passes.
 
-Interview Coach branch verification (23 October 2026): 143 offline tests passed on
-macOS with Python 3.14. Interview Coach tests use a fake transcriber and small test
-embeddings, so they need neither the Whisper nor the MiniLM model. Not yet run on Windows.
+Interview Coach branch verification (24 October 2026): 189 offline tests passed on
+macOS with Python 3.14. Interview Coach tests use a fake transcriber, a fake voice and
+small test embeddings, so they need none of the Whisper, Piper or MiniLM models. Not yet
+run on Windows.
 
 Current repository verification: 61 offline tests passed on 22 October 2026.
 The Assignment 1 submission separately contains historical five-profile live

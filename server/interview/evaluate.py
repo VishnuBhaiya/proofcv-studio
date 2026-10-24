@@ -12,7 +12,9 @@ Because every script is known word for word and labelled, this measures:
 - key-point scoring agreement on the technical scripts,
 - transcription time.
 
-Writes a summary (no audio) to data/real_evaluation.json for the report.
+Writes a summary (no audio) to data/real_evaluation.json for the report. With
+--model, the same recordings are run through another Whisper model and saved to
+data/real_evaluation_<model>.json, so base.en and small.en can be compared.
 Read speech is easier than spontaneous answers, so these are best-case numbers.
 """
 import json
@@ -127,7 +129,7 @@ def star_accuracy(script, transcript, classifier, backend):
             'all_four_found': {'situation', 'task', 'action', 'result'} <= set(on_heard)}
 
 
-def run(sample_directory=None, store_path=ROOT / 'runtime' / 'proofcv.sqlite3', report_path=REPORT_PATH):
+def run(sample_directory=None, store_path=ROOT / 'runtime' / 'proofcv.sqlite3', report_path=REPORT_PATH, model_name=None):
     from ..retrieval import SentenceTransformerBackend
     from . import content, speech
     from .questions import load_bank
@@ -140,7 +142,7 @@ def run(sample_directory=None, store_path=ROOT / 'runtime' / 'proofcv.sqlite3', 
     vocabulary = scripts['vocabulary']
     profile = {'name': vocabulary['name'], 'skills': vocabulary['terms'], 'projects': []}
     conditions = {'filler prompt only': speech.FILLER_PROMPT, 'with profile hints': speech.expected_words(profile, vocabulary['role'])}
-    transcriber = speech.transcriber()
+    transcriber = speech.transcriber(model_name)
     backend = SentenceTransformerBackend(EMBEDDING_MODEL)
     bank = {q['id']: q for q in load_bank()['questions']}
     star_model = classifier()
@@ -173,7 +175,7 @@ def run(sample_directory=None, store_path=ROOT / 'runtime' / 'proofcv.sqlite3', 
                                  'statuses': [k['status'] for k in scored], 'gold': script['covers']})
         per_sample.append(row)
     summary = {
-        'date': date.today().isoformat(), 'samples': len(per_sample), 'scripts_total': len(scripts['scripts']),
+        'date': date.today().isoformat(), 'model': f'whisper-{transcriber.model_name}', 'samples': len(per_sample), 'scripts_total': len(scripts['scripts']),
         'note': 'Read-aloud scripts on one speaker and microphone: a best case, not spontaneous speech.',
         'wer': {name: round(e / w, 3) for name, (e, w) in totals.items()},
         'name_recognised': {name: f"{sum(r[name].get('name_recognised', False) for r in per_sample)}/{sum('name_recognised' in r[name] for r in per_sample)}" for name in conditions},
@@ -196,6 +198,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description='Evaluate Interview Coach on recorded scripts.')
     parser.add_argument('--partial', action='store_true', help='write a report even if some scripts are missing or too short')
+    parser.add_argument('--model', choices=list(speech.WHISPER_MODELS), help='Whisper model to evaluate (default: the best installed one)')
     args = parser.parse_args()
     directory = samples_dir(ROOT / 'runtime' / 'proofcv.sqlite3')
     missing, short = problems(load_scripts(), lengths(directory))
@@ -205,7 +208,9 @@ def main():
         if short:
             print(f"Too short (under {MIN_SECONDS:g} s, probably cut off or silent): {', '.join(short)}")
         raise SystemExit('Record these scripts again in Interview Coach, or run with --partial to evaluate what is there. No report was written.')
-    summary = run(directory)
+    report_path = DATA_DIR / f'real_evaluation_{args.model}.json' if args.model else REPORT_PATH
+    summary = run(directory, report_path=report_path, model_name=args.model)
+    print(f"Model: {summary['model']}")
     print(f"Samples: {summary['samples']} of {summary['scripts_total']} scripts recorded")
     for name, value in summary['wer'].items():
         print(f"WER {name:20} {value:.1%}   name recognised {summary['name_recognised'][name]}")
@@ -213,7 +218,7 @@ def main():
     print(f"STAR accuracy: script text {s['accuracy_on_script_text']:.1%}, Whisper text {s['accuracy_on_whisper_text']:.1%}, all four parts found {s['all_four_parts_found']}")
     print(f"Key points agreement: strict {k['strict_agreement']:.1%}, lenient {k['lenient_agreement']:.1%}")
     print(f"Transcription: {summary['transcription_seconds']['mean']} s per answer ({summary['transcription_seconds']['per_audio_second']} s per second of audio)")
-    print(f'Wrote {REPORT_PATH}')
+    print(f'Wrote {report_path}')
 
 
 if __name__ == '__main__':

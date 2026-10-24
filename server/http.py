@@ -98,7 +98,8 @@ def make_handler(service):
                     self.send(201, service.store.create(data.get('label', '')))
                 elif path.startswith('/api/interview/'):
                     from .interview.routes import handle_post as interview_post
-                    self.send(200, interview_post(service, path, data))
+                    result = interview_post(service, path, data)
+                    self.send(200, result, 'audio/wav') if isinstance(result, bytes) else self.send(200, result)
                 else:
                     parts = path.strip('/').split('/')
                     if len(parts) != 4 or parts[:2] != ['api', 'workspaces']:

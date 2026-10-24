@@ -6,6 +6,7 @@ import InterviewRoom from './InterviewRoom';
 import MockInterview from './MockInterview';
 import ReportsPanel from './ReportsPanel';
 import SlideDeck from './SlideDeck';
+import { configureSpeech, setSpeechChoice, speechChoice, SpeechSettings, stopSpeaking } from './speech';
 import { Overview, Questions, questionStatus, ReportItem } from './types';
 import { ScoreRing } from './ui';
 import './interview.css';
@@ -26,6 +27,12 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
     const [overview, setOverview] = useState<Overview>({});
     const [reports, setReports] = useState<ReportItem[]>([]);
     const [tab, setTab] = useState<Tab>('practice');
+    const [speech, setSpeech] = useState<SpeechSettings | null>(null);
+    const [, setChoiceVersion] = useState(0);
+    useEffect(() => {
+        api<SpeechSettings>(`/interview/${workspace.id}/speech`).then(s => { configureSpeech(workspace.id, s); setSpeech(s); }).catch(() => undefined);
+    }, [workspace.id]);
+    const choose = (update: Parameters<typeof setSpeechChoice>[0]) => { stopSpeaking(); setSpeechChoice(update); setChoiceVersion(v => v + 1); };
     useEffect(() => {
         setError('');
         api<Readiness>(`/interview/${workspace.id}/status`).then(setStatus).catch(e => setError(e.message));
@@ -73,6 +80,19 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
                 <label className="ic-job">Preparing for
                     <select value={current.document_id} onChange={e => setJobId(e.target.value)}>{jobs.map(j => <option key={j.document_id} value={j.document_id}>{j.title}</option>)}</select>
                 </label>
+                {speech && <div className="ic-speech-options">
+                    <label className="ic-job">Voice
+                        <select value={speechChoice().voice} onChange={e => choose({ voice: e.target.value as 'natural' | 'browser' })}>
+                            {speech.voice.available && <option value="natural">{speech.voice.label}</option>}
+                            <option value="browser">Browser voice</option>
+                        </select>
+                    </label>
+                    <label className="ic-job">Speech recognition
+                        <select value={speechChoice().recognition ?? ''} onChange={e => choose({ recognition: e.target.value })}>
+                            {speech.recognition.options.filter(o => o.installed).map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                        </select>
+                    </label>
+                </div>}
             </div>
             <div className="ic-hero-side">
                 <ScoreRing value={latest?.overall} size={112} label={latest ? latest.band : 'No mock yet'} />
