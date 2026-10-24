@@ -5,7 +5,7 @@ import threading
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, content, factcheck, followup, mock, model_answer, slides, speech, star
+from . import attempts, content, evaluate, factcheck, followup, mock, model_answer, slides, speech, star
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
@@ -120,11 +120,16 @@ def answer(service, state, data):
                                                             response.get('content'), data.get('requirement_id'))
         if job_fit_result and data.get('rehearsal'):
             response['slide_coverage'] = slide_coverage(result['text'], slides.build(state['confirmed_profile'], job_fit_result['requirements'], job_fit_result['job'], backend), backend)
-    response['progress'] = attempt_store(service).record(state['id'], f"{question['id']}:follow-up" if asked else question['id'], result['text'], attempts.summarise(response))
-    if not data.get('mock_session'):  # A mock interview keeps all feedback for its report.
-        response['follow_up'] = followup.follow_up(question, response, depth)
-    if data.get('mock_session') and not asked:
-        attempt_store(service).link_answer(state['id'], data['mock_session'], int(data.get('mock_position', -1)), response['progress']['id'])
+    summary = attempts.summarise(response)
+    parts = mock.components(summary)
+    response['score'] = {'overall': round(sum(parts.values()) / len(parts)), 'components': parts}
+    response['progress'] = attempt_store(service).record(state['id'], f"{question['id']}:follow-up" if asked else question['id'], result['text'], summary)
+    in_mock = bool(data.get('mock_session'))
+    # In a mock interview the interviewer cross-questions once per question; in practice, up to MAX_DEPTH times.
+    response['follow_up'] = None if in_mock and asked else followup.follow_up(question, response, depth)
+    if in_mock:
+        attempt_store(service).link_answer(state['id'], data['mock_session'], int(data.get('mock_position', -1)), response['progress']['id'],
+                                           follow_up_question=asked['question'] if asked else None)
     return response
 
 
@@ -137,7 +142,22 @@ def start_mock(service, state, data):
 def mock_report(service, state, session_id):
     store = attempt_store(service)
     session = store.session(state['id'], session_id)
-    return mock.report(session, store.get(state['id'], [int(v) for v in session['answers'].values()]))
+    return mock.report(session, store.get(state['id'], [int(v['id'] if isinstance(v, dict) else v) for v in session['answers'].values()]))
+
+
+def mock_list(service, state):
+    """Every mock interview with its score, newest first, for the Reports tab."""
+    store = attempt_store(service)
+    listed = []
+    for session in store.sessions(state['id']):
+        item = {'id': session['id'], 'created_at': session['created_at'], 'job': session['job'], 'total': len(session['questions'])}
+        try:
+            result = mock_report(service, state, session['id'])
+            item.update(overall=result['overall'], band=result['band'], answered=result['answered'], cross_questioning=result['cross_questioning'])
+        except ValueError:
+            item.update(overall=None, band='Not started', answered=0, cross_questioning=None)
+        listed.append(item)
+    return listed
 
 
 def slide_coverage(transcript, deck, backend):
@@ -175,6 +195,17 @@ def handle_post(service, path, data):
         return answer(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'mock':
         return start_mock(service, service.store.get(parts[2]), data)
+    if len(parts) == 4 and parts[3] == 'evaluation-sample':
+        service.store.get(parts[2])
+        try:
+            audio = base64.b64decode(data.get('audio') or '', validate=True)
+        except (binascii.Error, TypeError):
+            raise ValueError('Audio must be base64 encoded.')
+        if not 0 < len(audio) <= MAX_AUDIO_BYTES:
+            raise ValueError('Recording is empty or too long.')
+        directory = evaluate.samples_dir(service.store.path)
+        evaluate.save_sample(directory, data.get('script_id'), audio, evaluate.load_scripts())
+        return {'recorded': evaluate.recorded(directory), 'seconds': evaluate.lengths(directory), 'min_seconds': evaluate.MIN_SECONDS}
     raise ValueError('Endpoint not found.')
 
 
@@ -197,6 +228,13 @@ def handle_get(service, url):
         return questions(service, service.store.get(parts[2]), job_id)
     if len(parts) == 4 and parts[3] == 'slides':
         return deck(service, service.store.get(parts[2]), job_id)
+    if len(parts) == 4 and parts[3] == 'evaluation':
+        service.store.get(parts[2])
+        scripts = evaluate.load_scripts()
+        return {'scripts': [{'id': s['id'], 'question_id': s['question_id'], 'text': ' '.join(t for _, t in s['sentences'])} for s in scripts['scripts']],
+                'recorded': evaluate.recorded(evaluate.samples_dir(service.store.path)), 'seconds': evaluate.lengths(evaluate.samples_dir(service.store.path)), 'min_seconds': evaluate.MIN_SECONDS}
+    if len(parts) == 4 and parts[3] == 'mock':
+        return mock_list(service, service.store.get(parts[2]))
     if len(parts) == 5 and parts[3] == 'mock':
         return attempt_store(service).session(service.store.get(parts[2])['id'], parts[4])
     if len(parts) == 6 and parts[3] == 'mock' and parts[5] in ('report', 'report.pdf'):

@@ -73,9 +73,15 @@ def report(session, attempts):
             rows.append({'position': position + 1, 'question': question['text'], 'round': question['round'], 'answered': False})
             continue
         parts = components(attempt['summary'])
-        rows.append({'position': position + 1, 'question': question['text'], 'round': question['round'], 'answered': True,
-                     'score': round(mean(parts.values())), 'components': parts, 'needs_work': needs_work(attempt['summary']),
-                     'transcript': attempt['transcript'], 'summary': attempt['summary']})
+        row = {'position': position + 1, 'question': question['text'], 'round': question['round'], 'answered': True,
+               'score': round(mean(parts.values())), 'components': parts, 'needs_work': needs_work(attempt['summary']),
+               'transcript': attempt['transcript'], 'summary': attempt['summary']}
+        linked = session['answers'].get(f'{position}f')
+        follow = attempts.get(linked['id']) if linked else None
+        if follow:
+            row['follow_up'] = {'question': linked['question'], 'score': round(mean(components(follow['summary']).values())),
+                                'needs_work': needs_work(follow['summary']), 'transcript': follow['transcript']}
+        rows.append(row)
     answered = [r for r in rows if r['answered']]
     if not answered:
         raise ValueError('Answer at least one question to get a readiness report.')
@@ -86,8 +92,12 @@ def report(session, attempts):
     averages = {'words_per_minute': round(mean(s['words_per_minute'] for s in spoken)) if spoken else 0,
                 'fillers_per_minute': round(mean(s['fillers_per_minute'] for s in spoken), 1) if spoken else 0,
                 'long_pauses': sum(s['long_pauses'] for s in spoken)}
+    follow_ups = [r['follow_up']['score'] for r in answered if 'follow_up' in r]
+    cross = round(mean(follow_ups)) if follow_ups else None
     strengths = [f"{COMPONENT_LABELS[k]} ({v}/100)" for k, v in sorted(by_part.items(), key=lambda kv: -kv[1]) if v >= 80]
     weak = [f"{COMPONENT_LABELS[k]} ({v}/100)" for k, v in sorted(by_part.items(), key=lambda kv: kv[1]) if v < 60]
+    if cross is not None:
+        (strengths if cross >= 80 else weak if cross < 60 else []).append(f'Answering follow-up questions ({cross}/100)')
     steps = list(dict.fromkeys(reason for r in sorted(answered, key=lambda r: r['score']) for reason in r['needs_work']))[:4]
     lowest = min(answered, key=lambda r: r['score'])
     if lowest['score'] < 80:
@@ -97,7 +107,7 @@ def report(session, attempts):
         steps.append(f"Answer the skipped question{'s' if len(missing) > 1 else ''} ({', '.join(map(str, missing))}) to complete the interview.")
     return {'session_id': session['id'], 'job': session['job'], 'created_at': session['created_at'], 'overall': overall,
             'band': band(overall) if len(answered) == len(rows) else 'Incomplete',
-            'answered': len(answered), 'total': len(rows), 'by_part': by_part, 'averages': averages, 'strengths': strengths,
+            'answered': len(answered), 'total': len(rows), 'cross_questioning': cross, 'by_part': by_part, 'averages': averages, 'strengths': strengths,
             'weak_spots': weak, 'next_steps': steps or ['Keep practising with new questions to stay sharp.'], 'questions': rows, 'method': METHOD}
 
 
@@ -115,6 +125,8 @@ def render_pdf(result, name):
              text(f"{result['overall']}/100 · {result['band']}", style(26, font='Helvetica-Bold', color=BAND_COLOURS.get(result['band'], muted))), Spacer(1, 6)]
     if result['by_part']:
         story.append(text(' · '.join(f"{COMPONENT_LABELS[k]}: {v}" for k, v in result['by_part'].items()), style(10)))
+    if result.get('cross_questioning') is not None:
+        story.append(text(f"Follow-up questions: {result['cross_questioning']}/100 on average", style(10)))
     a = result['averages']
     story += [text(f"Average pace {a['words_per_minute']} words/min · {a['fillers_per_minute']} filler words/min · {a['long_pauses']} long pauses in total", style(10, color=muted)), Spacer(1, 14)]
     for title, items in (('Strengths', result['strengths']), ('Weak spots', result['weak_spots']), ('Next steps', result['next_steps'])):
@@ -126,6 +138,10 @@ def render_pdf(result, name):
     for r in result['questions']:
         issue = 'Not answered' if not r['answered'] else (r['needs_work'][0] if r['needs_work'] else 'None')
         table.append([text(r['position'], style(9)), text(r['question'], style(9)), text(r.get('score', '-'), style(9)), text(issue, style(9))])
+        if r.get('follow_up'):
+            f = r['follow_up']
+            table.append(['', text(f"Follow-up: {f['question']}", style(8.5, color=muted)), text(f['score'], style(8.5, color=muted)),
+                          text(f['needs_work'][0] if f['needs_work'] else 'None', style(8.5, color=muted))])
     grid = Table(table, colWidths=[20, 270, 40, 169], repeatRows=1)
     grid.setStyle(TableStyle([('LINEBELOW', (0, 0), (-1, 0), 0.8, ink), ('LINEBELOW', (0, 1), (-1, -1), 0.3, colors.HexColor('#d9d6cf')),
                               ('VALIGN', (0, 0), (-1, -1), 'TOP'), ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))

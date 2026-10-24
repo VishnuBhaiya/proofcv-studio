@@ -1,76 +1,99 @@
 import { useEffect, useState } from 'react';
-import { Check, Mic, Presentation, Target, UserRound } from 'lucide-react';
+import { Check, FileText, Flag, Mic, Presentation, Target, UserRound } from 'lucide-react';
 import { api, Workspace } from '../api';
+import FitPanel, { Fit } from './FitPanel';
 import InterviewRoom from './InterviewRoom';
-import { Questions, ROUND_INFO } from './types';
+import MockInterview from './MockInterview';
+import ReportsPanel from './ReportsPanel';
+import SlideDeck from './SlideDeck';
+import { Overview, Questions, questionStatus, ReportItem } from './types';
+import { ScoreRing } from './ui';
 import './interview.css';
 
-type Evidence = { source: string; label: string; text: string; similarity: number };
-type Requirement = { id: string; text: string; source: string; level: 'required' | 'preferred' | 'responsibility'; category: string; status: 'strong' | 'partial' | 'gap' | 'verify'; similarity: number; keywords_found: string[]; keywords_missing: string[]; evidence: Evidence[] };
-type Fit = { job: { document_id: string; title: string }; embedding_backend: string; evidence_count: number; counts: Record<Requirement['status'], number>; requirements: Requirement[]; review_status: string };
-const GROUPS: { status: Requirement['status']; title: string; hint: string }[] = [
-    { status: 'strong', title: 'Strengths to highlight', hint: 'Backed directly by your confirmed facts.' },
-    { status: 'partial', title: 'Partly covered', hint: 'Related evidence exists. Be ready to explain the link.' },
-    { status: 'gap', title: 'Gaps to prepare for', hint: 'No supporting fact found. Prepare an honest answer.' },
-    { status: 'verify', title: 'Check yourself', hint: 'Degrees and years of experience are never judged automatically.' },
-];
 type Readiness = { workspace_id: string; profile_confirmed: boolean; matched_jobs: { document_id: string; title: string; score: number }[]; target_job: { document_id: string; title: string } | null; rounds: string[] };
+type Tab = 'practice' | 'mock' | 'reports' | 'fit' | 'deck';
+const TABS: { id: Tab; label: string; icon: typeof Mic }[] = [
+    { id: 'practice', label: 'Practice', icon: Mic }, { id: 'mock', label: 'Mock interview', icon: Flag }, { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'fit', label: 'Your fit', icon: Target }, { id: 'deck', label: 'Intro deck', icon: Presentation },
+];
 
 export default function InterviewCoach({ workspace, go }: { workspace: Workspace; go: (page: 'profile' | 'jobs') => void }) {
     const [status, setStatus] = useState<Readiness | null>(null);
     const [error, setError] = useState('');
+    const [jobId, setJobId] = useState('');
+    const [fit, setFit] = useState<Fit | null>(null);
+    const [questions, setQuestions] = useState<Questions | null>(null);
+    const [overview, setOverview] = useState<Overview>({});
+    const [reports, setReports] = useState<ReportItem[]>([]);
+    const [tab, setTab] = useState<Tab>('practice');
     useEffect(() => {
         setError('');
         api<Readiness>(`/interview/${workspace.id}/status`).then(setStatus).catch(e => setError(e.message));
     }, [workspace.id, workspace.revision, workspace.confirmed_revision, workspace.retrieval, workspace.draft?.job.document_id]);
-    const [jobId, setJobId] = useState('');
-    const [fit, setFit] = useState<Fit | null>(null);
-    const [fitError, setFitError] = useState('');
-    const [questions, setQuestions] = useState<Questions | null>(null);
+    const refresh = () => {
+        api<Overview>(`/interview/${workspace.id}/attempts`).then(setOverview).catch(() => undefined);
+        api<ReportItem[]>(`/interview/${workspace.id}/mock`).then(setReports).catch(() => undefined);
+    };
     useEffect(() => {
         setFit(null);
         setQuestions(null);
-        setFitError('');
         if (!status?.profile_confirmed || !status.target_job) return;
         const query = jobId ? `?job=${encodeURIComponent(jobId)}` : '';
-        api<Fit>(`/interview/${workspace.id}/fit${query}`).then(setFit).catch(e => setFitError(e.message));
-        api<Questions>(`/interview/${workspace.id}/questions${query}`).then(setQuestions).catch(e => setFitError(e.message));
+        api<Fit>(`/interview/${workspace.id}/fit${query}`).then(setFit).catch(e => setError(e.message));
+        api<Questions>(`/interview/${workspace.id}/questions${query}`).then(setQuestions).catch(e => setError(e.message));
+        refresh();
     }, [status, jobId, workspace.id]);
+
     if (error) return <div className="page-content"><p className="live-error" role="alert">{error}</p></div>;
     if (!status) return <div className="page-content"><p className="live-progress"><span className="live-dot" /> Loading Interview Coach…</p></div>;
-    const ready = status.profile_confirmed && !!status.target_job;
-    return <div className="page-content interview-coach">
-        <div className="page-heading"><div><h2>Prepare for the interview.</h2><p>Practise out loud for the job you chose, using only facts from your confirmed profile.</p></div></div>
-        <section className="coach-readiness" aria-label="Interview Coach readiness">
-            <div className={status.profile_confirmed ? 'done' : ''}><UserRound size={18} /><div><strong>Confirmed profile</strong><span>{status.profile_confirmed ? 'Ready' : 'Confirm your profile first'}</span></div>{status.profile_confirmed ? <Check size={16} /> : <button className="text-button" onClick={() => go('profile')}>Open profile</button>}</div>
-            <div className={status.target_job ? 'done' : ''}><Target size={18} /><div><strong>Target job</strong><span>{status.target_job ? status.target_job.title : status.matched_jobs.length ? 'Choose one of your top matches' : 'Find your job matches first'}</span></div>{status.target_job ? <Check size={16} /> : <button className="text-button" onClick={() => go('jobs')}>Discover jobs</button>}</div>
+    if (!status.profile_confirmed || !status.target_job) return <div className="page-content interview-coach">
+        <section className="ic-setup">
+            <span className="ic-eyebrow-dark">Interview Coach</span>
+            <h2>Two steps before you practise</h2>
+            <p>The coach builds every question and every example answer from your confirmed facts and the job you chose.</p>
+            <div className="ic-setup-steps">
+                <div className={status.profile_confirmed ? 'done' : ''}><UserRound size={20} /><div><strong>Confirm your profile</strong><span>{status.profile_confirmed ? 'Done' : 'Review your facts and confirm them'}</span></div>{status.profile_confirmed ? <Check size={18} /> : <button className="button dark" onClick={() => go('profile')}>Open profile</button>}</div>
+                <div className={status.target_job ? 'done' : ''}><Target size={20} /><div><strong>Choose a target job</strong><span>{status.target_job ? status.target_job.title : 'Pick one of your top matches'}</span></div>{status.target_job ? <Check size={18} /> : <button className="button dark" disabled={!status.profile_confirmed} onClick={() => go('jobs')}>Discover jobs</button>}</div>
+            </div>
         </section>
-        {status.matched_jobs.length > 0 && <p className="coach-matches">Your top matches: {status.matched_jobs.map(j => j.title).join(' · ')}</p>}
-        {ready && <section className="coach-fit" aria-label="Strengths and gaps">
-            <div className="section-heading"><h2>Your fit for this job</h2>
-                <label className="coach-job-select">Prepare for<select value={jobId || status.target_job!.document_id} onChange={e => setJobId(e.target.value)}>{[status.target_job!, ...status.matched_jobs.filter(j => j.document_id !== status.target_job!.document_id)].map(j => <option key={j.document_id} value={j.document_id}>{j.title}</option>)}</select></label></div>
-            {fitError && <p className="live-error" role="alert">{fitError}</p>}
-            {!fit && !fitError && <p className="live-progress"><span className="live-dot" /> Comparing the job’s requirements with your confirmed facts…</p>}
-            {fit && <>
-                <p className="coach-method">Each requirement is matched locally against your {fit.evidence_count} confirmed facts using exact keywords and MiniLM similarity. No Gemini call is made.{fit.review_status.startsWith('draft') && <> <strong>Requirement map is a draft awaiting review.</strong></>}</p>
-                <div className="coach-counts">{GROUPS.map(g => <span key={g.status} className={`coach-count ${g.status}`}><strong>{fit.counts[g.status]}</strong>{g.title}</span>)}</div>
-                <details className="coach-breakdown"><summary>Show every requirement and the facts behind it</summary>
-                {GROUPS.map(g => fit.counts[g.status] > 0 && <div className={`coach-group ${g.status}`} key={g.status}><h3>{g.title}</h3><p className="coach-hint">{g.hint}</p>
-                    {fit.requirements.filter(r => r.status === g.status).map(r => <details className="coach-req" key={r.id}>
-                        <summary><span className={`coach-level ${r.level}`}>{r.level}</span>{r.text}</summary>
-                        <p className="coach-quote">Job ad: “{r.source}”</p>
-                        {r.keywords_found.length > 0 && <p className="coach-keywords">Found: {r.keywords_found.join(', ')}</p>}
-                        {r.evidence.length ? <ul>{r.evidence.map((e, i) => <li key={i}><strong>{e.label}</strong> · {e.text} <small>(similarity {e.similarity.toFixed(2)})</small></li>)}</ul> : <p className="coach-keywords">No supporting fact in your confirmed profile.</p>}
-                    </details>)}
-                </div>)}
-                </details>
+    </div>;
+
+    const jobs = [status.target_job, ...status.matched_jobs.filter(j => j.document_id !== status.target_job!.document_id)];
+    const current = jobs.find(j => j.document_id === (jobId || status.target_job!.document_id))!;
+    const all = questions ? Object.values(questions.rounds).flat() : [];
+    const practised = new Set(all.filter(q => overview[q.id]).map(q => q.id)).size;
+    const strong = new Set(all.filter(q => questionStatus(overview, q.id) === 'strong').map(q => q.id)).size;
+    const latest = reports.find(r => r.overall != null);
+    return <div className="page-content interview-coach">
+        <section className="ic-hero">
+            <div className="ic-hero-main">
+                <span className="ic-eyebrow">Interview Coach</span>
+                <h2>Ready for <em>{current.title}</em>?</h2>
+                <p>Practise out loud, get scored on delivery, structure and evidence, and handle follow-up questions. Everything is analysed on this computer.</p>
+                <label className="ic-job">Preparing for
+                    <select value={current.document_id} onChange={e => setJobId(e.target.value)}>{jobs.map(j => <option key={j.document_id} value={j.document_id}>{j.title}</option>)}</select>
+                </label>
+            </div>
+            <div className="ic-hero-side">
+                <ScoreRing value={latest?.overall} size={112} label={latest ? latest.band : 'No mock yet'} />
+                <div className="ic-stats">
+                    <div><strong>{practised}/{all.length || '–'}</strong><span>practised</span></div>
+                    <div><strong>{strong}</strong><span>strong answers</span></div>
+                    <div><strong>{reports.filter(r => r.overall != null).length}</strong><span>{reports.filter(r => r.overall != null).length === 1 ? 'mock interview' : 'mock interviews'}</span></div>
+                </div>
+            </div>
+        </section>
+        <nav className="ic-tabs" role="tablist" aria-label="Interview Coach">{TABS.map(t => <button type="button" role="tab" key={t.id} aria-selected={tab === t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
+            <t.icon size={16} />{t.label}{t.id === 'reports' && reports.filter(r => r.overall != null).length > 0 && <span className="ic-count">{reports.filter(r => r.overall != null).length}</span>}
+        </button>)}</nav>
+        <div className="ic-panel">
+            {!questions ? <p className="live-progress"><span className="live-dot" /> Picking questions for {current.title}…</p> : <>
+                {tab === 'practice' && <InterviewRoom key={questions.job.document_id} workspaceId={workspace.id} questions={questions} overview={overview} onAnswered={refresh} />}
+                {tab === 'mock' && <MockInterview key={questions.job.document_id} workspaceId={workspace.id} jobId={questions.job.document_id} onFinished={refresh} openReports={() => setTab('reports')} />}
+                {tab === 'reports' && <ReportsPanel workspaceId={workspace.id} reports={reports} questions={questions} overview={overview} startMock={() => setTab('mock')} />}
+                {tab === 'fit' && <FitPanel fit={fit} />}
+                {tab === 'deck' && <SlideDeck workspaceId={workspace.id} jobId={questions.job.document_id} />}
             </>}
-        </section>}
-        <div className="section-heading"><h2>Interview rounds</h2><span>{!ready ? 'Unlocks when both steps above are done' : questions ? `${Object.values(questions.rounds).flat().length} questions picked for ${questions.job.title}` : 'Picking questions…'}</span></div>
-        {questions?.review_status.startsWith('draft') && <p className="coach-method">Questions are picked locally from a question bank that is still a draft awaiting review. Spoken practice gives delivery feedback and a fact check for every answer, a STAR check for behavioural answers and key-point coverage for technical answers.</p>}
-        {questions
-            ? <InterviewRoom key={questions.job.document_id} workspaceId={workspace.id} questions={questions} />
-            : <div className="coach-rounds">{status.rounds.map(id => <article className="coach-round" key={id}>{id === 'self_introduction' ? <Presentation size={20} /> : <Mic size={20} />}<h3>{ROUND_INFO[id]?.title ?? id}</h3><p>{ROUND_INFO[id]?.detail}</p>
-                <span className="coach-badge">{ready ? 'Loading…' : 'Locked'}</span></article>)}</div>}
+        </div>
     </div>;
 }

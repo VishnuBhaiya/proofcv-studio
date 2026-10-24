@@ -1,0 +1,69 @@
+{
+  "notes": "Scripts read aloud to evaluate Interview Coach on a real voice and microphone. None of these sentences are in the STAR training data. Each behavioural sentence carries its STAR label; technical scripts list which of the question's key points (by index) the script covers. vocabulary is the word list given to Whisper in the 'profile hints' condition, as the app does from a confirmed profile.",
+  "vocabulary": {"name": "Tirth Patel", "role": "AI Computer Vision Engineer", "terms": ["Python", "PyTorch", "OpenCV", "YOLO", "Docker", "FastAPI", "pandas", "Smart Intersection"]},
+  "scripts": [
+    {"id": "e01", "question_id": "si-30", "sentences": [
+      ["other", "Hi, I'm Tirth Patel."],
+      ["other", "I'm studying information technology with a focus on artificial intelligence."],
+      ["other", "I enjoy building computer vision projects with Python and PyTorch."],
+      ["other", "I'm excited about this role because it turns models into real products."]
+    ]},
+    {"id": "e02", "question_id": "si-90", "sentences": [
+      ["other", "My name is Tirth Patel, and I build practical machine learning tools."],
+      ["other", "Over the last year I have worked mostly with OpenCV, YOLO and FastAPI."],
+      ["other", "My favourite project detected cyclists and pedestrians at busy road intersections."],
+      ["other", "I also like explaining technical results to people who are not engineers."],
+      ["other", "I'm applying for this role because it combines computer vision with real users."]
+    ]},
+    {"id": "e03", "question_id": "bh-teamwork", "sentences": [
+      ["situation", "During my third semester, our group had to deliver a mobile app for a local library."],
+      ["situation", "One week before the deadline, the search feature still returned the wrong books."],
+      ["task", "My responsibility was to fix search without delaying the release."],
+      ["action", "I wrote a small set of test queries and found that titles were not being cleaned."],
+      ["action", "I added a cleaning step and asked a teammate to review the change that evening."],
+      ["result", "Search accuracy went from about sixty to over ninety percent, and we released on time."]
+    ]},
+    {"id": "e04", "question_id": "bh-conflict", "sentences": [
+      ["situation", "In a data science subject, two of us disagreed about which model to use."],
+      ["task", "I wanted us to agree quickly so we would not lose a week arguing."],
+      ["action", "I suggested we test both models on the same validation split."],
+      ["action", "I then put the results in one simple table and shared it with the group."],
+      ["result", "The simpler model was almost as accurate, so we chose it and finished early."]
+    ]},
+    {"id": "e05", "question_id": "bh-failure", "sentences": [
+      ["situation", "Last year I trained a model to read handwritten receipts for a small business."],
+      ["situation", "It worked well in testing but failed badly on photos taken by real customers."],
+      ["task", "I had to understand why before the owner lost trust in the tool."],
+      ["action", "I collected forty real photos and labelled every mistake the model made."],
+      ["action", "Most errors came from blurry images, so I added a check that asks users to retake them."],
+      ["result", "Failed receipts dropped by half, and I learned to test on real data much earlier."]
+    ]},
+    {"id": "e06", "question_id": "bh-messy-data", "sentences": [
+      ["situation", "For a capstone project we received sensor data from a factory that was full of gaps."],
+      ["task", "I needed clean data so the team could start training on Monday."],
+      ["action", "I used pandas to find missing values and duplicated timestamps."],
+      ["action", "I filled short gaps by interpolation and removed the long ones."],
+      ["result", "The team started training on time, and our final model met the target error."]
+    ]},
+    {"id": "e07", "question_id": "tq-detection-eval", "covers": [0, 1, 2], "sentences": [
+      ["other", "First I would use intersection over union to decide when a predicted box matches a real object."],
+      ["other", "From those matches I would report precision and recall."],
+      ["other", "Then I would calculate mean average precision across all classes and several thresholds."]
+    ]},
+    {"id": "e08", "question_id": "tq-docker", "covers": [0, 1, 4], "sentences": [
+      ["other", "Docker packages the service together with all of its dependencies, so the environment is reproducible."],
+      ["other", "The same image runs on my laptop and in production."],
+      ["other", "I would also pin library versions and keep the image as small as possible."]
+    ]},
+    {"id": "e09", "question_id": "mf-why-role", "sentences": [
+      ["other", "I want this role because I enjoy taking a model from an experiment to something people use every day."],
+      ["other", "Your team works on video analytics, which is exactly where my projects have been."],
+      ["other", "I also want to learn how to run models reliably in production."]
+    ]},
+    {"id": "e10", "question_id": "mf-gap", "sentences": [
+      ["other", "I haven't worked with very large datasets in a job yet."],
+      ["other", "The closest experience I have is cleaning and labelling a few thousand images for my projects."],
+      ["other", "To close the gap, I'm taking an online course on distributed data processing with Spark."]
+    ]}
+  ]
+}

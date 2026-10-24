@@ -3,6 +3,7 @@ import base64
 import json
 import unittest
 from http.client import HTTPConnection
+from pathlib import Path
 from unittest import mock
 from .. import test_http
 from . import content, factcheck, speech, star
@@ -245,6 +246,40 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertEqual(second['follow_up']['depth'], 2)
         overview = json.loads(self.request('GET', f"/api/interview/{state['id']}/attempts")[1])
         self.assertEqual((overview['tq-detection-eval']['attempts'], overview['tq-detection-eval:follow-up']['attempts']), (1, 1))
+
+    def test_mock_cross_questioning_scores_and_report_list(self):
+        class FakeTranscriber:
+            def transcribe(self, audio, prompt=None):
+                text = 'In my lane detector project I improved recall by 20 percent.'
+                return {'text': text, 'words': words(text), 'duration': 5, 'model': 'fake'}
+        state = self.confirmed_state()
+        self.assertEqual(json.loads(self.request('GET', f"/api/interview/{state['id']}/mock")[1]), [])
+        session = json.loads(self.request('POST', f"/api/interview/{state['id']}/mock", {}, {'Content-Type': 'application/json'})[1])
+        first = session['questions'][0]
+        body = {'question_id': first['id'], 'audio': base64.b64encode(b'x').decode(), 'mock_session': session['id'], 'mock_position': 0}
+        with mock.patch.object(speech, '_transcriber', FakeTranscriber()):
+            main = json.loads(self.post_answer(state['id'], body)[1])
+            self.assertTrue(0 <= main['score']['overall'] <= 100)
+            asked = main['follow_up']
+            self.assertEqual(asked['depth'], 1)
+            follow = json.loads(self.post_answer(state['id'], {**body, 'follow_up': asked})[1])
+        self.assertIsNone(follow['follow_up'])  # One follow-up per question in a mock interview.
+        result = json.loads(self.request('GET', f"/api/interview/{state['id']}/mock/{session['id']}/report")[1])
+        self.assertEqual(result['questions'][0]['follow_up']['question'], asked['question'])
+        self.assertIsNotNone(result['cross_questioning'])
+        listed = json.loads(self.request('GET', f"/api/interview/{state['id']}/mock")[1])
+        self.assertEqual([(i['id'], i['answered'], i['band']) for i in listed], [(session['id'], 1, 'Incomplete')])
+
+    def test_evaluation_scripts_and_samples(self):
+        workspace = self.create()
+        listing = json.loads(self.request('GET', f"/api/interview/{workspace['id']}/evaluation")[1])
+        self.assertEqual((len(listing['scripts']), listing['recorded']), (10, []))
+        code, body = self.request('POST', f"/api/interview/{workspace['id']}/evaluation-sample",
+                                  {'script_id': 'e03', 'audio': base64.b64encode(b'audio').decode()}, {'Content-Type': 'application/json'})
+        self.assertEqual((code, json.loads(body)['recorded'], json.loads(body)['seconds']), (200, ['e03'], {'e03': 0.0}))
+        self.assertTrue((Path(self.directory.name) / 'interview-evaluation' / 'e03.webm').is_file())
+        bad = self.request('POST', f"/api/interview/{workspace['id']}/evaluation-sample", {'script_id': 'nope', 'audio': 'AAAA'}, {'Content-Type': 'application/json'})
+        self.assertEqual(bad[0], 400)
 
     def test_unknown_workspace_and_path_are_not_found(self):
         self.assertEqual(self.request('GET', '/api/interview/missing/status')[0], 404)

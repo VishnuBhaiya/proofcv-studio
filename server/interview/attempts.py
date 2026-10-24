@@ -138,12 +138,21 @@ class AttemptStore:
             raise ValueError('Mock interview not found.')
         return {'id': row[0], 'created_at': row[1], 'job': json.loads(row[2]), 'questions': json.loads(row[3]), 'answers': json.loads(row[4])}
 
-    def link_answer(self, workspace_id, session_id, position, attempt_id):
-        """Record that question number `position` of a mock interview was answered by this attempt (latest wins)."""
+    def sessions(self, workspace_id):
+        """All mock interviews for a workspace, newest first."""
+        with self.connect() as connection:
+            ids = [row[0] for row in connection.execute('SELECT id FROM mock_sessions WHERE workspace_id=? ORDER BY created_at DESC', (workspace_id,))]
+        return [self.session(workspace_id, session_id) for session_id in ids]
+
+    def link_answer(self, workspace_id, session_id, position, attempt_id, follow_up_question=None):
+        """Record that question number `position` of a mock interview (or its follow-up) was answered by this attempt (latest wins)."""
         with self.lock:
             current = self.session(workspace_id, session_id)
             if not 0 <= position < len(current['questions']):
                 raise ValueError('Question is not part of this mock interview.')
-            current['answers'][str(position)] = attempt_id
+            if follow_up_question:
+                current['answers'][f'{position}f'] = {'id': attempt_id, 'question': follow_up_question}
+            else:
+                current['answers'][str(position)] = attempt_id
             with self.connect() as connection:
                 connection.execute('UPDATE mock_sessions SET answers=? WHERE id=?', (json.dumps(current['answers']), session_id))

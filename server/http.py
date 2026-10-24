@@ -69,7 +69,7 @@ def make_handler(service):
             except ValueError:
                 self.send(400, {'error': 'Invalid content length.'})
                 return
-            upload = urlsplit(self.path).path.endswith(('/upload-document', '/answer'))
+            upload = urlsplit(self.path).path.endswith(('/upload-document', '/answer', '/evaluation-sample'))
             if not 0 < length <= (7500000 if upload else 200000):
                 self.send(400, {'error': 'Request is empty or too large.'})
                 return
