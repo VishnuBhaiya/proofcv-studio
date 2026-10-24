@@ -23,8 +23,10 @@ COMPONENT_LABELS = {'delivery': 'Delivery', 'length': 'Answer length', 'structur
 METHOD = ('Each answer scores 0-100 as the average of the parts that apply to it. Delivery: the average of pace (100 inside 120-160 '
           'words/min, minus 2 per word/min outside), filler words (minus 10 per filler/min above 2) and long pauses (minus 20 each). '
           'Answer length: minus 1 per % away from the target length. STAR structure: parts present out of 4 (behavioural only). '
-          'Key points: share covered (technical only). Claims: minus 25 per detail not backed by your confirmed profile. '
-          'The overall score is the average of answered questions. 80+ is Ready, 60-79 Nearly ready, below 60 Needs practice; '
+          'Key points: share covered (technical answers, and self-introductions against points from your confirmed profile). '
+          'Claims: share of what you said about yourself that your confirmed profile backs (a loose match counts 60%), minus 25 '
+          'per flagged detail such as an unbacked number, tool, leadership claim or a different name. An answer scoring under 40 on '
+          'key points or claims is capped at 40 overall. The overall score is the average of answered questions. 80+ is Ready, 60-79 Nearly ready, below 60 Needs practice; '
           'until every question is answered the result is shown as Incomplete.')
 
 
@@ -55,9 +57,26 @@ def components(summary):
         parts['structure'] = round(summary['star_parts'] / 4 * 100)
     if 'key_points' in summary:
         parts['content'] = round(summary['key_points'] * 100)
-    if 'flags' in summary:
+    if 'honesty' in summary:
+        if summary['honesty'] is not None:  # Nothing claimed: nothing to back up, so no score.
+            parts['honesty'] = summary['honesty']
+    elif 'flags' in summary:  # Attempts saved before claims were scored one by one.
         parts['honesty'] = max(0, 100 - 25 * summary['flags'])
     return parts
+
+
+# An answer that misses what was asked, or that the profile does not back, cannot score well on
+# delivery alone: the overall score is capped when key points or profile backing are this low.
+CAP_BELOW = 40
+CAPPED_SCORE = 40
+
+
+def overall(parts):
+    """One 0-100 score for an answer: the average of its parts, capped when the substance is missing."""
+    score = round(mean(parts.values()))
+    if min(parts.get('content', 100), parts.get('honesty', 100)) < CAP_BELOW:
+        score = min(score, CAPPED_SCORE)
+    return score
 
 
 def band(score):
@@ -74,18 +93,18 @@ def report(session, attempts):
             continue
         parts = components(attempt['summary'])
         row = {'position': position + 1, 'question': question['text'], 'round': question['round'], 'answered': True,
-               'score': round(mean(parts.values())), 'components': parts, 'needs_work': needs_work(attempt['summary']),
+               'score': overall(parts), 'components': parts, 'needs_work': needs_work(attempt['summary']),
                'transcript': attempt['transcript'], 'summary': attempt['summary']}
         linked = session['answers'].get(f'{position}f')
         follow = attempts.get(linked['id']) if linked else None
         if follow:
-            row['follow_up'] = {'question': linked['question'], 'score': round(mean(components(follow['summary']).values())),
+            row['follow_up'] = {'question': linked['question'], 'score': overall(components(follow['summary'])),
                                 'needs_work': needs_work(follow['summary']), 'transcript': follow['transcript']}
         rows.append(row)
     answered = [r for r in rows if r['answered']]
     if not answered:
         raise ValueError('Answer at least one question to get a readiness report.')
-    overall = round(mean(r['score'] for r in answered))
+    total = round(mean(r['score'] for r in answered))
     by_part = {key: round(mean(r['components'][key] for r in answered if key in r['components']))
                for key in COMPONENT_LABELS if any(key in r['components'] for r in answered)}
     spoken = [r['summary'] for r in answered if r['summary'].get('words_per_minute')]
@@ -105,8 +124,8 @@ def report(session, attempts):
     missing = [r['position'] for r in rows if not r['answered']]
     if missing:
         steps.append(f"Answer the skipped question{'s' if len(missing) > 1 else ''} ({', '.join(map(str, missing))}) to complete the interview.")
-    return {'session_id': session['id'], 'job': session['job'], 'created_at': session['created_at'], 'overall': overall,
-            'band': band(overall) if len(answered) == len(rows) else 'Incomplete',
+    return {'session_id': session['id'], 'job': session['job'], 'created_at': session['created_at'], 'overall': total,
+            'band': band(total) if len(answered) == len(rows) else 'Incomplete',
             'answered': len(answered), 'total': len(rows), 'cross_questioning': cross, 'by_part': by_part, 'averages': averages, 'strengths': strengths,
             'weak_spots': weak, 'next_steps': steps or ['Keep practising with new questions to stay sharp.'], 'questions': rows, 'method': METHOD}
 

@@ -80,6 +80,12 @@ class BuildTests(unittest.TestCase):
         self.assertEqual([p['label'] for p in result['parts']], ['Key point', 'Key point you missed', 'Link to your experience'])
         self.assertIn('Warehouse Safety', result['parts'][-1]['text'])
 
+    def test_intro_key_points_come_from_the_profile_and_job(self):
+        short = model_answer.intro_points({'id': 'si-30', 'seconds': 30}, PROFILE, FIT, JOB, TopicBackend())
+        self.assertEqual(short, ['your background as a computer-vision student', 'your Warehouse Safety project', 'why you want the AI Computer Vision Engineer role'])
+        long = model_answer.intro_points({'id': 'si-90', 'seconds': 90}, PROFILE, FIT, JOB, TopicBackend())
+        self.assertIn('your experience as Cafe Barista at Bean Bar', long)
+
     def test_introduction_grows_with_the_target_length(self):
         short = self.build({'id': 'si-30', 'round': 'self_introduction', 'seconds': 30})
         long = self.build({'id': 'si-120', 'round': 'self_introduction', 'seconds': 120})
@@ -99,7 +105,19 @@ class AttemptTests(unittest.TestCase):
     def response(self, fillers, parts, flags=0):
         return {'target_seconds': 90, 'delivery': {'words_per_minute': 140, 'fillers_per_minute': fillers, 'long_pauses': 0, 'speaking_seconds': 80},
                 'star': {'present': {'situation': True, 'task': parts > 1, 'action': parts > 2, 'result': parts > 3}},
-                'fact_check': {'claims': [{'flags': [{}] * flags}]}}
+                'fact_check': {'claims': [{'status': 'supported', 'flags': [{}] * flags}], 'score': max(0, 100 - 25 * flags)}}
+
+    def test_unsure_recognition_is_never_a_strong_answer(self):
+        clean = {**summarise(self.response(1.0, 4)), 'unsure_share': 0.05}
+        self.assertEqual(needs_work(clean), [])
+        self.assertIn('not reliable', needs_work({**clean, 'unsure_share': 0.3})[0])
+
+    def test_claims_the_profile_does_not_back_need_work(self):
+        response = self.response(1.0, 4)
+        response['fact_check'] = {'claims': [{'status': 'unmatched', 'flags': []}] * 4, 'score': 0}
+        summary = summarise(response)
+        self.assertEqual((summary['unmatched'], summary['honesty']), (4, 0))
+        self.assertEqual(needs_work(summary), ['4 things you said about yourself are not in your confirmed profile.'])
 
     def test_summary_and_reasons(self):
         summary = summarise(self.response(8.0, 2, flags=1))

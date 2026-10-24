@@ -28,6 +28,10 @@ FILLER_PHRASES = (('you', 'know'), ('i', 'mean'), ('sort', 'of'), ('kind', 'of')
 MIN_SEGMENT_LOGPROB = -1.0
 MIN_WORD_PROBABILITY = 0.1
 MIN_WORD_SECONDS = 0.05
+# Whisper's own confidence per word. Clear read speech had under 5% of words below 0.5; when more than
+# 15% are, the transcript (and every score built on it) is partly guesswork.
+UNSURE_WORD_PROBABILITY = 0.5
+UNSURE_SHARE = 0.15
 PAUSE_SECONDS, LONG_PAUSE_SECONDS = 1.0, 2.5
 SLOW_WPM, FAST_WPM = 110, 170
 FILLERS_PER_MINUTE_LIMIT = 6
@@ -207,3 +211,12 @@ def delivery(words, duration, target_seconds=None):
     return {'word_count': content_words, 'speaking_seconds': round(speaking, 1), 'words_per_minute': wpm, 'pauses': pauses,
             'long_pauses': long_pauses, 'fillers': fillers, 'fillers_per_minute': fillers_per_minute,
             'thinking_seconds': round(words[0]['start'], 1), 'duration': round(duration, 1), 'notes': notes}
+
+
+def recognition_check(words):
+    """How sure Whisper was about the transcript: the share of low-confidence words, and which they are."""
+    if not words:
+        return {'unsure_share': 0.0, 'unsure_words': [], 'unsure': False}
+    unsure = [w['word'] for w in words if w['probability'] < UNSURE_WORD_PROBABILITY]
+    share = len(unsure) / len(words)
+    return {'unsure_share': round(share, 2), 'unsure_words': unsure, 'unsure': share > UNSURE_SHARE}

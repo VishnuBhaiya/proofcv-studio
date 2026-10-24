@@ -249,6 +249,24 @@ class InterviewRouteTests(unittest.TestCase):
         cleared = json.loads(self.request('POST', url, {'job': 'graduate_ai_engineer', 'interview_date': None}, json_header)[1])
         self.assertIsNone(cleared['interview_date'])
 
+    def test_off_topic_introduction_with_another_name_is_not_strong(self):
+        class FakeTranscriber:
+            def transcribe(self, audio, prompt=None):
+                text = 'Hello, my name is Dietz Patel. Most of my work is done with other tools. Are you there?'
+                heard = words(text)
+                heard[4]['probability'] = heard[5]['probability'] = 0.2  # Whisper unsure about the name.
+                return {'text': text, 'words': heard, 'duration': 30, 'model': 'fake'}
+        state = self.confirmed_state()
+        state['confirmed_profile'] = {**state['confirmed_profile'], 'name': 'Sam Lee'}
+        self.service.store.save(state)
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
+            result = json.loads(self.post_answer(state['id'], {'question_id': 'si-30', 'audio': base64.b64encode(b'x').decode(), 'job': 'graduate_ai_engineer'})[1])
+        self.assertTrue(result['content']['key_points'])  # Introductions are now checked against the profile.
+        self.assertEqual(result['fact_check']['claims'][0]['flags'][0]['type'], 'name')
+        self.assertLessEqual(result['score']['overall'], 40)
+        self.assertTrue(result['progress']['needs_work'])
+        self.assertEqual(result['recognition']['unsure_words'], ['Dietz', 'Patel.'])
+
     def test_rehearsal_reports_which_slides_were_covered(self):
         class FakeTranscriber:
             def transcribe(self, audio, prompt=None):

@@ -154,12 +154,10 @@ def introduction(question, profile, fit_items, job, backend):
         who = sentences(facts[0])[0]
         spoken = first_person(who)
         parts.append(part('Who you are', spoken if spoken != who else f"I'm {'an' if who[0].lower() in 'aeiou' else 'a'} {lower_first(who)}", 'Summary fact'))
-    options = stories(profile)
-    projects = [s for s in options if s['kind'] == 'project']
-    roles = [s for s in options if s['kind'] == 'role']
-    strong = [r for r in fit_items if r['status'] == 'strong' and r['level'] == 'required'] or [r for r in fit_items if r['status'] == 'strong']
-    if projects:
-        story = projects[closest([' '.join(s['sentences']) for s in projects], ' '.join(r['text'] for r in strong) or job['title'], backend)[0]]
+    roles = [s for s in stories(profile) if s['kind'] == 'role']
+    strong = strong_first(fit_items)
+    story = highlight_project(profile, fit_items, job, backend)
+    if story:
         parts.append(part('Highlight', f"Recently, in {story['context']}, {lower_first(story['sentences'][0])}", story['source']))
     if seconds >= 90 and roles:
         parts.append(part('Experience', f"I also worked {roles[0]['as']}, where {lower_first(roles[0]['sentences'][0])}", roles[0]['source']))
@@ -171,6 +169,35 @@ def introduction(question, profile, fit_items, job, backend):
     if seconds >= 120 and gaps:
         parts.append(part('Growth', f"I'm still building experience in {quoted(gaps[:1])}, and I want to grow that in this role."))
     return finish('introduction', parts)
+
+
+def strong_first(fit_items):
+    return [r for r in fit_items if r['status'] == 'strong' and r['level'] == 'required'] or [r for r in fit_items if r['status'] == 'strong']
+
+
+def highlight_project(profile, fit_items, job, backend):
+    """The project that best shows what this job values most."""
+    projects = [s for s in stories(profile) if s['kind'] == 'project']
+    if not projects:
+        return None
+    return projects[closest([' '.join(s['sentences']) for s in projects], ' '.join(r['text'] for r in strong_first(fit_items)) or job['title'], backend)[0]]
+
+
+def intro_points(question, profile, fit_items, job, backend):
+    """What a self-introduction for this job should cover, taken only from the confirmed profile."""
+    points = []
+    facts = profile.get('summary_facts') or []
+    if facts:
+        who = re.split(r',| with | who | and ', sentences(facts[0])[0].rstrip('.'))[0].strip()
+        points.append(f"your background as {'an' if who[:1].lower() in 'aeiou' else 'a'} {lower_first(who)}")
+    story = highlight_project(profile, fit_items, job, backend)
+    if story:
+        points.append(f"your {story['title']} project")
+    roles = [s for s in stories(profile) if s['kind'] == 'role']
+    if question.get('seconds', 30) >= 90 and roles:
+        points.append(f"your experience {roles[0]['as']}")
+    points.append(f"why you want the {job['title']} role")
+    return points
 
 
 def motivation(question, requirement_id, profile, fit_items, job, backend):

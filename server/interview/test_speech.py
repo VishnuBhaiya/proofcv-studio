@@ -5,7 +5,7 @@ import struct
 import unittest
 import wave
 
-from .speech import FILLER_PROMPT, decode_audio, delivery, expected_words, find_fillers
+from .speech import FILLER_PROMPT, decode_audio, delivery, expected_words, find_fillers, recognition_check
 
 
 def words(text, start=0.0, gap=0.0, step=0.4):
@@ -68,6 +68,17 @@ class PromptTests(unittest.TestCase):
     def test_no_profile_keeps_the_filler_prompt(self):
         self.assertEqual(expected_words(None), FILLER_PROMPT)
         self.assertEqual(expected_words({'name': '', 'skills': [], 'projects': []}), FILLER_PROMPT)
+
+
+class RecognitionCheckTests(unittest.TestCase):
+    def test_unsure_words_are_listed_and_a_high_share_is_flagged(self):
+        sure = [{'word': w, 'probability': 0.95} for w in 'I built a YOLO model for traffic video'.split()]
+        self.assertEqual(recognition_check(sure), {'unsure_share': 0.0, 'unsure_words': [], 'unsure': False})
+        guessed = sure[:6] + [{'word': 'Dietz', 'probability': 0.2}, {'word': 'Kura', 'probability': 0.3}]
+        result = recognition_check(guessed)
+        self.assertEqual((result['unsure_words'], result['unsure_share'], result['unsure']), (['Dietz', 'Kura'], 0.25, True))
+        self.assertFalse(recognition_check(sure * 2 + [{'word': 'um', 'probability': 0.4}])['unsure'])  # One doubtful word in 17 is fine.
+        self.assertFalse(recognition_check([])['unsure'])
 
 
 class DecodeTests(unittest.TestCase):

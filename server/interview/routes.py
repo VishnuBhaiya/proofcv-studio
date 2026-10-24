@@ -99,6 +99,11 @@ def answer(service, state, data):
     if result.get('audio', {}).get('rms_db', 0) < QUIET_RMS_DB:
         response['delivery']['notes'].insert(0, 'Your microphone level was very low, which makes the transcript less accurate. Move closer or check the input device in your system sound settings.')
     response['audio'] = result.get('audio')
+    response['recognition'] = speech.recognition_check(result['words'])
+    if response['recognition']['unsure']:
+        response['delivery']['notes'].insert(0, f"Speech recognition was unsure about {round(response['recognition']['unsure_share'] * 100)}% of your words "
+                                                '(underlined in the transcript), so the scores may be off. Speak a little slower and closer to the microphone, '
+                                                'or switch to Accurate recognition.')
     backend = service.retriever.backend
     confirmed = readiness(state)['profile_confirmed'] and bool(state.get('confirmed_profile'))
     try:
@@ -111,6 +116,9 @@ def answer(service, state, data):
         if question['round'] == 'behavioural' and not asked:
             response['star'] = star.analyse(result['text'], backend)
         key_points = ([asked['key_point']] if asked.get('key_point') else []) if asked else question.get('key_points')
+        if question['round'] == 'self_introduction' and not asked and job_fit_result:
+            # Introductions have no fixed answer: what they should cover comes from the confirmed profile and the job.
+            key_points = model_answer.intro_points(question, state['confirmed_profile'], job_fit_result['requirements'], job_fit_result['job'], backend)
         if key_points:
             response['content'] = content.score(result['text'], key_points, backend)
         if confirmed:
@@ -123,7 +131,7 @@ def answer(service, state, data):
             response['slide_coverage'] = slide_coverage(result['text'], slides.build(state['confirmed_profile'], job_fit_result['requirements'], job_fit_result['job'], backend), backend)
     summary = attempts.summarise(response)
     parts = mock.components(summary)
-    response['score'] = {'overall': round(sum(parts.values()) / len(parts)), 'components': parts}
+    response['score'] = {'overall': mock.overall(parts), 'components': parts}
     response['progress'] = attempt_store(service).record(state['id'], f"{question['id']}:follow-up" if asked else question['id'], result['text'], summary)
     in_mock = bool(data.get('mock_session'))
     # In a mock interview the interviewer cross-questions once per question; in practice, up to MAX_DEPTH times.

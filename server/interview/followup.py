@@ -23,6 +23,8 @@ def ask(question, why, kind, key_point=None):
 def from_fact_check(fact_check, personal_story):
     for claim in (fact_check or {}).get('claims', []):
         for flag in claim['flags']:
+            if flag['type'] == 'name':
+                return ask('Sorry, I did not catch that. Could you introduce yourself again, starting with your name?', flag['message'], 'evidence')
             if flag['type'] == 'tool':
                 said = flag.get('said', flag['value'])
                 return ask(f'You mentioned {said}. Where did you use it, and what exactly did you do with it?', f'{said} is not in your confirmed profile.', 'evidence')

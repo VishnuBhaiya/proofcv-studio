@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 
 from .content import normalise, score, terms, windows
-from .factcheck import check, numbers
+from .factcheck import check, honesty, numbers
 
 
 class TopicBackend:
@@ -25,6 +25,8 @@ class TopicBackend:
 PROFILE = {'skills': ['Python', 'YOLO'], 'projects': [{'title': 'Warehouse Safety', 'description': 'Tracked people in warehouse video with YOLO. Processed two hundred clips.', 'technologies': 'OpenCV'}],
            'education': 'Diploma of IT', 'experience': 'None', 'achievements': 'Peer mentor (2025).', 'summary_facts': []}
 
+
+NAMED = {**PROFILE, 'name': 'Sam Lee'}
 
 class ContentTests(unittest.TestCase):
     def test_windows_and_terms(self):
@@ -95,8 +97,38 @@ class FactCheckTests(unittest.TestCase):
         self.assertEqual(result['claims'][0]['flags'][0]['value'], 'kubernetes')
 
     def test_greetings_and_thanks_are_not_claims(self):
-        result = check("Hi, I'm Sam. Thank you for having me. I used YOLO in the warehouse.", PROFILE, TopicBackend())
-        self.assertEqual([c['text'] for c in result['claims']], ['I used YOLO in the warehouse.'])
+        self.assertEqual([c['text'] for c in check("Hi, I'm Sam. Thank you. I used YOLO in the warehouse.", PROFILE, TopicBackend())['claims']],
+                         ['I used YOLO in the warehouse.'])  # No name in the profile: nothing to check the name against.
+        result = check("Hi, I'm Sam. Thank you for having me. I used YOLO in the warehouse.", NAMED, TopicBackend())
+        # The greeting is checked only for the name; "Thank you for having me" is not a claim at all.
+        self.assertEqual([c['text'] for c in result['claims']], ["Hi, I'm Sam.", 'I used YOLO in the warehouse.'])
+        self.assertEqual((result['claims'][0]['status'], result['claims'][0]['support']['label']), ('supported', 'Name'))
+
+    def test_a_different_name_is_flagged(self):
+        for text in ('Hello, my name is Dietz Patel. I used YOLO in the warehouse.', "Hi, I'm Priya. I used YOLO in the warehouse."):
+            result = check(text, NAMED, TopicBackend())
+            self.assertEqual(result['claims'][0]['flags'][0]['type'], 'name')
+            self.assertLess(result['score'], 100)
+        self.assertEqual(check('Hello, my name is Tirth Patel.', NAMED, TopicBackend())['claims'][0]['flags'][0]['value'], 'Tirth Patel')
+        self.assertEqual(check('My name is Sam J. Lee.', NAMED, TopicBackend())['claims'][0]['flags'], [])
+        self.assertEqual(check("I'm Sam Lee, and I used YOLO.", NAMED, TopicBackend())['claims'][0]['support']['label'], 'Name')
+        self.assertEqual(check("Hi, I'm Sem.", NAMED, TopicBackend())['claims'][0]['flags'], [])  # A small recognition slip still counts.
+        self.assertNotIn('Name', [(c['support'] or {}).get('label') for c in check("I'm from Sydney and I used YOLO.", NAMED, TopicBackend())['claims']])
+
+    def test_unmatched_claims_lower_the_profile_score(self):
+        claim = lambda status, flags=0: {'status': status, 'flags': [{}] * flags}
+        self.assertEqual(honesty({'claims': [claim('supported'), claim('supported')]}), 100)
+        self.assertEqual(honesty({'claims': [claim('supported'), claim('unmatched')]}), 50)
+        self.assertEqual(honesty({'claims': [claim('weak')]}), 60)
+        self.assertEqual(honesty({'claims': [claim('unmatched')] * 4}), 0)  # Before: 100, because only flags counted.
+        self.assertEqual(honesty({'claims': [claim('supported', flags=2)]}), 50)
+        self.assertIsNone(honesty({'claims': []}))
+        self.assertIsNone(check('The sky is blue.', PROFILE, TopicBackend())['score'])  # Nothing claimed, nothing to score.
+
+    def test_large_number_words_are_checked_but_small_ones_are_not(self):
+        flagged = check('Ninety percent of the work was automated.', PROFILE, TopicBackend())['claims'][0]['flags']
+        self.assertEqual(flagged[0]['value'], '90')
+        self.assertEqual(check('One of my projects used YOLO in the warehouse.', PROFILE, TopicBackend())['claims'][0]['flags'], [])
 
     def test_numbers_in_profile_are_not_flagged(self):
         claim = check('I processed 200 clips of warehouse video.', PROFILE, TopicBackend())['claims'][0]

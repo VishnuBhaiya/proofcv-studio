@@ -14,11 +14,13 @@ GOOD_WPM = (120, 160)
 KEY_POINTS_TARGET = 0.7
 FILLER_LIMIT = 6
 SHORT_RATIO = 0.6
+UNSURE_SHARE = 0.15  # Matches speech.UNSURE_SHARE (kept here so attempts need no audio libraries).
 # Metric: (label, better direction, smallest change that counts).
 METRICS = {
     'key_points': ('Key points covered', 'higher', 0.1),
     'star_parts': ('STAR parts present', 'higher', 1),
-    'flags': ('Claims not backed by your profile', 'lower', 1),
+    'flags': ('Flagged details', 'lower', 1),
+    'honesty': ('Backed by your profile', 'higher', 10),
     'fillers_per_minute': ('Filler words per minute', 'lower', 1.0),
     'long_pauses': ('Long pauses', 'lower', 1),
     'pace_gap': ('Pace off target (words/min)', 'lower', 10),
@@ -32,6 +34,8 @@ def summarise(response):
     wpm = d['words_per_minute']
     summary = {'words_per_minute': wpm, 'fillers_per_minute': d['fillers_per_minute'], 'long_pauses': d['long_pauses'],
                'pace_gap': max(GOOD_WPM[0] - wpm, wpm - GOOD_WPM[1], 0) if wpm else None}
+    if response.get('recognition'):
+        summary['unsure_share'] = response['recognition']['unsure_share']
     if response.get('target_seconds'):
         summary['length_gap'] = round(abs(d['speaking_seconds'] / response['target_seconds'] - 1) * 100)
         summary['length_ratio'] = round(d['speaking_seconds'] / response['target_seconds'], 2)
@@ -40,7 +44,10 @@ def summarise(response):
     if 'content' in response:
         summary['key_points'] = response['content']['score']
     if 'fact_check' in response:
-        summary['flags'] = sum(len(c['flags']) for c in response['fact_check']['claims'])
+        claims = response['fact_check']['claims']
+        summary['flags'] = sum(len(c['flags']) for c in claims)
+        summary['unmatched'] = sum(c['status'] == 'unmatched' for c in claims)
+        summary['honesty'] = response['fact_check'].get('score')  # None when nothing was claimed.
     return summary
 
 
@@ -53,12 +60,17 @@ def needs_work(summary):
         reasons.append(f"Covered {round(summary['key_points'] * 100)}% of the key points.")
     if summary.get('flags'):
         reasons.append(f"{summary['flags']} detail{'s' if summary['flags'] > 1 else ''} not backed by your confirmed profile.")
+    if summary.get('unmatched'):
+        n = summary['unmatched']
+        reasons.append(f"{n} thing{'s' if n > 1 else ''} you said about yourself {'are' if n > 1 else 'is'} not in your confirmed profile.")
     if summary['fillers_per_minute'] > FILLER_LIMIT:
         reasons.append(f"{summary['fillers_per_minute']} filler words per minute.")
     if summary.get('length_ratio') is not None and summary['length_ratio'] < SHORT_RATIO:
         reasons.append('Much shorter than the target length.')
     if not summary['words_per_minute']:
         reasons.append('No speech was detected.')
+    if summary.get('unsure_share', 0) > UNSURE_SHARE:
+        reasons.append(f"Speech recognition was unsure about {round(summary['unsure_share'] * 100)}% of the words, so this score is not reliable.")
     return reasons
 
 

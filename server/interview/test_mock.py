@@ -27,6 +27,14 @@ class PickTests(unittest.TestCase):
 
 
 class ScoreTests(unittest.TestCase):
+    def test_good_delivery_cannot_rescue_an_answer_with_no_substance(self):
+        from .mock import overall
+        self.assertEqual(overall({'delivery': 100, 'length': 100, 'content': 0, 'honesty': 0}), 40)  # Was 50; this answer scored 97 before.
+        self.assertEqual(overall({'delivery': 100, 'length': 100, 'honesty': 25}), 40)
+        self.assertEqual(overall({'delivery': 90, 'length': 80, 'content': 100, 'honesty': 100}), 92)
+        self.assertEqual(components({'words_per_minute': 140, 'fillers_per_minute': 0, 'long_pauses': 0, 'flags': 0, 'honesty': None}), {'delivery': 100})
+        self.assertEqual(components({'words_per_minute': 140, 'fillers_per_minute': 0, 'long_pauses': 0, 'flags': 1})['honesty'], 75)  # Older attempts.
+
     def test_components(self):
         self.assertEqual(components(GOOD), {'delivery': 100, 'length': 90, 'structure': 100, 'honesty': 100})
         self.assertEqual(components(WEAK), {'delivery': 43, 'length': 20, 'structure': 25, 'honesty': 75})

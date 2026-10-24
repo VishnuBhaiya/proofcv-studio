@@ -18,14 +18,13 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from . import model_answer, star
 from .attempts import needs_work
-from .mock import components
+from .mock import components, overall
 
 GOOD_WPM = (120, 160)
 
 
 def score_of(summary):
-    parts = components(summary)
-    return round(mean(parts.values()))
+    return overall(components(summary))
 
 
 def best_attempts(attempts, prefix):

@@ -108,6 +108,8 @@
 .interview-coach .ic-follow-up .ic-bubble-body { background: #eef2f8; border-left: 3px solid var(--ic-blue); }
 .interview-coach .ic-bubble-who { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ic-muted); }
 .interview-coach .ic-bubble-text { font-size: 15px; line-height: 1.55; }
+.interview-coach .ic-unsure { text-decoration: underline dotted var(--ic-fair) 2px; text-underline-offset: 3px; cursor: help; }
+.interview-coach .ic-unsure-note { color: var(--ic-fair); font-weight: 700; }
 .interview-coach .ic-question { font-size: clamp(18px, 2vw, 22px); font-weight: 650; line-height: 1.35; font-family: Manrope, sans-serif; }
 .interview-coach .ic-follow-up .ic-bubble-text { font-size: 16.5px; font-weight: 600; }
 .interview-coach .ic-bubble-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 12.5px; color: var(--ic-muted); }

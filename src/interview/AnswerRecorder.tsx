@@ -17,7 +17,8 @@ type Progress = { attempt: number; needs_work: string[]; changes: Change[] };
 type ExampleAnswer = { kind: string; parts: { label: string; text: string; source: string | null; placeholder: boolean }[]; text: string; note: string };
 type SlideCoverage = { slides: { title: string; status: 'covered' | 'partial' | 'missed'; quote: string | null }[]; covered: number; total: number; notes: string[] };
 type FollowUp = { question: string; why: string; kind: string; key_point: string | null; depth: number };
-type Answer = { question_id: string; round: string; transcript: string; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content;
+type Word = { word: string; probability: number };
+type Answer = { question_id: string; round: string; transcript: string; words?: Word[]; recognition?: { unsure_share: number; unsure: boolean }; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content;
     fact_check?: FactCheck; progress: Progress; example_answer?: ExampleAnswer; slide_coverage?: SlideCoverage; follow_up?: FollowUp | null; score: { overall: number; components: Record<string, number> } };
 const STAR_PARTS: [Exclude<StarLabel, 'other'>, string][] = [['situation', 'Situation'], ['task', 'Task'], ['action', 'Action'], ['result', 'Result']];
 const POINT_MARK = { covered: '✓', partial: '~', missed: '✗' };
@@ -25,6 +26,15 @@ const CLAIM_LABEL = { supported: 'Matches your profile', weak: 'Loosely matches'
 const ARROW = { better: '↑', worse: '↓', same: '=' };
 const MAX_SECONDS = 300;
 const FOLLOW_UP_SECONDS = 45; // Matches followup.FOLLOW_UP_SECONDS on the server.
+const UNSURE_WORD = 0.5; // Matches speech.UNSURE_WORD_PROBABILITY on the server.
+
+// The transcript with words Whisper was unsure about underlined, so a misheard answer is visible as such.
+function Transcript({ answer }: { answer: Answer }) {
+    if (!answer.transcript) return <em>No speech was detected.</em>;
+    if (!answer.words?.length) return <>{answer.transcript}</>;
+    return <>{answer.words.map((w, i) => <span key={i}>{i > 0 && ' '}{w.probability < UNSURE_WORD
+        ? <span className="ic-unsure" title={`Recognition was unsure about this word (${Math.round(w.probability * 100)}%)`}>{w.word}</span> : w.word}</span>)}</>;
+}
 const show = (metric: string, value: number) => metric === 'key_points' ? `${Math.round(value * 100)}%` : metric === 'length_gap' ? `${value}%` : String(value);
 
 function toBase64(blob: Blob) {
@@ -200,7 +210,8 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
         </div>
         {error && <p className="live-error" role="alert">{error}</p>}
         {answer && <>
-            <Bubble who="you" meta={`${answer.delivery.speaking_seconds}s · ${answer.delivery.words_per_minute} words/min`}>{answer.transcript || <em>No speech was detected.</em>}</Bubble>
+            <Bubble who="you" meta={<>{answer.delivery.speaking_seconds}s · {answer.delivery.words_per_minute} words/min{answer.recognition?.unsure
+                && <strong className="ic-unsure-note"> · Recognition unsure about {Math.round(answer.recognition.unsure_share * 100)}% of words: scores may be off</strong>}</>}><Transcript answer={answer} /></Bubble>
             {hideFeedback ? <p className="ic-saved">Answer saved. Feedback comes in your report at the end.</p> : <Scorecard answer={answer} />}
             {answer.follow_up && <>
                 <Bubble who="interviewer" kind="follow-up" meta={<>Why: {answer.follow_up.why} <SpeakButton text={answer.follow_up.question} label="Hear it" /></>}>{answer.follow_up.question}</Bubble>
