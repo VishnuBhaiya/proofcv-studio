@@ -1,0 +1,23 @@
+{
+  "note": "Sample spoken answers for the class demo, written only from Avery Morgan's confirmed profile (a labelled fictional sample). Voice: Piper en_US-lessac-medium.",
+  "answers": [
+    {
+      "file": "01-introduce-yourself-30-seconds.mp3",
+      "question_id": "si-30",
+      "question": "Introduce yourself in about 30 seconds, as if meeting the hiring manager for the AI Computer Vision Engineer role.",
+      "text": "Hi, I'm Avery Morgan. I'm an Artificial Intelligence diploma student at Harbour Technical College, and I focus on computer vision. In my Smart Intersection Object Detection project, I trained a lightweight YOLO model to detect vehicles, cyclists and pedestrians in recorded intersection footage, and compared precision, recall and mAP across experiments. I'm applying for the AI Computer Vision Engineer role because building and evaluating detection models with Python, OpenCV and PyTorch is exactly the work I want to do."
+    },
+    {
+      "file": "02-tell-me-about-yourself-90-seconds.mp3",
+      "question_id": "si-90",
+      "question": "Tell me about yourself. Take about 90 seconds and focus on why you fit the AI Computer Vision Engineer role.",
+      "text": "Hi, I'm Avery Morgan. I'm studying an Advanced Diploma of Information Technology in Artificial Intelligence at Harbour Technical College, with hands-on coursework in object detection, video analytics and dataset quality. In 2025 I worked as a Computer Vision Lab Assistant in the college's Applied Computing Lab. I prepared and checked annotated training images, reproduced baseline experiments, logged metrics and documented setup steps, and I helped classmates debug their data-loading and evaluation scripts. My strongest project is Smart Intersection Object Detection. I curated and labelled a small image dataset, trained a lightweight YOLO model, and compared precision, recall and mAP across experiments. I then reviewed false positives and missed detections, and documented the limitations caused by low light, occlusion and the small training set. I presented it as a finalist at the Harbour Applied AI Showcase. I also built a warehouse safety prototype that highlights people entering marked safety zones in recorded video, with object tracking, event counts and latency measured on a laptop. I fit the AI Computer Vision Engineer role because it asks for Python, OpenCV and a deep-learning framework like PyTorch, which are the tools I use in every project, and because I care about evaluating models carefully, not just training them."
+    },
+    {
+      "file": "03-two-minute-introduction.mp3",
+      "question_id": "si-120",
+      "question": "Give a 2-minute introduction: your background, one highlight project, and why you want the AI Computer Vision Engineer role.",
+      "text": "Hi, I'm Avery Morgan, and thank you for having me. I'm an Artificial Intelligence diploma student at Harbour Technical College, finishing in November 2026. Before that, I completed a Certificate Four in Information Technology, in programming, at City Skills Institute. In 2025 I worked as a Computer Vision Lab Assistant, where I checked annotated training images, reproduced baseline experiments and helped classmates debug their evaluation scripts. Earlier, as a Customer Technology Assistant at Harbour Electronics, I explained product features and resolved setup issues, which taught me to explain technical things clearly. The project I'm proudest of is Smart Intersection Object Detection. I built a prototype that detects vehicles, cyclists and pedestrians in recorded intersection footage. I curated and labelled a small image dataset, trained a lightweight YOLO model with PyTorch, and compared precision, recall and mAP across experiments. The most important part was the error analysis. I reviewed false positives and missed detections, and documented the limitations caused by low light, occlusion and the deliberately small training set. It is an offline demonstration, not a deployed traffic system, and I presented it as a finalist at the Harbour Applied AI Showcase in 2025. I also created a Dataset Quality Review Toolkit, a small FastAPI service with SQL storage, automated tests and Docker packaging, which checks images and annotations before training. I want the AI Computer Vision Engineer role because it brings together the work I enjoy most: training detection models, working with video, and evaluating results carefully. I'm still building experience with large datasets and video pipelines, and this role is where I want to grow that."
+    }
+  ]
+}
