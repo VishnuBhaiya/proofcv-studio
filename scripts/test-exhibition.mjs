@@ -1,0 +1,93 @@
+// Real Three.js geometry + pure evidence/tour checks. No GPU, provider or live-result claims.
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+import * as THREE from 'three';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+const cache=new Map();
+async function moduleURL(name){
+ if(cache.has(name))return cache.get(name);
+ if(name==='worldEngine')return 'data:text/javascript,export function createWorld(){throw Error("SSR must not create WebGL")}';
+ let output=ts.transpileModule(await readFile(new URL('../src/portfolio/'+name+(['PortfolioWorld','ProjectWorld','PublicPortfolio','ProjectCover','PortfolioScene','MediaEvidence','SceneFullscreen'].includes(name)?'.tsx':'.ts'),import.meta.url),'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ output=output.replace(/import ['"][^'"]+\.css['"];?/g,'');
+ // Parse real imports, not prose strings containing words such as "from".
+ const parsed=ts.createSourceFile(name+'.js',output,ts.ScriptTarget.ES2022,true,ts.ScriptKind.JS),replacements=[];
+ for(const statement of parsed.statements){if(!(ts.isImportDeclaration(statement)||ts.isExportDeclaration(statement))||!statement.moduleSpecifier)continue;const spec=statement.moduleSpecifier.text,url=spec.startsWith('./')?await moduleURL(spec.slice(2)):import.meta.resolve(spec);replacements.push({start:statement.moduleSpecifier.getStart(parsed),end:statement.moduleSpecifier.getEnd(),url});}
+ for(const replacement of replacements.reverse())output=output.slice(0,replacement.start)+JSON.stringify(replacement.url)+output.slice(replacement.end);
+ const url='data:text/javascript;base64,'+Buffer.from(output).toString('base64');cache.set(name,url);return url;
+}
+const {createExhibit}=await import(await moduleURL('exhibitionModels'));
+const {exhibitEvidence,exhibitionTour}=await import(await moduleURL('exhibitionEvidence'));
+const {default:World}=await import(await moduleURL('PortfolioWorld'));
+const {default:ProjectWorld}=await import(await moduleURL('ProjectWorld'));
+const {default:PublicPortfolio}=await import(await moduleURL('PublicPortfolio'));
+const {createProjectEnvironment,projectShots,fitProjectOverview}=await import(await moduleURL('projectEnvironments'));
+const {createIsland}=await import(await moduleURL('islandModels'));
+const titles=['Smart Intersection Object Detection','Warehouse Safety Video Analytics','SolarVision','Fake News Detection','Dataset Quality Review Toolkit','Parth Marketing Website','Vision prototype','Research journal'];
+const tech=['YOLO','OpenCV','PyTorch','NLP','SQL, FastAPI','HTML, React','OpenCV',''];
+const projects=titles.map((title,i)=>({id:'project-'+i,title,description:'Exact confirmed project text.',technologies:tech[i]}));
+const view={id:'graduate-ai',title:'Graduate AI Engineer',project_ids:['project-4','project-0'],skills:['Python','SQL','R','C++'],rationale:'Exact reviewed rationale.'};
+const site={source_revision:7,person:{name:'Synthetic Candidate',goal:'AI developer',skills:['Python','SQL','R','C++'],experience:'Developer | Example Lab\nConfirmed work.',education:'Confirmed education',achievements:'Confirmed achievement',links:[]},headline:'Confirmed headline',bio:'Confirmed biography.',projects,views:[{...view,id:'general'},view],assets:[],sources:{'project-0':'Exact public project source.'},theme:'technical',avatar:'none',narration:null};
+let count=0;function test(name,run){run();count++;console.log('PASS '+name);}
+const exhibits=projects.map(createExhibit);
+test('Every supported subject has its own 3D miniature kind',()=>assert.deepEqual(exhibits.map(e=>e.kind),['intersection','warehouse','solar','news','systems','web','vision','notes']));
+test('Every model is bound to its exact confirmed project ID',()=>exhibits.forEach((e,i)=>assert.equal(e.group.userData.projectId,projects[i].id)));
+test('Every miniature explicitly identifies itself as symbolic',()=>exhibits.forEach(e=>assert.equal(e.group.userData.symbolic,true)));
+test('Different subjects do not reuse one generic monitor model',()=>assert.equal(new Set(exhibits.map(e=>e.group.children.map(c=>c.geometry?.type||c.type).join('|'))).size,8));
+test('Models remain bounded below 140 meshes per exhibit',()=>exhibits.forEach(e=>{let meshes=0;e.group.traverse(o=>{if(o.isMesh)meshes++;});assert.ok(meshes>2&&meshes<140);}));
+test('All model bounds are finite and fit a bounded gallery bay',()=>exhibits.forEach(e=>{const b=new THREE.Box3().setFromObject(e.group),size=b.getSize(new THREE.Vector3());assert.ok([b.min.x,b.min.y,b.min.z,b.max.x,b.max.y,b.max.z].every(Number.isFinite));assert.ok(size.x<3.5&&size.z<3.5&&size.y<3);}));
+test('Building models never edits confirmed project data',()=>assert.equal(projects[0].description,'Exact confirmed project text.'));
+test('Each subject keeps its palette when the scene is recreated',()=>assert.deepEqual(exhibits.map(e=>e.color),projects.map(p=>createExhibit(p).color)));
+// Geometry identity is checked without UUIDs, which Three.js intentionally randomises.
+function geometryFingerprint(model){const result=[];model.group.traverse(o=>{if(o.geometry)result.push([o.geometry.type,Array.from(o.geometry.getAttribute('position').array),o.position.toArray(),o.rotation.toArray()]);});return result;}
+test('Role reordering cannot change project geometry',()=>assert.deepEqual(geometryFingerprint(createExhibit(projects[2])),geometryFingerprint(exhibits[2])));
+test('Evidence uses only exact exported source text',()=>assert.equal(exhibitEvidence(site,projects[0],view).source,'Exact public project source.'));
+test('Unknown source IDs produce no invented fallback claim',()=>assert.equal(exhibitEvidence(site,projects[1],view).source,''));
+test('Skill matching does not confuse single-letter R with words',()=>assert.deepEqual(exhibitEvidence(site,{...projects[0],description:'Python service and SQL queries',technologies:''},view).skills,['Python','SQL']));
+test('Punctuation in confirmed C++ is handled safely',()=>assert.deepEqual(exhibitEvidence(site,{...projects[0],description:'A C++ application.',technologies:''},view).skills,['C++']));
+test('Role skill absent from the confirmed profile cannot be promoted',()=>assert.deepEqual(exhibitEvidence(site,{...projects[0],description:'Rust',technologies:''},{...view,skills:['Rust']}).skills,[]));
+test('Reviewed media belongs only to the selected project',()=>{const assets=[{id:'public',project_id:'project-0',analysis:{}},{id:'other',project_id:'project-1',analysis:{}},{id:'unreviewed',project_id:'project-0'}];assert.deepEqual(exhibitEvidence({...site,assets},projects[0],view).assets.map(a=>a.id),['public']);});
+test('Tour follows current role order and bounds its project count',()=>assert.deepEqual(exhibitionTour([projects[4],projects[0],projects[1],projects[2]]),[{kind:'intro'},{kind:'project',projectId:'project-4'},{kind:'project',projectId:'project-0'},{kind:'project',projectId:'project-1'},{kind:'experience'}]));
+test('Empty profile still provides introduction and experience route',()=>assert.deepEqual(exhibitionTour([]),[{kind:'intro'},{kind:'experience'}]));
+globalThis.window={matchMedia:()=>({matches:false})};
+const render=()=>renderToStaticMarkup(React.createElement(World,{site,projects,view,onViewChange:()=>{},onProject:()=>{},onActiveChange:()=>{}}));
+test('Initial rendering includes direct text and standard-view escape',()=>{const html=render();assert.match(html,/Read the profile/);assert.match(html,/Standard view/);});
+test('Initial rendering includes a native role lens and quality control',()=>{const html=render();assert.match(html,/aria-label="Exhibition role perspective"/);assert.match(html,/aria-label="Exhibition rendering quality"/);});
+test('No enable-touchpad gate or autoplay audio returns',()=>{const html=render();assert.doesNotMatch(html,/Enable touchpad|<audio|autoplay=/);});
+test('All six bounded exhibits have accessible DOM controls',()=>{const html=render(),nav=html.match(/<nav[^>]*aria-label="Project exhibits"[^>]*>([\s\S]*?)<\/nav>/)?.[1];assert.ok(nav);assert.equal((nav.match(/<button /g)||[]).length,6);assert.equal((nav.match(/aria-pressed="false"/g)||[]).length,6);});
+test('Simulator entry stays optional and has native lighting controls',()=>{const html=render();assert.match(html,/aria-label="Island navigation mode"/);assert.match(html,/aria-pressed="true">Orbit view/);assert.match(html,/aria-pressed="false">Explore island/);assert.match(html,/aria-label="Island lighting"/);assert.doesNotMatch(html,/aria-label="Move around the island"/);});
+test('Initial tour does not auto-start',()=>assert.doesNotMatch(render(),/aria-label="Self-paced exhibition tour"/));
+test('Private fields supplied to the renderer are not exposed by gallery UI',()=>{site.person.email='DO_NOT_DISCLOSE@example.test';assert.doesNotMatch(render(),/DO_NOT_DISCLOSE/);});
+const environments=projects.map(p=>createProjectEnvironment(p));
+test('Each cinematic environment contains exactly its selected project',()=>environments.forEach((e,i)=>{assert.equal(e.root.userData.projectId,projects[i].id);assert.equal(e.root.children.filter(c=>c.userData.projectId).length,1);}));
+test('Full-scale environments have finite bounded geometry',()=>environments.forEach(e=>{const b=new THREE.Box3().setFromObject(e.root),s=b.getSize(new THREE.Vector3());assert.ok([s.x,s.y,s.z].every(Number.isFinite));assert.ok(s.x<=85&&s.y<25&&s.z<=85);}));
+test('Project environments remain below 450 drawable objects',()=>environments.forEach(e=>{let count=0;e.root.traverse(o=>{if(o.isMesh||o.isLineSegments)count++;});assert.ok(count<450);}));
+test('Optional overview fitting contains all bounds across laptop aspect ratios',()=>environments.forEach(e=>{const b=new THREE.Box3().setFromObject(e.root),shot=projectShots(e.kind)[2],target=new THREE.Vector3(...shot.target);for(const aspect of [1.4,2,2.8]){const p=fitProjectOverview(b,aspect,new THREE.Vector3(...shot.position),target),camera=new THREE.PerspectiveCamera(50,aspect,.1,250);camera.position.copy(p);camera.lookAt(target);camera.updateMatrixWorld();for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z]){const v=new THREE.Vector3(x,y,z).project(camera);assert.ok(Math.abs(v.x)<=.9&&Math.abs(v.y)<=.9);}}}));
+test('Every project world provides three labelled camera views',()=>environments.forEach(e=>{const shots=projectShots(e.kind);assert.equal(shots.length,3);assert.equal(new Set(shots.map(s=>s.label)).size,3);}));
+test('Worlds open inside the scenery rather than fitting a tiny diorama',()=>environments.forEach(e=>{const shot=projectShots(e.kind)[0],wide=projectShots(e.kind)[2];assert.ok(new THREE.Vector3(...shot.position).length()<20);assert.ok(new THREE.Vector3(...wide.position).length()>30);assert.equal(e.root.userData.fullScale,true);assert.ok(e.root.getObjectByName('continuous-ground'));}));
+test('All eight scenes have distinct geometry and atmosphere',()=>{const fingerprints=environments.map(e=>{const result=[];e.root.traverse(o=>{if(o.isMesh)result.push([o.geometry.type,o.position.toArray(),o.scale.toArray(),o.count||0]);});return JSON.stringify(result);});assert.equal(new Set(fingerprints).size,8);assert.equal(new Set(environments.map(e=>e.palette.sky)).size,8);});
+test('Environment animation changes illustrative objects but never source data',()=>{const copy=JSON.stringify(projects);for(const e of environments){e.animate(0);e.animate(12);}assert.equal(JSON.stringify(projects),copy);});
+test('Warehouse has real-depth shelving and a translating forklift',()=>{const e=environments[1],fork=e.root.getObjectByName('animated-forklift');assert.ok(e.root.getObjectByName('blue-rack-uprights'));const z=fork.position.z;e.animate(3);assert.notEqual(fork.position.z,z);});
+test('Project notes are optional so the scene starts full-width',()=>{const html=renderToStaticMarkup(React.createElement(ProjectWorld,{site,project:projects[1],view,quality:'balanced',onClose:()=>{},onCaseStudy:()=>{}}));assert.match(html,/Project notes &amp; evidence/);assert.match(html,/<aside hidden=""/);assert.doesNotMatch(html,/<img/);});
+test('Entry and close-up cameras do not start inside opaque scenery',()=>environments.forEach(e=>{e.root.updateMatrixWorld(true);for(const shot of projectShots(e.kind).slice(0,2)){const eye=new THREE.Vector3(...shot.position);e.root.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh){const b=new THREE.Box3().setFromObject(o);assert.ok(!b.containsPoint(eye),e.kind+' camera inside '+o.name);}});}}));
+test('Island entrance retains the original workshop and server tower',()=>{const previous=globalThis.document;globalThis.document={createElement:()=>({width:0,height:0,getContext:()=>({fillRect(){},strokeRect(){},fillText(){}})})};try{const island=createIsland(projects.slice(0,3));assert.equal(island.root.name,'purple-floating-island');assert.ok(island.root.getObjectByName('original-workshop'));assert.ok(island.root.getObjectByName('original-server-tower'));assert.equal(island.groups.length,3);}finally{globalThis.document=previous;}});
+test('Main tour renders the island, not project miniatures on a common platform',()=>{assert.match(render(),/pf-island/);assert.match(render(),/separate cinematic world/);assert.doesNotMatch(render(),/<dialog/);});
+const renderProject=()=>renderToStaticMarkup(React.createElement(ProjectWorld,{site,project:projects[0],view,quality:'balanced',onClose:()=>{},onCaseStudy:()=>{}}));
+test('Project scene has an independent native labelled dialog',()=>{const html=renderProject();assert.match(html,/<dialog/);assert.match(html,/aria-labelledby="project-world-title"/);assert.match(html,/Return to the floating island/);});
+test('Project scene keeps illustrations separate from real evidence',()=>{const html=renderProject();assert.match(html,/original illustration/);assert.match(html,/No visual evidence was disclosed/);assert.match(html,/Open the real case study/);});
+test('Project scene does not render undisclosed contact details',()=>assert.doesNotMatch(renderProject(),/DO_NOT_DISCLOSE/));
+globalThis.window.location={port:'',pathname:'/index.html'};
+test('Every library project, even beyond six island stations, has a 3D entry',()=>{const html=renderToStaticMarkup(React.createElement(PublicPortfolio,{site:{...site,person:{...site.person,email:undefined}}}));assert.equal((html.match(/Explore the 3D project world/g)||[]).length,projects.length);});
+test('Reviewed images never replace the requested 3D-only card covers',()=>{const html=renderToStaticMarkup(React.createElement(PublicPortfolio,{site:{...site,assets:[{id:'reviewed',project_id:projects[0].id,mime:'image/png',url:'media/real-evidence.png',analysis:{alt:'Actual evidence'}}]}}));assert.equal((html.match(/<canvas/g)||[]).length,projects.length);assert.doesNotMatch(html,/<img/);assert.match(html,/1 reviewed visual/);});
+test('Demo CV label is compact and island remains the first main experience',()=>{const html=renderToStaticMarkup(React.createElement(PublicPortfolio,{site}));assert.match(html,/pf-demo-label/);assert.doesNotMatch(html,/id="resume-overview"/);assert.ok(html.indexOf('Interactive 3D portfolio exhibition')<html.indexOf('id="profile-intro"'));assert.doesNotMatch(html,/Interactive project orbit/);});
+test('Both the island and project world expose their own native fullscreen entry',()=>{assert.match(render(),/Open island simulator full screen/);assert.match(renderProject(),/Open project environment full screen/);assert.doesNotMatch(render(),/requestPointerLock/);});
+test('Project tours expose an explicit voice control and honestly silent recording',()=>{const html=renderProject();assert.match(html,/aria-label="Tour voice"/);assert.match(html,/browser voice on Play/);assert.match(html,/Save silent WebM/);assert.doesNotMatch(html,/autoplay=/);});
+test('Owner preview offers an actionable approved-guide link, not a disabled chat form',()=>{const html=renderToStaticMarkup(React.createElement(PublicPortfolio,{site:{...site,reader_url:'http://127.0.0.1:8001/site/'+'a'.repeat(32)+'/'}}));assert.match(html,/Open live AI guide/);assert.match(html,/target="_blank" rel="noopener noreferrer"/);assert.doesNotMatch(html,/<textarea/);assert.match(html,/Unapproved draft changes are not sent/);});
+test('A draft without approval explains the connection steps without pretending to be live',()=>{const html=renderToStaticMarkup(React.createElement(PublicPortfolio,{site}));assert.match(html,/How to connect the AI guide/);assert.doesNotMatch(html,/Open live AI guide/);});
+test('The connected reader retains the actual question form',()=>{window.location={port:'8001',pathname:'/site/'+'a'.repeat(32)+'/'};try{const html=renderToStaticMarkup(React.createElement(PublicPortfolio,{site:{...site,id:'a'.repeat(32)}}));assert.match(html,/<textarea/);assert.match(html,/Ask the live portfolio guide/);assert.match(html,/questions are sent to Gemini/);}finally{window.location={port:'',pathname:'/index.html'};}});
+test('Owner preview now has its own inline chat form without a recruiter redirect',()=>{const workspace='a'.repeat(32);window.location={port:'8000',pathname:`/portfolio-preview/${workspace}/`};try{const html=renderToStaticMarkup(React.createElement(PublicPortfolio,{site:{...site,owner_chat:{url:`/api/workspaces/${workspace}/portfolio-chat`,snapshot_id:'b'.repeat(32)}}}));assert.match(html,/<textarea/);assert.match(html,/Live AI · ask here in the preview/);assert.match(html,/not private draft changes/);assert.doesNotMatch(html,/Open live AI guide/);assert.match(html,/Suggested recruiter questions/);}finally{window.location={port:'',pathname:'/index.html'};}});
+test('Wide project positions follow full, half, half, full across role ordering',()=>{const html=renderToStaticMarkup(React.createElement(PublicPortfolio,{site}));const cards=[...html.matchAll(/<article class="([^"]*pf-project[^"]*)"/g)].map(m=>m[1]);assert.equal(cards.length,projects.length);assert.deepEqual(cards.map(c=>c.includes('pf-wide-project')),[true,false,false,true,false,false,true,false]);});
+const layout=await readFile(new URL('../src/portfolio/website-refresh.css',import.meta.url),'utf8');
+test('The library has two columns and only wide projects use the horizontal layout',()=>{assert.match(layout,/\.pf-project-grid\s*\{\s*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);assert.match(layout,/\.pf-project\.pf-wide-project:not\(\.is-open\)\s*\{\s*display:grid/);assert.match(layout,/\.pf-project\.pf-wide-project,\.pf-project\.is-open\s*\{\s*grid-column:1\/-1/);});
+console.log(`${count} exhibition geometry, evidence and rendering tests passed.`);

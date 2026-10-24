@@ -11,9 +11,10 @@ app before import. Assignment 3 adds two features, each in its own module:
 
 - **Interview Coach** (Tirth), under **Versions & comparison** in the sidebar: see
   [Interview Coach](#interview-coach-assignment-3) below.
-- **Portfolio Studio** (Vishnu), after **CV studio** with the sparkle icon. This opens a
-  **Coming soon** placeholder only: the working Portfolio Studio, website generation,
-  3D scenes and publishing are **not included or enabled** in this shared version yet.
+- **Portfolio Studio** (Vishnu), after **CV studio** with the sparkle icon: a complete
+  confirmed-CV website workflow, reviewed media, narrated 3D project tours, portfolio
+  exports and an optional local recruiter website with a source-grounded AI guide.
+  See [Portfolio Studio](#portfolio-studio-assignment-3) below.
 
 ### Shared Avery Morgan demo
 
@@ -23,8 +24,9 @@ projects—Smart Intersection Object Detection, Warehouse Safety Video Analytics
 Dataset Quality Review Toolkit and **SolarVision**. Both saved role-specific CVs
 include all four projects in different priority orders. SolarVision is explicitly
 a supplied demonstration case study, **not a claim of Avery's authorship**.
-The recording itself stays local; no video, private database or live portfolio
-implementation is uploaded with this update.
+The supplied SolarVision demonstration recording is included under
+`examples/portfolio/`, together with a small fictional portfolio fixture. No private
+database, API key or personal CV is included.
 
 Startup now preserves existing sample workspaces instead of resetting their
 profiles, messages or saved CV history. If your existing Avery still has three
@@ -50,18 +52,23 @@ Never commit `.env`, personal CVs, uploaded resumes or `runtime/` databases.
 For development, create a feature branch and open a pull request into `main`.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the collaboration and verification steps.
 The checked-in `dist/` is intentional so a fresh clone can run without Node.js.
-Frontend changes must also rebuild and update `dist/` before merging.
+Frontend changes must also rebuild and update `dist/` and `portfolio-runtime/` before merging.
 
 Repository import verification (22 October 2026): all 61 offline Python unit tests
 passed on the clean team checkout. These tests mock Gemini; this check did not
 make live provider calls. No Assignment 1 private workspace data was imported.
 
-Sidebar/sample update verification (24 October 2026): all 66 offline Python tests
-and the TypeScript/production build pass. Chrome verification confirmed the sidebar
-order, sparkle icon and non-live placeholder. The four-project seed matches the
-working local Avery profile field-for-field; no local runtime data or video was
-copied into Git. Existing-workspace updates, repeat runs, pending proposals and
-conflicting SolarVision edits are covered by the sample regression tests.
+Integration verification (25 October 2026): 316 offline Python checks (315 in the
+full suite plus the combined-module HTTP regression), 245 frontend checks, and
+both production builds passed. Chrome verification confirmed both sidebar modules,
+the four-project island and playback of the supplied 1280×720 SolarVision video.
+Provider calls and fresh Whisper/Piper model downloads were not part of this run.
+
+The four-project seed matches the working Avery demo profile field-for-field.
+Existing-workspace updates, repeat runs, pending proposals and conflicting
+SolarVision edits are covered by sample regression tests. Both Assignment 3
+modules share the confirmed profile and selected job; their practice records and
+portfolio drafts remain separate.
 
 ## Run the connected app on this computer
 
@@ -127,6 +134,80 @@ dependency graph with `pnpm install --frozen-lockfile`, then
    over unrestricted AI paraphrasing. Accept emphasis, dismiss order, or undo.
 6. Save versions, compare jobs and download PDF. Changing jobs preserves confirmed
    facts. A draft using an older profile cannot be exported.
+
+## Portfolio Studio (Assignment 3)
+
+Open **Portfolio Studio** after **CV studio** in the sidebar. It uses the currently
+selected workspace's confirmed profile; it does not replace Interview Coach.
+
+1. **Story:** initialise from confirmed facts, request a model proposal if wanted,
+   then review and accept or dismiss it. Accepted story proposals continue to media.
+2. **Media:** upload a project image or video, inspect its analysis and approve the
+   wording and annotations. Choose explicitly which reviewed assets may appear.
+3. **Design:** choose Editorial, Technical or Minimal appearance, an abstract guide
+   avatar, and contact disclosure settings. Save to continue to preview.
+4. **Preview:** the purple floating island opens separate, project-specific 3D
+   environments. Laptop touchpad gestures and keyboard controls work directly in
+   the scene; fullscreen and a standard text view remain available. The project
+   library uses full-width cards for projects 1 and 4, with 2 and 3 side by side.
+5. **Approve & export:** review the exact public projection before creating an
+   immutable snapshot. Download the static ZIP, or explicitly enable its local
+   recruiter version. Editing a draft never silently changes an approved version.
+
+Each project world has a guided tour with optional browser speech, three camera
+views and local WebM recording. The 3D scenes are illustrations, not proof that the
+projects were deployed. Browser speech depends on installed voices; exported WebM
+scene recordings are labelled silent. SolarVision's supplied application video is
+a separate native video player with reviewed chapter bookmarks.
+
+### Load the complete shared Avery portfolio demo
+
+After Python setup, stop the app and run this **once**, before initialising Avery's
+Portfolio Studio yourself:
+
+```powershell
+.\.venv\Scripts\python.exe -m server.prepare_team_demo --apply
+powershell -ExecutionPolicy Bypass -File .\start-proofcv.ps1
+```
+
+On macOS/Linux use `.venv/bin/python -m server.prepare_team_demo --apply` followed
+by `.venv/bin/python -m server.http`. Select **Avery Morgan** and open **Portfolio
+Studio**. This loads the labelled four-project demo, its three role views, Technical
+theme and supplied SolarVision video. It makes no AI call. It does not approve or
+publish a recruiter version. Repeating the helper preserves subsequent edits, and
+it refuses to replace a separately created portfolio or a customised profile.
+
+For an older three-project Avery, first run the explicit sample update described
+above and reconfirm the profile. Existing custom portfolios can add the recording
+through the Media step using `examples/portfolio/solarvision-demo.mp4`.
+
+### Preview, recruiter website and AI guide
+
+The owner preview on port **8000** lets you edit your draft. The recruiter website
+on port **8001** displays only a saved, approved snapshot and exposes no profile
+editing controls. Start that separate reader when needed:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-reader.ps1
+```
+
+On macOS/Linux run `.venv/bin/python -m server.portfolio_reader`. Enable the
+approved version inside Portfolio Studio and use its generated website link; old
+snapshot URLs continue to show their historical content. Create and enable a new
+snapshot when you want later projects or edits to appear for recruiters.
+
+Both the owner preview and the connected recruiter website offer inline questions
+once an approved snapshot is enabled. Answers use that approved snapshot's source
+text and citations, not unreviewed draft changes. New answers require a working
+server-side Gemini key and the local reader. Static ZIP exports keep the reviewed
+content and 3D scenes; they cannot run a backend AI model by themselves.
+
+No external hosting is enabled by these commands. `dist/` and
+`portfolio-runtime/` are committed production builds, so normal Python-only setup
+does not require Node. Frontend contributors should run `pnpm run build` and
+`pnpm run test:portfolio` after installing the locked dependencies. Run the combined
+Python checks with `.venv/bin/python -m unittest discover -v` (Windows:
+`.\.venv\Scripts\python.exe -m unittest discover -v`).
 
 ## Interview Coach (Assignment 3)
 

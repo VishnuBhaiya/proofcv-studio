@@ -166,6 +166,8 @@ class Service:
         return self.retriever.search(canonical)
 
     def action(self, workspace_id, operation, data):
+        if operation.startswith('portfolio-'):
+            return self.portfolio.action(workspace_id, operation, data)
         with self.store.lock:
             if operation == 'restore-workspace':
                 return self.store.restore_workspace(workspace_id)
@@ -401,3 +403,11 @@ class Service:
                 raise ValueError('Unknown operation.')
             self.store.save(state)
             return state
+
+    @property
+    def portfolio(self):
+        from .portfolio import PortfolioService
+        with self.store.lock:
+            if not hasattr(self, '_portfolio'):
+                self._portfolio = PortfolioService(self.store, self.model, self.jobs)
+            return self._portfolio

@@ -1,0 +1,36 @@
+/* Laptop-first scene sizing. ResizeObserver updates WebGL without recreating it. */
+.pf-guide-connection{border:1px solid var(--pf-line);border-radius:18px;background:var(--pf-paper);padding:24px;}
+.pf-guide-connection h3{font-size:1.3rem;margin:12px 0 22px;}.pf-guide-connection .pf-primary{font-size:.85rem;margin-bottom:18px;}.pf-guide-connection .pf-note{line-height:1.8;}
+@media(min-width:761px){.pf-site .pf-project.pf-wide-project:not(.is-open)>.pf-project-world-cover{height:100%;min-height:350px;}}
+@media(max-width:760px){.pf-project.pf-wide-project:not(.is-open){display:block;}.pf-guide-connection{padding:18px;}}
+.pf-island.pf-exhibition{padding-left:2%;padding-right:2%;}
+.pf-island.pf-exhibition .pf-world-stage{grid-template-columns:minmax(230px,.5fr) minmax(0,2.5fr);gap:24px;}
+.pf-island.pf-exhibition .pf-world-viewport{position:relative;top:auto;grid-template-rows:42px minmax(0,1fr) 38px;min-height:0;}
+.pf-island.pf-exhibition .pf-world-canvas{height:max(500px,calc(100svh - 180px));min-height:0;}
+.pf-island.pf-exhibition.is-exploring .pf-world-stage{grid-template-columns:minmax(0,1fr);}
+.pf-island.is-exploring .pf-world-viewport{grid-row:1;width:100%;}
+.pf-island.pf-exhibition.is-exploring .pf-world-canvas{height:max(500px,calc(100svh - 110px));}
+.pf-island.is-exploring .pf-world-sidebar{grid-row:2;display:grid;grid-template-columns:1.2fr .7fr 1fr;gap:30px;padding:12px 0;}
+.pf-site .pf-island.is-exploring .pf-world-intro h2{font-size:2rem;margin-bottom:12px;}.pf-island.is-exploring .pf-world-intro h2 br{display:none;}
+.pf-island .pf-island-experience{right:150px;}
+.pf-scene-fullscreen{position:absolute;right:17px;top:56px;z-index:5;max-width:270px;}
+.pf-site .pf-scene-fullscreen>button{border:1px solid #a8c0e347;border-radius:25px;background:#10213bed;color:#e3efff;padding:10px 14px;font:11px/1.5 'Segoe UI',sans-serif;white-space:nowrap;}
+.pf-scene-fullscreen>p{background:#10213bf5;border:1px solid #829cc057;border-radius:8px;color:#e3efff;padding:12px;font:12px/1.6 'Segoe UI',sans-serif;margin-top:8px;}
+.pf-island .pf-world-viewport:fullscreen{width:100vw;height:100dvh;max-height:none;display:grid;grid-template-rows:42px minmax(0,1fr) 38px;background:#11172e;padding:0;border-radius:0;}
+.pf-island.pf-exhibition .pf-world-viewport:fullscreen .pf-world-canvas{height:100%;min-height:0;}
+.pf-project-world{width:calc(100vw - 12px);max-width:none;height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);border-radius:12px;}
+.pf-project-world-header{padding:11px 20px;gap:16px;}.pf-site .pf-project-world-header h2{font-size:clamp(20px,2vw,28px);margin-top:3px;}
+.pf-project-world>footer{padding-top:8px;padding-bottom:8px;}
+.pf-project-world-stage>.pf-scene-fullscreen{top:18px;right:20px;}
+.pf-project-world-stage:fullscreen{width:100vw;height:100dvh;display:flex;background:#101e2e;}
+.pf-project-world-stage:fullscreen .pf-project-world-canvas{height:100%;min-height:0;flex:1;}
+.pf-island.pf-has-expanded-scene{position:fixed;inset:0;z-index:1000;width:100vw;height:100dvh;margin:0;padding:0;overflow:visible;}
+.pf-island.pf-has-expanded-scene>.pf-world-topline,.pf-island.pf-has-expanded-scene .pf-world-sidebar,.pf-island.pf-has-expanded-scene>.pf-world-utility,.pf-island.pf-has-expanded-scene>.pf-world-stations,.pf-island.pf-has-expanded-scene>.pf-world-caption{visibility:hidden;}
+.pf-island.pf-exhibition .pf-world-viewport.pf-scene-expanded{position:fixed;inset:0;width:100vw;height:100dvh;z-index:1001;grid-template-rows:42px minmax(0,1fr) 38px;margin:0;background:#11172e;border-radius:0;}
+.pf-island.pf-exhibition .pf-scene-expanded .pf-world-canvas{height:100%;min-height:0;}
+.pf-project-world.pf-has-expanded-scene{width:100vw;height:100dvh;max-height:100dvh;margin:0;border:0;border-radius:0;}
+.pf-project-world-stage.pf-scene-expanded{position:absolute;inset:0;z-index:10;width:100%;height:100%;min-height:0;}
+.pf-project-world-stage.pf-scene-expanded .pf-project-world-canvas{height:auto;min-height:0;flex:1;}
+.pf-project-world-stage .pf-scene-tour-controls{max-width:min(550px,calc(100% - 190px));}
+@media(max-width:1050px){.pf-island.pf-exhibition .pf-world-stage{grid-template-columns:minmax(210px,.6fr) minmax(0,2fr);gap:16px;}.pf-island.is-exploring .pf-world-sidebar{grid-template-columns:1fr 1fr;}.pf-island.is-exploring .pf-world-selected{grid-column:1/-1;}.pf-island .pf-island-experience{right:135px;}.pf-site .pf-scene-fullscreen>button{font-size:10px;padding:9px 11px;}}
+@media(max-width:720px){.pf-island.pf-exhibition .pf-world-stage{display:flex;flex-direction:column;}.pf-island.pf-exhibition .pf-world-canvas{height:max(420px,calc(100svh - 180px));}.pf-island.is-exploring .pf-world-viewport{order:-1;}.pf-island.is-exploring .pf-world-sidebar{display:contents;}.pf-island .pf-island-experience{right:12px;top:46px;}.pf-island .pf-scene-fullscreen{top:96px;right:12px;}.pf-project-world-stage>.pf-scene-fullscreen{top:12px;right:10px;}.pf-project-world-stage .pf-scene-tour-controls{max-width:calc(100% - 145px);}.pf-project-world-stage:fullscreen{min-height:0;}.pf-project-world-stage:fullscreen .pf-project-world-canvas{height:auto;min-height:0;}}

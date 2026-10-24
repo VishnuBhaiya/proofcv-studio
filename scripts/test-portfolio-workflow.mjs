@@ -1,0 +1,33 @@
+// Pure frontend transition tests. No browser, key, provider or fabricated live result.
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+const source=await readFile(new URL('../src/portfolio/workflow.ts',import.meta.url),'utf8');
+const output=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+const {STEPS,afterOperation,afterVisualReview,preferredStep,progress,isStep,requestSequence}=await import('data:text/javascript;base64,'+Buffer.from(output).toString('base64'));
+let count=0;
+function test(name,fn){fn();count++;console.log('PASS '+name);}
+test('Story acceptance advances to media',()=>assert.equal(afterOperation('portfolio-review','accept','site','content'),'media'));
+test('Story dismissal never advances',()=>assert.equal(afterOperation('portfolio-review','dismiss','site','content'),'content'));
+test('Failed operations never invoke the transition helper',()=>assert.equal(afterOperation('unknown',null,undefined,'content'),'content'));
+test('Media acceptance stays in the library for additional assets',()=>assert.equal(afterOperation('portfolio-review','accept','analysis','media'),'media'));
+test('Narration acceptance opens preview',()=>assert.equal(afterOperation('portfolio-review','accept','narration','design'),'preview'));
+test('Analysis proposal routes to media review',()=>assert.equal(afterOperation('portfolio-analyse',null,undefined,'content'),'media'));
+test('Site proposal routes to story review',()=>assert.equal(afterOperation('portfolio-propose',null,undefined,'design'),'content'));
+test('Offline story corrections resume Story',()=>assert.equal(afterOperation('portfolio-edit-site',null,undefined,'publish'),'content'));
+test('Offline visual corrections resume the evidence stage',()=>assert.equal(afterOperation('portfolio-edit-analysis',null,undefined,'preview'),'media'));
+test('Approval ends on export, never auto-shares',()=>assert.equal(afterOperation('portfolio-approve',null,undefined,'preview'),'publish'));
+test('Preview comes before publication review',()=>assert.deepEqual(STEPS.map(x=>x.id),['content','media','design','preview','publish']));
+test('Reloading a pending proposal resumes the correct stage',()=>assert.equal(preferredStep({pending:{kind:'analysis'}},'preview'),'media'));
+test('Reloading a saved step preserves the position',()=>assert.equal(preferredStep({pending:null},'design'),'design'));
+test('Unknown stored step safely resets',()=>assert.equal(preferredStep({pending:null},'javascript:invalid'),'content'));
+test('No unrelated stored value is accepted',()=>assert.equal(isStep(null),false));
+test('Progress counts reviewed and disclosed assets independently',()=>assert.deepEqual(progress({events:[{kind:'accepted',proposal_kind:'site'}],assets:[{analysis:{},published:false},{analysis:{},published:true},{}],views:[{id:'general'},{id:'job'}],snapshots:[]}),{reviewed:2,disclosed:1,awaiting:1,roles:1,story:true,snapshots:0}));
+test('Saving design continues directly to preview',()=>assert.equal(afterOperation('portfolio-save',null,undefined,'design'),'preview'));
+test('Saving media continues to design',()=>assert.equal(afterOperation('portfolio-save',null,undefined,'media'),'design'));
+test('Disclosure saves never auto-publish or leave final review',()=>assert.equal(afterOperation('portfolio-save',null,undefined,'publish'),'publish'));
+test('Last visual acceptance continues to design',()=>assert.equal(afterVisualReview({assets:[{id:'a'}],pending:{asset_id:'a'}}),'design'));
+test('Another unreviewed visual keeps the visitor in media',()=>assert.equal(afterVisualReview({assets:[{id:'a'},{id:'b'}],pending:{asset_id:'a'}}),'media'));
+test('Already reviewed private media does not block continuation',()=>assert.equal(afterVisualReview({assets:[{id:'a'},{id:'b',analysis:{},published:false}],pending:{asset_id:'a'}}),'design'));
+test('Out-of-order loads cannot replace the latest response',()=>{const q=requestSequence(),first=q.begin(),second=q.begin();assert.equal(q.isCurrent(first),false);assert.equal(q.isCurrent(second),true);q.invalidate();assert.equal(q.isCurrent(second),false);});
+console.log(`${count} frontend workflow tests passed.`);
