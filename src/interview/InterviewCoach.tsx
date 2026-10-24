@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Check, FileText, Flag, Mic, Presentation, Target, UserRound } from 'lucide-react';
+import { CalendarDays, Check, FileText, Flag, Mic, Presentation, Target, UserRound } from 'lucide-react';
 import { api, Workspace } from '../api';
 import FitPanel, { Fit } from './FitPanel';
 import InterviewRoom from './InterviewRoom';
 import MockInterview from './MockInterview';
+import PlanPanel, { countdown, Plan } from './PlanPanel';
 import ReportsPanel from './ReportsPanel';
 import SlideDeck from './SlideDeck';
 import { configureSpeech, setSpeechChoice, speechChoice, SpeechSettings, stopSpeaking } from './speech';
@@ -12,9 +13,9 @@ import { ScoreRing } from './ui';
 import './interview.css';
 
 type Readiness = { workspace_id: string; profile_confirmed: boolean; matched_jobs: { document_id: string; title: string; score: number }[]; target_job: { document_id: string; title: string } | null; rounds: string[] };
-type Tab = 'practice' | 'mock' | 'reports' | 'fit' | 'deck';
+type Tab = 'practice' | 'plan' | 'mock' | 'reports' | 'fit' | 'deck';
 const TABS: { id: Tab; label: string; icon: typeof Mic }[] = [
-    { id: 'practice', label: 'Practice', icon: Mic }, { id: 'mock', label: 'Mock interview', icon: Flag }, { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'practice', label: 'Practice', icon: Mic }, { id: 'plan', label: 'Plan', icon: CalendarDays }, { id: 'mock', label: 'Mock interview', icon: Flag }, { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'fit', label: 'Your fit', icon: Target }, { id: 'deck', label: 'Intro deck', icon: Presentation },
 ];
 
@@ -28,6 +29,8 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
     const [reports, setReports] = useState<ReportItem[]>([]);
     const [tab, setTab] = useState<Tab>('practice');
     const [speech, setSpeech] = useState<SpeechSettings | null>(null);
+    const [plan, setPlan] = useState<Plan | null>(null);
+    const [focus, setFocus] = useState<{ id: string } | null>(null);
     const [, setChoiceVersion] = useState(0);
     useEffect(() => {
         api<SpeechSettings>(`/interview/${workspace.id}/speech`).then(s => { configureSpeech(workspace.id, s); setSpeech(s); }).catch(() => undefined);
@@ -40,10 +43,12 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
     const refresh = () => {
         api<Overview>(`/interview/${workspace.id}/attempts`).then(setOverview).catch(() => undefined);
         api<ReportItem[]>(`/interview/${workspace.id}/mock`).then(setReports).catch(() => undefined);
+        api<Plan>(`/interview/${workspace.id}/plan${jobId ? `?job=${encodeURIComponent(jobId)}` : ''}`).then(setPlan).catch(() => undefined);
     };
     useEffect(() => {
         setFit(null);
         setQuestions(null);
+        setPlan(null);
         if (!status?.profile_confirmed || !status.target_job) return;
         const query = jobId ? `?job=${encodeURIComponent(jobId)}` : '';
         api<Fit>(`/interview/${workspace.id}/fit${query}`).then(setFit).catch(e => setError(e.message));
@@ -80,6 +85,7 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
                 <label className="ic-job">Preparing for
                     <select value={current.document_id} onChange={e => setJobId(e.target.value)}>{jobs.map(j => <option key={j.document_id} value={j.document_id}>{j.title}</option>)}</select>
                 </label>
+                {plan?.interview_date && plan.status !== 'passed' && <button type="button" className="ic-countdown" onClick={() => setTab('plan')}><CalendarDays size={14} />{countdown(plan)}</button>}
                 {speech && <div className="ic-speech-options">
                     <label className="ic-job">Voice
                         <select value={speechChoice().voice} onChange={e => choose({ voice: e.target.value as 'natural' | 'browser' })}>
@@ -108,7 +114,9 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
         </button>)}</nav>
         <div className="ic-panel">
             {!questions ? <p className="live-progress"><span className="live-dot" /> Picking questions for {current.title}…</p> : <>
-                {tab === 'practice' && <InterviewRoom key={questions.job.document_id} workspaceId={workspace.id} questions={questions} overview={overview} onAnswered={refresh} />}
+                {tab === 'practice' && <InterviewRoom key={questions.job.document_id} workspaceId={workspace.id} questions={questions} overview={overview} onAnswered={refresh} focus={focus} />}
+                {tab === 'plan' && <PlanPanel workspaceId={workspace.id} plan={plan} setPlan={setPlan} practise={id => { setFocus({ id }); setTab('practice'); }}
+                    startMock={() => setTab('mock')} openReports={() => setTab('reports')} />}
                 {tab === 'mock' && <MockInterview key={questions.job.document_id} workspaceId={workspace.id} jobId={questions.job.document_id} onFinished={refresh} openReports={() => setTab('reports')} />}
                 {tab === 'reports' && <ReportsPanel workspaceId={workspace.id} reports={reports} questions={questions} overview={overview} startMock={() => setTab('mock')} />}
                 {tab === 'fit' && <FitPanel fit={fit} />}

@@ -2,10 +2,11 @@
 import base64
 import binascii
 import threading
+from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, cheatsheet, content, evaluate, factcheck, followup, mock, model_answer, slides, speech, star, voice
+from . import attempts, cheatsheet, content, evaluate, factcheck, followup, mock, model_answer, plan, slides, speech, star, voice
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
@@ -188,6 +189,32 @@ def cheat_sheet(service, state, job_id=None):
                                 by_id, service.retriever.backend, readiness=latest)
 
 
+def practice_plan(service, state, job_id=None, today=None):
+    """The countdown plan for a job, or just the job when no interview date is set yet."""
+    picked = questions(service, state, job_id)
+    job = picked['job']['document_id']
+    store = attempt_store(service)
+    when = store.interview_date(state['id'], job)
+    if when is None:
+        return {'job': picked['job'], 'interview_date': None}
+    today = today or date.today()
+    flat = [q for r in ROUNDS for q in picked['rounds'].get(r, [])]
+    frozen = {date.fromisoformat(day): ids for day, ids in store.plan_days(state['id'], job).items()}
+    mocks = [m for m in mock_list(service, state) if m['job']['document_id'] == job]
+    result = plan.build(date.fromisoformat(when), today, flat, store.all(state['id']), mocks, frozen)
+    if today not in frozen and plan.todays_questions(result):
+        store.freeze_day(state['id'], job, today.isoformat(), plan.todays_questions(result))
+    return {'job': picked['job'], **result}
+
+
+def set_plan(service, state, data, today=None):
+    picked = questions(service, state, data.get('job'))
+    chosen = data.get('interview_date')
+    when = None if chosen is None else plan.parse_date(chosen, today or date.today()).isoformat()
+    attempt_store(service).set_interview_date(state['id'], picked['job']['document_id'], when)
+    return practice_plan(service, state, picked['job']['document_id'], today)
+
+
 def recognition(requested):
     """The Whisper model to use: the user's pick if it is installed (nothing is ever downloaded here)."""
     options = speech.recognition_options()
@@ -226,6 +253,8 @@ def handle_post(service, path, data):
         return answer(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'mock':
         return start_mock(service, service.store.get(parts[2]), data)
+    if len(parts) == 4 and parts[3] == 'plan':
+        return set_plan(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'speak':
         service.store.get(parts[2])
         speaker = voice.speaker(runtime_dir(service))
@@ -257,6 +286,8 @@ def handle_get(service, url):
         if 'question' in query:
             return attempt_store(service).history(state['id'], query['question'][0])
         return attempt_store(service).overview(state['id'])
+    if len(parts) == 4 and parts[3] == 'plan':
+        return practice_plan(service, service.store.get(parts[2]), job_id)
     if len(parts) == 4 and parts[3] == 'speech':
         service.store.get(parts[2])
         return speech_settings(service)

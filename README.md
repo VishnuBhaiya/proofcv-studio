@@ -125,6 +125,10 @@ What it does, in order:
    taken from the user's own numbers.
 8. **Read aloud:** questions, follow-ups and example answers are read by Piper, a local
    neural voice (`en_US-lessac-medium`), with the browser's voice as the fallback.
+9. **Countdown plan:** the user enters the interview date and gets a few questions a
+   day: never-practised ones first, then weak answers, with strong ones refreshed every
+   few days, a full mock interview the day before, and a light warm-up on the day.
+   Tasks tick off automatically from practice; today's list stays fixed for the day.
 
 **First run:** after `pip install -r requirements.txt` (which includes `faster-whisper`
 and `piper-tts`), the first spoken answer downloads the Whisper `base.en` model (about
@@ -163,6 +167,7 @@ yet remove its practice history.
 | `server/interview/slides.py` | Self-introduction deck and PDF |
 | `server/interview/cheatsheet.py` | Interview-day cheat sheet and PDF |
 | `server/interview/voice.py` | Piper read-aloud voice |
+| `server/interview/plan.py` | Countdown practice plan |
 | `server/interview/data/` | Requirement map, question bank, STAR data, model and evaluation |
 | `src/interview/` | Interview Coach screens |
 
@@ -197,7 +202,7 @@ real API calls and consume quota. Live tests use the five supplied synthetic pro
 and save predictions before retrieval. Read each actual status under
 `runtime/evaluation/`; a single passed journey is not five passes.
 
-Interview Coach branch verification (24 October 2026): 189 offline tests passed on
+Interview Coach branch verification (24 October 2026): 201 offline tests passed on
 macOS with Python 3.14. Interview Coach tests use a fake transcriber, a fake voice and
 small test embeddings, so they need none of the Whisper, Piper or MiniLM models. Not yet
 run on Windows.

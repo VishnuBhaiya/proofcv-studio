@@ -6,13 +6,18 @@ import { Overview, Question, Questions, questionStatus, ROUND_INFO, ROUNDS, targ
 import { Bubble } from './ui';
 
 // Practice tab: questions grouped by round on the left, one interview conversation on the right.
-export default function InterviewRoom({ workspaceId, questions, overview, onAnswered }: { workspaceId: string; questions: Questions; overview: Overview; onAnswered: () => void }) {
+export default function InterviewRoom({ workspaceId, questions, overview, onAnswered, focus }: {
+    workspaceId: string; questions: Questions; overview: Overview; onAnswered: () => void; focus?: { id: string } | null }) {
     const [round, setRound] = useState(ROUNDS[0]);
     const [index, setIndex] = useState(0);
     const [readAloud, setReadAloud] = useState(false);
     const list = questions.rounds[round] || [];
     const question: Question | undefined = list[Math.min(index, list.length - 1)];
     useEffect(() => { if (readAloud && question) speak(question.text); }, [round, index, readAloud]);
+    useEffect(() => { // Opened from the plan: jump to that question.
+        const target = focus && ROUNDS.flatMap(r => (questions.rounds[r] || []).map((q, i) => ({ round: r, index: i, id: q.id }))).find(f => f.id === focus.id);
+        if (target) { setRound(target.round); setIndex(target.index); }
+    }, [focus]);
     const flat = ROUNDS.flatMap(r => (questions.rounds[r] || []).map((q, i) => ({ round: r, index: i, q })));
     const position = flat.findIndex(f => f.round === round && f.index === index);
     const go = (step: number) => { const next = flat[position + step]; if (next) { setRound(next.round); setIndex(next.index); } };

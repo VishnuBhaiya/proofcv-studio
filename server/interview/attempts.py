@@ -85,6 +85,10 @@ class AttemptStore:
                                'question_id TEXT NOT NULL, created_at TEXT NOT NULL, transcript TEXT NOT NULL, summary TEXT NOT NULL)')
             connection.execute('CREATE TABLE IF NOT EXISTS mock_sessions (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, created_at TEXT NOT NULL, '
                                'job TEXT NOT NULL, questions TEXT NOT NULL, answers TEXT NOT NULL)')
+            connection.execute('CREATE TABLE IF NOT EXISTS practice_plans (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, interview_date TEXT NOT NULL, '
+                               'PRIMARY KEY (workspace_id, job_id))')
+            connection.execute('CREATE TABLE IF NOT EXISTS plan_days (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, day TEXT NOT NULL, '
+                               'questions TEXT NOT NULL, PRIMARY KEY (workspace_id, job_id, day))')
 
     def connect(self):
         return sqlite3.connect(self.path, timeout=20)
@@ -162,3 +166,29 @@ class AttemptStore:
                 current['answers'][str(position)] = attempt_id
             with self.connect() as connection:
                 connection.execute('UPDATE mock_sessions SET answers=? WHERE id=?', (json.dumps(current['answers']), session_id))
+
+    def interview_date(self, workspace_id, job_id):
+        with self.connect() as connection:
+            row = connection.execute('SELECT interview_date FROM practice_plans WHERE workspace_id=? AND job_id=?', (workspace_id, job_id)).fetchone()
+        return row[0] if row else None
+
+    def set_interview_date(self, workspace_id, job_id, interview_date):
+        """Save or clear (None) the interview date; a new date drops the frozen daily lists."""
+        with self.lock, self.connect() as connection:
+            connection.execute('DELETE FROM plan_days WHERE workspace_id=? AND job_id=?', (workspace_id, job_id))
+            if interview_date is None:
+                connection.execute('DELETE FROM practice_plans WHERE workspace_id=? AND job_id=?', (workspace_id, job_id))
+            else:
+                connection.execute('INSERT OR REPLACE INTO practice_plans (workspace_id, job_id, interview_date) VALUES (?, ?, ?)',
+                                   (workspace_id, job_id, interview_date))
+
+    def plan_days(self, workspace_id, job_id):
+        """Frozen daily question lists, keyed by ISO date."""
+        with self.connect() as connection:
+            rows = connection.execute('SELECT day, questions FROM plan_days WHERE workspace_id=? AND job_id=?', (workspace_id, job_id)).fetchall()
+        return {day: json.loads(ids) for day, ids in rows}
+
+    def freeze_day(self, workspace_id, job_id, day, question_ids):
+        with self.lock, self.connect() as connection:
+            connection.execute('INSERT OR IGNORE INTO plan_days (workspace_id, job_id, day, questions) VALUES (?, ?, ?, ?)',
+                               (workspace_id, job_id, day, json.dumps(question_ids)))

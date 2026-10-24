@@ -232,6 +232,23 @@ class InterviewRouteTests(unittest.TestCase):
             code, body = self.post_answer(state['id'], {'question_id': 'si-30', 'audio': base64.b64encode(b'x').decode(), 'recognition': 'small.en'})
         self.assertEqual((code, json.loads(body)['error']), (400, 'That speech recognition model is not installed.'))
 
+    def test_countdown_plan_is_saved_per_job_and_freezes_today(self):
+        from datetime import date, timedelta
+        state = self.confirmed_state()
+        url = f"/api/interview/{state['id']}/plan"
+        json_header = {'Content-Type': 'application/json'}
+        self.assertIsNone(json.loads(self.request('GET', url)[1])['interview_date'])
+        when = (date.today() + timedelta(3)).isoformat()
+        result = json.loads(self.request('POST', url, {'job': 'graduate_ai_engineer', 'interview_date': when}, json_header)[1])
+        self.assertEqual((result['interview_date'], result['days_left'], len(result['days'])), (when, 3, 4))
+        today = [t['question_id'] for t in result['days'][0]['tasks'] if t['kind'] == 'question']
+        again = json.loads(self.request('GET', url + '?job=graduate_ai_engineer')[1])
+        self.assertEqual([t['question_id'] for t in again['days'][0]['tasks'] if t['kind'] == 'question'], today)
+        code, body = self.request('POST', url, {'job': 'graduate_ai_engineer', 'interview_date': '2020-01-01'}, json_header)
+        self.assertEqual((code, json.loads(body)['error']), (400, 'The interview date is in the past.'))
+        cleared = json.loads(self.request('POST', url, {'job': 'graduate_ai_engineer', 'interview_date': None}, json_header)[1])
+        self.assertIsNone(cleared['interview_date'])
+
     def test_rehearsal_reports_which_slides_were_covered(self):
         class FakeTranscriber:
             def transcribe(self, audio, prompt=None):
