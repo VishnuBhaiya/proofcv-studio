@@ -99,6 +99,8 @@ class AttemptStore:
                                'job TEXT NOT NULL, questions TEXT NOT NULL, answers TEXT NOT NULL)')
             connection.execute('CREATE TABLE IF NOT EXISTS practice_plans (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, interview_date TEXT NOT NULL, '
                                'PRIMARY KEY (workspace_id, job_id))')
+            connection.execute('CREATE TABLE IF NOT EXISTS diagnostics (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, job TEXT NOT NULL, '
+                               'created_at TEXT NOT NULL, questions TEXT NOT NULL, answers TEXT NOT NULL, finished_at TEXT)')
             connection.execute('CREATE TABLE IF NOT EXISTS coach_setup (workspace_id TEXT PRIMARY KEY, setup TEXT NOT NULL, saved_at TEXT NOT NULL)')
             connection.execute('CREATE TABLE IF NOT EXISTS plan_days (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, day TEXT NOT NULL, '
                                'questions TEXT NOT NULL, PRIMARY KEY (workspace_id, job_id, day))')
@@ -216,3 +218,45 @@ class AttemptStore:
         with self.lock, self.connect() as connection:
             connection.execute('INSERT OR REPLACE INTO coach_setup (workspace_id, setup, saved_at) VALUES (?, ?, ?)',
                                (workspace_id, json.dumps(setup), datetime.now(timezone.utc).isoformat(timespec='seconds')))
+
+    def create_diagnostic(self, workspace_id, job, questions):
+        """A new skill check; job holds the job's id and title plus the skills the user chose to learn."""
+        diagnostic_id = uuid.uuid4().hex
+        with self.connect() as connection:
+            connection.execute('INSERT INTO diagnostics (id, workspace_id, job, created_at, questions, answers) VALUES (?, ?, ?, ?, ?, ?)',
+                               (diagnostic_id, workspace_id, json.dumps(job), datetime.now(timezone.utc).isoformat(timespec='seconds'), json.dumps(questions), '{}'))
+        return self.diagnostic(workspace_id, diagnostic_id)
+
+    def diagnostic(self, workspace_id, diagnostic_id):
+        with self.connect() as connection:
+            row = connection.execute('SELECT id, job, created_at, questions, answers, finished_at FROM diagnostics WHERE id=? AND workspace_id=?',
+                                     (diagnostic_id, workspace_id)).fetchone()
+        if not row:
+            raise ValueError('Skill check not found.')
+        return {'id': row[0], 'job': json.loads(row[1]), 'created_at': row[2], 'questions': json.loads(row[3]), 'answers': json.loads(row[4]), 'finished_at': row[5]}
+
+    def latest_diagnostic(self, workspace_id, job_id):
+        """The most recent skill check for a job, finished or not; None if there is none."""
+        with self.connect() as connection:
+            rows = connection.execute('SELECT id, job FROM diagnostics WHERE workspace_id=? ORDER BY created_at DESC, rowid DESC', (workspace_id,)).fetchall()
+        match = next((i for i, job in rows if json.loads(job)['document_id'] == job_id), None)
+        return self.diagnostic(workspace_id, match) if match else None
+
+    def link_diagnostic_answer(self, workspace_id, diagnostic_id, position, attempt_id, covered, partial, missed):
+        """Record the answer to question number position of a skill check (latest wins), with its key points."""
+        with self.lock:
+            current = self.diagnostic(workspace_id, diagnostic_id)
+            if current['finished_at']:
+                raise ValueError('This skill check is finished. Start a new one to answer again.')
+            if not 0 <= position < len(current['questions']):
+                raise ValueError('Question is not part of this skill check.')
+            current['answers'][str(position)] = {'id': attempt_id, 'covered': covered, 'partial': partial, 'missed': missed}
+            with self.connect() as connection:
+                connection.execute('UPDATE diagnostics SET answers=? WHERE id=?', (json.dumps(current['answers']), diagnostic_id))
+
+    def finish_diagnostic(self, workspace_id, diagnostic_id):
+        self.diagnostic(workspace_id, diagnostic_id)
+        with self.connect() as connection:
+            connection.execute('UPDATE diagnostics SET finished_at=? WHERE id=? AND finished_at IS NULL',
+                               (datetime.now(timezone.utc).isoformat(timespec='seconds'), diagnostic_id))
+        return self.diagnostic(workspace_id, diagnostic_id)

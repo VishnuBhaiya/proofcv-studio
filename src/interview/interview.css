@@ -416,3 +416,40 @@
 .interview-coach .ic-setup-start > div { display: flex; gap: 8px; }
 .interview-coach .ic-setup-start .ic-start { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #fff; color: var(--ic-ink); font-size: 15px; }
 .interview-coach .ic-setup-start .ic-start:disabled { opacity: .45; }
+
+/* Skill check */
+.interview-coach .ic-check-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; max-width: 920px; margin: 0 auto 14px; font-size: 14px; color: var(--ic-muted); }
+.interview-coach .ic-check-intro { display: grid; justify-items: start; gap: 10px; max-width: 760px; margin: 0 auto; padding: 30px; border-radius: 24px; background: var(--ic-cream); border: 1px solid var(--ic-line); color: var(--ic-green); }
+.interview-coach .ic-check-intro h2 { margin: 0; font-size: clamp(22px, 3vw, 30px); color: var(--ic-ink); }
+.interview-coach .ic-check-intro p { margin: 0; color: var(--ic-muted); font-size: 14.5px; line-height: 1.6; }
+.interview-coach .ic-check-intro strong { color: var(--ic-ink); }
+.interview-coach .ic-check-begin { display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; padding: 12px 20px; font-size: 15px; }
+.interview-coach .ic-check { display: grid; gap: 16px; max-width: 920px; margin: 0 auto; }
+.interview-coach .ic-check-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.interview-coach .ic-check-progress button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid #cdd3cd; background: var(--ic-paper); font: inherit; font-size: 13px; font-weight: 700; color: var(--ic-ink); cursor: pointer; }
+.interview-coach .ic-check-progress button.must { border: 2px solid var(--ic-fair); }
+.interview-coach .ic-check-progress button.done { background: var(--ic-green); border-color: var(--ic-green); color: #fff; }
+.interview-coach .ic-check-progress button.current { outline: 3px solid rgba(44, 101, 84, .3); outline-offset: 2px; }
+.interview-coach .ic-check-progress button:disabled { opacity: .4; cursor: not-allowed; }
+.interview-coach .ic-check-progress span { margin-left: 6px; font-size: 13px; color: var(--ic-muted); }
+.interview-coach .ic-check-head { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; padding: 24px; border-radius: 24px; background: var(--ic-cream); border: 1px solid var(--ic-line); }
+.interview-coach .ic-check-head > div:not(.ic-ring) { flex: 1; min-width: 240px; }
+.interview-coach .ic-check-head .ic-ring { margin-bottom: 20px; }
+.interview-coach .ic-check-head h2 { margin: 6px 0; font-size: clamp(21px, 2.6vw, 27px); }
+.interview-coach .ic-check-head p { margin: 0; color: var(--ic-muted); font-size: 14px; line-height: 1.55; }
+.interview-coach .ic-check-group { padding: 18px 20px; border-radius: var(--ic-radius); border: 1px solid var(--ic-line); border-left: 4px solid var(--tone, var(--ic-line)); background: var(--ic-paper); }
+.interview-coach .ic-check-group.weak { --tone: var(--ic-poor); }
+.interview-coach .ic-check-group.developing { --tone: var(--ic-fair); }
+.interview-coach .ic-check-group.strong { --tone: var(--ic-good); }
+.interview-coach .ic-check-group.learn { --tone: var(--ic-blue); }
+.interview-coach .ic-check-group h3 { margin: 0; font-size: 16.5px; }
+.interview-coach .ic-check-group > ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.interview-coach .ic-check-group > ul > li { display: grid; gap: 4px; padding-top: 10px; border-top: 1px solid var(--ic-line); }
+.interview-coach .ic-check-group > ul > li:first-child { padding-top: 0; border-top: 0; }
+.interview-coach .ic-check-topic { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.interview-coach .ic-check-topic strong { font-size: 14.5px; }
+.interview-coach .ic-check-group small { font-size: 12.5px; color: var(--ic-muted); }
+.interview-coach .ic-study { display: grid; gap: 4px; margin-top: 4px; padding: 10px 12px; border-radius: 10px; background: var(--ic-cream); font-size: 13.5px; }
+.interview-coach .ic-study > span { font-weight: 700; }
+.interview-coach .ic-study ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.interview-coach .ic-study em { color: var(--ic-muted); font-size: 12.5px; }

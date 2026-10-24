@@ -8,7 +8,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, cheatsheet, content, evaluate, factcheck, followup, gemini_speech, mock, model_answer, plan, setup, slides, speech, star, voice
+from . import attempts, cheatsheet, content, diagnostic, evaluate, factcheck, followup, gemini_speech, mock, model_answer, plan, setup, slides, speech, star, voice
 from ..gemini import GeminiError
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
@@ -109,6 +109,7 @@ def answer(service, state, data):
     if not 0 < len(audio) <= MAX_AUDIO_BYTES:
         raise ValueError('Recording is empty or longer than about five minutes.')
     asked = data.get('follow_up') if isinstance(data.get('follow_up'), dict) else None  # Answering an interviewer follow-up.
+    check = check_position(service, state, data, question) if data.get('diagnostic') else None
     depth = int(asked.get('depth', 1)) if asked else 0
     target = followup.FOLLOW_UP_SECONDS if asked else question.get('seconds') or ROUND_TARGET_SECONDS.get(question['round'])
     job_title = next((j['title'] for j in service.jobs if j['document_id'] == data.get('job')), None) or ((state.get('draft') or {}).get('job') or {}).get('title')
@@ -176,12 +177,73 @@ def answer(service, state, data):
     response['score'] = {'overall': mock.overall(parts), 'components': parts}
     response['progress'] = attempt_store(service).record(state['id'], f"{question['id']}:follow-up" if asked else question['id'], result['text'], summary)
     in_mock = bool(data.get('mock_session'))
-    # In a mock interview the interviewer cross-questions once per question; in practice, up to MAX_DEPTH times.
-    response['follow_up'] = None if in_mock and asked else followup.follow_up(question, response, depth)
+    in_check = bool(data.get('diagnostic'))
+    # In a mock interview the interviewer cross-questions once per question; in practice, up to MAX_DEPTH times;
+    # a skill check is a test, so it asks no follow-ups.
+    response['follow_up'] = None if (in_mock and asked) or in_check else followup.follow_up(question, response, depth)
+    if in_check:
+        link_check_answer(service, state, *check, response)
     if in_mock:
         attempt_store(service).link_answer(state['id'], data['mock_session'], int(data.get('mock_position', -1)), response['progress']['id'],
                                            follow_up_question=asked['question'] if asked else None)
     return response
+
+
+def check_position(service, state, data, question):
+    """The skill check and position an answer belongs to, checked before anything is scored or saved."""
+    session = attempt_store(service).diagnostic(state['id'], data['diagnostic'])
+    position = int(data.get('diagnostic_position', -1))
+    if not 0 <= position < len(session['questions']) or session['questions'][position]['id'] != question['id']:
+        raise ValueError('Question is not part of this skill check.')
+    if session['finished_at']:
+        raise ValueError('This skill check is finished. Start a new one to answer again.')
+    return session, position
+
+
+def link_check_answer(service, state, session, position, response):
+    """Attach an answer to its skill check, keeping which key points it covered for the study list."""
+    points = (response.get('content') or {}).get('key_points', [])
+    attempt_store(service).link_diagnostic_answer(state['id'], session['id'], position, response['progress']['id'],
+                                 *[[k['text'] for k in points if k['status'] == status] for status in ('covered', 'partial', 'missed')])
+
+
+def check_view(service, state, session):
+    """A skill check with its evaluation so far."""
+    store = attempt_store(service)
+    attempts_by_id = store.get(state['id'], [int(v['id']) for v in session['answers'].values()])
+    return {**session, 'compulsory': diagnostic.COMPULSORY, 'evaluation': diagnostic.evaluate(session, attempts_by_id, session['job'].get('learn_skills', []))}
+
+
+def current_job_id(service, state, job_id=None):
+    """The job the coach is preparing for, without the cost of a fit: the request's, the setup's, else the CV's."""
+    return job_id or (attempt_store(service).setup(state['id']) or {}).get('job') or (readiness(state)['target_job'] or {}).get('document_id')
+
+
+def start_check(service, state, data):
+    """Resume the unfinished skill check for this job, or start a new one (restart: true starts over)."""
+    result = fit(service, state, data.get('job'))
+    job_id = result['job']['document_id']
+    store = attempt_store(service)
+    current = store.latest_diagnostic(state['id'], job_id)
+    if current and not current['finished_at'] and not data.get('restart'):
+        return check_view(service, state, current)
+    saved = store.setup(state['id']) or {}
+    learn_ids = saved.get('learn_skills', []) if saved.get('job') == job_id else []
+    with _embedding_lock:
+        picked = diagnostic.pick(bank(), result['requirements'], learn_ids, service.retriever.backend)
+    if not picked:
+        raise ValueError('No technical questions fit this job yet.')
+    learn = [r['text'] for r in result['requirements'] if r['id'] in learn_ids]
+    return check_view(service, state, store.create_diagnostic(state['id'], {**result['job'], 'learn_skills': learn}, picked))
+
+
+def finish_check(service, state, check_id):
+    store = attempt_store(service)
+    session = store.diagnostic(state['id'], check_id)
+    done = sum(str(i) in session['answers'] for i in range(min(diagnostic.COMPULSORY, len(session['questions']))))
+    if done < min(diagnostic.COMPULSORY, len(session['questions'])):
+        raise ValueError(f'Answer the {diagnostic.COMPULSORY} compulsory questions first ({done} of {diagnostic.COMPULSORY} done).')
+    return check_view(service, state, store.finish_diagnostic(state['id'], check_id))
 
 
 def start_mock(service, state, data):
@@ -312,6 +374,10 @@ def handle_post(service, path, data):
         return answer(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'mock':
         return start_mock(service, service.store.get(parts[2]), data)
+    if len(parts) == 4 and parts[3] == 'skill-check':
+        return start_check(service, service.store.get(parts[2]), data)
+    if len(parts) == 6 and parts[3] == 'skill-check' and parts[5] == 'finish':
+        return finish_check(service, service.store.get(parts[2]), parts[4])
     if len(parts) == 4 and parts[3] == 'setup':
         return save_setup(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'plan':
@@ -349,6 +415,10 @@ def handle_get(service, url):
         return attempt_store(service).overview(state['id'])
     if len(parts) == 4 and parts[3] == 'plan':
         return practice_plan(service, service.store.get(parts[2]), job_id)
+    if len(parts) == 4 and parts[3] == 'skill-check':
+        state = service.store.get(parts[2])
+        session = attempt_store(service).latest_diagnostic(state['id'], current_job_id(service, state, job_id))
+        return {'session': check_view(service, state, session) if session else None}
     if len(parts) == 4 and parts[3] == 'speech':
         service.store.get(parts[2])
         return speech_settings(service)

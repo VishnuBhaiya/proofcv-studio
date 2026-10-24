@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, FileText, Flag, Mic, Pencil, Presentation, Target, UserRound } from 'lucide-react';
+import { CalendarDays, ClipboardCheck, FileText, Flag, Mic, Pencil, Presentation, Target, UserRound } from 'lucide-react';
 import { api, Workspace } from '../api';
 import FitPanel, { Fit } from './FitPanel';
 import InterviewRoom from './InterviewRoom';
@@ -7,15 +7,16 @@ import MockInterview from './MockInterview';
 import PlanPanel, { countdown, Plan } from './PlanPanel';
 import ReportsPanel from './ReportsPanel';
 import SetupPanel, { jobLabel, Status } from './SetupPanel';
+import SkillCheck, { Check } from './SkillCheck';
 import SlideDeck from './SlideDeck';
 import { configureSpeech, SpeechSettings } from './speech';
 import { Overview, Questions, questionStatus, ReportItem } from './types';
 import { ScoreRing } from './ui';
 import './interview.css';
 
-type Tab = 'practice' | 'plan' | 'mock' | 'reports' | 'fit' | 'deck';
+type Tab = 'practice' | 'plan' | 'check' | 'mock' | 'reports' | 'fit' | 'deck';
 const TABS: { id: Tab; label: string; icon: typeof Mic }[] = [
-    { id: 'practice', label: 'Practice', icon: Mic }, { id: 'plan', label: 'Plan', icon: CalendarDays }, { id: 'mock', label: 'Mock interview', icon: Flag }, { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'practice', label: 'Practice', icon: Mic }, { id: 'plan', label: 'Plan', icon: CalendarDays }, { id: 'check', label: 'Skill check', icon: ClipboardCheck }, { id: 'mock', label: 'Mock interview', icon: Flag }, { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'fit', label: 'Your fit', icon: Target }, { id: 'deck', label: 'Intro deck', icon: Presentation },
 ];
 
@@ -35,6 +36,13 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
         api<SpeechSettings>(`/interview/${workspace.id}/speech`).then(s => configureSpeech(workspace.id, s)).catch(() => undefined);
     }, [workspace.id]);
     const jobId = status?.setup?.job || '';
+    // Whether this job's skill check is finished: the coach's tabs open only after it.
+    const [checkDone, setCheckDone] = useState<boolean | undefined>(undefined);
+    useEffect(() => {
+        setCheckDone(undefined);
+        if (jobId) api<{ session: Check | null }>(`/interview/${workspace.id}/skill-check?job=${encodeURIComponent(jobId)}`)
+            .then(r => setCheckDone(!!r.session?.finished_at)).catch(e => setError(e.message));
+    }, [workspace.id, jobId]);
     useEffect(() => {
         setError('');
         api<Status>(`/interview/${workspace.id}/status`).then(setStatus).catch(e => setError(e.message));
@@ -73,6 +81,13 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
     </div>;
 
     const current = status.jobs.find(j => j.document_id === jobId) || { document_id: jobId, title: jobId, location: null, focus: null, match_score: null, cv_target: false };
+    if (checkDone === undefined) return <div className="page-content interview-coach"><p className="live-progress"><span className="live-dot" /> Loading Interview Coach…</p></div>;
+    if (!checkDone) return <div className="page-content interview-coach">
+        <div className="ic-check-bar"><span>Preparing for <strong>{jobLabel(current)}</strong></span>
+            <button type="button" className="ic-ghost" onClick={() => setEditing(true)}><Pencil size={14} />Edit setup</button></div>
+        <SkillCheck workspaceId={workspace.id} jobId={jobId} jobTitle={jobLabel(current)} onChange={c => { if (c?.finished_at) refresh(); }}
+            onDone={() => { setCheckDone(true); setTab('plan'); }} />
+    </div>;
     const all = questions ? Object.values(questions.rounds).flat() : [];
     const practised = new Set(all.filter(q => overview[q.id]).map(q => q.id)).size;
     const strong = new Set(all.filter(q => questionStatus(overview, q.id) === 'strong').map(q => q.id)).size;
@@ -105,6 +120,8 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
                 {tab === 'practice' && <InterviewRoom key={questions.job.document_id} workspaceId={workspace.id} questions={questions} overview={overview} onAnswered={refresh} focus={focus} />}
                 {tab === 'plan' && <PlanPanel workspaceId={workspace.id} plan={plan} setPlan={setPlan} practise={id => { setFocus({ id }); setTab('practice'); }}
                     startMock={() => setTab('mock')} openReports={() => setTab('reports')} />}
+                {tab === 'check' && <SkillCheck workspaceId={workspace.id} jobId={jobId} jobTitle={jobLabel(current)}
+                    onChange={c => { if (c && !c.finished_at) setCheckDone(false); }} onDone={() => setTab('plan')} />}
                 {tab === 'mock' && <MockInterview key={questions.job.document_id} workspaceId={workspace.id} jobId={questions.job.document_id} onFinished={refresh} openReports={() => setTab('reports')} />}
                 {tab === 'reports' && <ReportsPanel workspaceId={workspace.id} reports={reports} questions={questions} overview={overview} startMock={() => setTab('mock')} />}
                 {tab === 'fit' && <FitPanel fit={fit} />}

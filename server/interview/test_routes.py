@@ -339,6 +339,39 @@ class InterviewRouteTests(unittest.TestCase):
             code, body = self.request('POST', url + '/setup', {**form, **bad}, header)
             self.assertEqual((code, json.loads(body)['error']), (400, message))
 
+    def test_skill_check_needs_four_compulsory_answers_then_reports_topics(self):
+        class FakeTranscriber:
+            def transcribe(self, audio, prompt=None):
+                text = 'I would report precision and recall for each class and check IoU.'
+                return {'text': text, 'words': words(text), 'duration': 5, 'model': 'fake'}
+        state = self.confirmed_state()
+        url, header = f"/api/interview/{state['id']}", {'Content-Type': 'application/json'}
+        self.assertIsNone(json.loads(self.request('GET', url + '/skill-check')[1])['session'])
+        check = json.loads(self.request('POST', url + '/skill-check', {}, header)[1])
+        self.assertEqual((len(check['questions']), check['compulsory']), (10, 4))
+        self.assertEqual(json.loads(self.request('POST', url + '/skill-check', {}, header)[1])['id'], check['id'])  # Resumed, not restarted.
+        answer = lambda position, question_id=None: self.post_answer(state['id'], {
+            'question_id': question_id or check['questions'][position]['id'], 'audio': base64.b64encode(b'x').decode(),
+            'diagnostic': check['id'], 'diagnostic_position': position})
+        with mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
+            first = json.loads(answer(0)[1])
+            self.assertIsNone(first['follow_up'])  # A test, so no follow-up questions.
+            self.assertEqual(answer(1, 'tq-not-this-one')[0], 400)
+            code, body = self.request('POST', f"{url}/skill-check/{check['id']}/finish", {}, header)
+            self.assertEqual((code, json.loads(body)['error']), (400, 'Answer the 4 compulsory questions first (1 of 4 done).'))
+            for position in (1, 2, 3):
+                answer(position)
+            result = json.loads(self.request('POST', f"{url}/skill-check/{check['id']}/finish", {}, header)[1])
+            self.assertEqual(answer(4)[0], 400)  # Finished: no more answers.
+        evaluation = result['evaluation']
+        self.assertEqual((evaluation['answered'], evaluation['compulsory_done'], evaluation['finished']), (4, 4, True))
+        self.assertEqual(len(evaluation['not_assessed']), 6)
+        self.assertEqual(sum(len(evaluation[g]) for g in ('strong', 'developing', 'weak')), 4)
+        latest = json.loads(self.request('GET', url + '/skill-check')[1])['session']
+        self.assertEqual((latest['id'], latest['evaluation']['finished']), (check['id'], True))
+        restarted = json.loads(self.request('POST', url + '/skill-check', {'restart': True}, header)[1])
+        self.assertNotEqual(restarted['id'], check['id'])
+
     def test_rehearsal_reports_which_slides_were_covered(self):
         class FakeTranscriber:
             def transcribe(self, audio, prompt=None):
