@@ -93,8 +93,9 @@ dependency graph with `pnpm install --frozen-lockfile`, then
 
 ## Interview Coach (Assignment 3)
 
-Spoken interview practice for the job the user picked from their top matches. It makes
-**no Gemini calls**: every step runs on this computer with local models or plain rules.
+Spoken interview practice for the job the user picked from their top matches. Every step
+runs on this computer with local models or plain rules. The one exception is optional:
+the user can choose **Gemini** for speech-to-text (see below).
 Open it from **Interview Coach** in the sidebar after confirming a profile and choosing
 a target job.
 
@@ -108,7 +109,12 @@ What it does, in order:
 3. **Spoken answers:** the browser records the answer; local Whisper (faster-whisper)
    transcribes it with word timings. Audio is never stored. The user can pick
    **Accurate** (`small.en`, better with accents) or **Fast** (`base.en`); only installed
-   models are offered.
+   models are offered. When the server has a Gemini key, **Gemini** is also offered (and
+   is the default): the recording is sent to Google as a 16 kHz WAV and Gemini writes the
+   transcript, while local Whisper still measures pace, pauses and fillers. Gemini runs
+   alongside Whisper, retries once on HTTP 503, and if it fails or takes over 35 seconds
+   the Whisper transcript is used with a note. Measured: about 19 s per 20-second answer
+   on `gemini-3.1-flash-lite`.
 4. **Feedback:** pace, pauses, filler words and length; a STAR check for behavioural
    answers from our own trained classifier; key-point coverage for technical answers;
    and a fact check that flags numbers, tools or leadership claims the confirmed profile
@@ -167,6 +173,7 @@ yet remove its practice history.
 | `server/interview/slides.py` | Self-introduction deck and PDF |
 | `server/interview/cheatsheet.py` | Interview-day cheat sheet and PDF |
 | `server/interview/voice.py` | Piper read-aloud voice |
+| `server/interview/gemini_speech.py` | Optional Gemini speech-to-text |
 | `server/interview/plan.py` | Countdown practice plan |
 | `server/interview/data/` | Requirement map, question bank, STAR data, model and evaluation |
 | `src/interview/` | Interview Coach screens |
@@ -202,7 +209,7 @@ real API calls and consume quota. Live tests use the five supplied synthetic pro
 and save predictions before retrieval. Read each actual status under
 `runtime/evaluation/`; a single passed journey is not five passes.
 
-Interview Coach branch verification (24 October 2026): 201 offline tests passed on
+Interview Coach branch verification (24 October 2026): 216 offline tests passed on
 macOS with Python 3.14. Interview Coach tests use a fake transcriber, a fake voice and
 small test embeddings, so they need none of the Whisper, Piper or MiniLM models. Not yet
 run on Windows.

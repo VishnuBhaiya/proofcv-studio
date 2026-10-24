@@ -6,8 +6,9 @@ from http.client import HTTPConnection
 from pathlib import Path
 from unittest import mock
 from .. import test_http
-from . import content, factcheck, model_answer, speech, star, voice
+from . import content, factcheck, gemini_speech, model_answer, speech, star, voice
 from .test_model_answer import FakeStar
+from ..gemini import GeminiError
 from .test_speech import words
 from ..retrieval import InspectableHashEmbeddingBackend, JobRetriever
 from .test_fit import PROFILE
@@ -15,7 +16,14 @@ from .test_fit import PROFILE
 
 class InterviewRouteTests(unittest.TestCase):
     # Reuse the real local server fixture without re-running the core HTTP tests.
-    setUp, tearDown, request = test_http.HTTPTests.setUp, test_http.HTTPTests.tearDown, test_http.HTTPTests.request
+    tearDown, request = test_http.HTTPTests.tearDown, test_http.HTTPTests.request
+
+    def setUp(self):
+        test_http.HTTPTests.setUp(self)
+        # The fixture's Gemini key is a placeholder: no test may send audio to Google. Gemini has its own test below.
+        patcher = mock.patch.object(gemini_speech, 'configured', return_value=False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def create(self):
         code, body = self.request('POST', '/api/workspaces', {'label': 'Coach test'}, {'Content-Type': 'application/json'})
@@ -266,6 +274,43 @@ class InterviewRouteTests(unittest.TestCase):
         self.assertLessEqual(result['score']['overall'], 40)
         self.assertTrue(result['progress']['needs_work'])
         self.assertEqual(result['recognition']['unsure_words'], ['Dietz', 'Patel.'])
+
+    def test_gemini_writes_the_transcript_and_whisper_keeps_the_timing(self):
+        class FakeTranscriber:
+            def transcribe(self, audio, prompt=None):
+                text = 'I am Sam Lee and I built a lane detector.'
+                return {'text': 'I am Sam Lee and I built a lame detector.', 'words': words(text), 'duration': 4, 'model': 'whisper-fake'}
+        class FakeGemini:
+            name = 'gemini:fake'
+            def __init__(self, reply=None, error=None):
+                self.reply, self.error, self.calls = reply, error, []
+            def decide(self, messages, context):
+                self.calls.append((messages, context))
+                if self.error:
+                    raise self.error
+                return self.reply
+        state = self.confirmed_state()
+        body = {'question_id': 'tq-detection-eval', 'audio': base64.b64encode(b'x').decode()}
+        gemini = FakeGemini(json.dumps({'transcript': 'I am Sam Lee and I built a  lane detector.'}))
+        with mock.patch.object(gemini_speech, 'configured', return_value=True), mock.patch.object(self.service, 'model', gemini), \
+                mock.patch.object(gemini_speech, 'wav_bytes', return_value=b'RIFF'), mock.patch.object(speech, 'decode_audio', return_value=None), \
+                mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
+            settings = json.loads(self.request('GET', f"/api/interview/{state['id']}/speech")[1])['recognition']
+            self.assertEqual((settings['default'], settings['options'][0]['id']), ('gemini', 'gemini'))
+            result = json.loads(self.post_answer(state['id'], body)[1])
+            self.assertEqual(result['transcript'], 'I am Sam Lee and I built a lane detector.')  # Gemini's text, not Whisper's "lame".
+            self.assertEqual((result['words'], result['recognition']['source']), ([], 'gemini'))
+            self.assertEqual(result['delivery']['word_count'], 10)  # Timing still from Whisper's words.
+            self.assertIn('gemini:fake', result['model'])
+            messages, context = gemini.calls[0]
+            self.assertEqual(context['_attachment']['mimeType'], 'audio/wav')
+            self.assertIn('word for word', messages[0]['content'])
+            self.service.model = FakeGemini(error=GeminiError('Gemini returned HTTP 429. Try again later.', retryable=True))
+            fallback = json.loads(self.post_answer(state['id'], body)[1])
+            self.assertEqual(fallback['transcript'], 'I am Sam Lee and I built a lame detector.')
+            self.assertIn('Gemini could not transcribe this answer', fallback['delivery']['notes'][0])
+            local = json.loads(self.post_answer(state['id'], {**body, 'recognition': 'base.en'})[1])
+            self.assertEqual(local['recognition']['source'], 'whisper')
 
     def test_rehearsal_reports_which_slides_were_covered(self):
         class FakeTranscriber:

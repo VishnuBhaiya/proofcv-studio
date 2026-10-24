@@ -2,11 +2,14 @@
 import base64
 import binascii
 import threading
+import time
+from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, cheatsheet, content, evaluate, factcheck, followup, mock, model_answer, plan, slides, speech, star, voice
+from . import attempts, cheatsheet, content, evaluate, factcheck, followup, gemini_speech, mock, model_answer, plan, slides, speech, star, voice
+from ..gemini import GeminiError
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
 
@@ -92,14 +95,36 @@ def answer(service, state, data):
     depth = int(asked.get('depth', 1)) if asked else 0
     target = followup.FOLLOW_UP_SECONDS if asked else question.get('seconds') or ROUND_TARGET_SECONDS.get(question['round'])
     job_title = next((j['title'] for j in service.jobs if j['document_id'] == data.get('job')), None) or ((state.get('draft') or {}).get('job') or {}).get('title')
-    result = speech.transcriber(recognition(data.get('recognition'))).transcribe(audio, speech.expected_words(state.get('confirmed_profile') or state.get('profile'), job_title))
+    choice = recognition(service, data.get('recognition'))
+    local_model = speech.recognition_options()['default'] if choice == 'gemini' else choice
+    prompt = speech.expected_words(state.get('confirmed_profile') or state.get('profile'), job_title)
+    started = time.monotonic()
+    online_job = gemini_speech.start(service.model, audio, prompt.replace(speech.FILLER_PROMPT, '').strip()) if choice == 'gemini' else None
+    # Whisper always runs: even when Gemini writes the transcript, pace, pauses and fillers come from Whisper's word timings.
+    result = speech.transcriber(local_model).transcribe(audio, prompt)
+    online, online_note = False, None
+    if online_job:
+        try:
+            heard = online_job.result(timeout=max(1, gemini_speech.DEADLINE_SECONDS - (time.monotonic() - started)))
+            if heard or not result['text']:
+                result = {**result, 'text': heard, 'model': f"{service.model.name} (transcript) + whisper-{local_model} (timing)"}
+                online = True
+            else:
+                online_note = 'Gemini heard no speech, so the local Whisper transcript was used.'
+        except GeminiError as error:
+            online_note = f'Gemini could not transcribe this answer ({error}), so the local Whisper transcript was used.'
+        except FutureTimeout:
+            online_note = f'Gemini took longer than {gemini_speech.DEADLINE_SECONDS} seconds, so the local Whisper transcript was used.'
     response = {'workspace_id': state['id'], 'question_id': question['id'], 'round': question['round'], 'follow_up_of': asked['question'] if asked else None,
-                'transcript': result['text'], 'words': result['words'],
+                'transcript': result['text'], 'words': [] if online else result['words'],
                 'model': result['model'], 'target_seconds': target, 'delivery': speech.delivery(result['words'], result['duration'], target)}
+    if online_note:
+        response['delivery']['notes'].insert(0, online_note)
     if result.get('audio', {}).get('rms_db', 0) < QUIET_RMS_DB:
         response['delivery']['notes'].insert(0, 'Your microphone level was very low, which makes the transcript less accurate. Move closer or check the input device in your system sound settings.')
     response['audio'] = result.get('audio')
-    response['recognition'] = speech.recognition_check(result['words'])
+    # Gemini gives no per-word confidence, so the unsure-word check applies to Whisper transcripts only.
+    response['recognition'] = {**speech.recognition_check([] if online else result['words']), 'source': 'gemini' if online else 'whisper'}
     if response['recognition']['unsure']:
         response['delivery']['notes'].insert(0, f"Speech recognition was unsure about {round(response['recognition']['unsure_share'] * 100)}% of your words "
                                                 '(underlined in the transcript), so the scores may be off. Speak a little slower and closer to the microphone, '
@@ -223,9 +248,17 @@ def set_plan(service, state, data, today=None):
     return practice_plan(service, state, picked['job']['document_id'], today)
 
 
-def recognition(requested):
-    """The Whisper model to use: the user's pick if it is installed (nothing is ever downloaded here)."""
+def recognition_settings(service):
+    """Local Whisper models that are installed, plus Gemini when the server has a key; Gemini is the default then."""
     options = speech.recognition_options()
+    if gemini_speech.configured(service.model):
+        return {'options': [{'id': 'gemini', 'label': gemini_speech.LABEL, 'installed': True}, *options['options']], 'default': 'gemini'}
+    return options
+
+
+def recognition(service, requested):
+    """What turns speech into text: the user's pick if it is available (nothing is ever downloaded here)."""
+    options = recognition_settings(service)
     if requested is None:
         return options['default']
     if not any(o['id'] == requested and o['installed'] for o in options['options']):
@@ -236,7 +269,7 @@ def recognition(requested):
 def speech_settings(service):
     """Which read-aloud voice and recognition models this computer has."""
     return {'voice': {'id': voice.VOICE, 'label': voice.VOICE_LABEL, 'available': voice.available(runtime_dir(service))},
-            'recognition': speech.recognition_options()}
+            'recognition': recognition_settings(service)}
 
 
 def runtime_dir(service):

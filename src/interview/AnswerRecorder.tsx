@@ -18,7 +18,7 @@ type ExampleAnswer = { kind: string; parts: { label: string; text: string; sourc
 type SlideCoverage = { slides: { title: string; status: 'covered' | 'partial' | 'missed'; quote: string | null }[]; covered: number; total: number; notes: string[] };
 type FollowUp = { question: string; why: string; kind: string; key_point: string | null; depth: number };
 type Word = { word: string; probability: number };
-type Answer = { question_id: string; round: string; transcript: string; words?: Word[]; recognition?: { unsure_share: number; unsure: boolean }; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content;
+type Answer = { question_id: string; round: string; transcript: string; words?: Word[]; recognition?: { unsure_share: number; unsure: boolean; source?: 'gemini' | 'whisper' }; model: string; target_seconds: number | null; delivery: Delivery; star?: Star; content?: Content;
     fact_check?: FactCheck; progress: Progress; example_answer?: ExampleAnswer; slide_coverage?: SlideCoverage; follow_up?: FollowUp | null; score: { overall: number; components: Record<string, number> } };
 const STAR_PARTS: [Exclude<StarLabel, 'other'>, string][] = [['situation', 'Situation'], ['task', 'Task'], ['action', 'Action'], ['result', 'Result']];
 const POINT_MARK = { covered: '✓', partial: '~', missed: '✗' };
@@ -210,7 +210,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
         </div>
         {error && <p className="live-error" role="alert">{error}</p>}
         {answer && <>
-            <Bubble who="you" meta={<>{answer.delivery.speaking_seconds}s · {answer.delivery.words_per_minute} words/min{answer.recognition?.unsure
+            <Bubble who="you" meta={<>{answer.delivery.speaking_seconds}s · {answer.delivery.words_per_minute} words/min · transcribed by {answer.recognition?.source === 'gemini' ? 'Gemini (online)' : 'Whisper (this computer)'}{answer.recognition?.unsure
                 && <strong className="ic-unsure-note"> · Recognition unsure about {Math.round(answer.recognition.unsure_share * 100)}% of words: scores may be off</strong>}</>}><Transcript answer={answer} /></Bubble>
             {hideFeedback ? <p className="ic-saved">Answer saved. Feedback comes in your report at the end.</p> : <Scorecard answer={answer} />}
             {answer.follow_up && <>
