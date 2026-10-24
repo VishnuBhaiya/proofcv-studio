@@ -7,7 +7,37 @@ retrieval across nine supplied jobs, confirmed-source CV generation and PDF expo
 
 This repository starts from the final Assignment 1 CV builder. Its application
 source, supplied datasets and production frontend were compared with the working
-app before import. Assignment 3 portfolio features are not implemented yet.
+app before import. The sidebar now reserves **Portfolio Studio** after **CV studio**
+using the sparkle icon. This opens a **Coming soon** placeholder only: the working
+Portfolio Studio, website generation, 3D scenes and publishing are **not included
+or enabled** in this shared version yet. Tirth's Interview Coach remains on its
+separate `feature/interview-coach` branch; this update does not merge it.
+
+### Shared Avery Morgan demo
+
+New installations include the same detailed fictional Avery Morgan base used in
+Vishnu's local demo: education, experience, achievements, 18 listed skills and four
+projects—Smart Intersection Object Detection, Warehouse Safety Video Analytics,
+Dataset Quality Review Toolkit and **SolarVision**. Both saved role-specific CVs
+include all four projects in different priority orders. SolarVision is explicitly
+a supplied demonstration case study, **not a claim of Avery's authorship**.
+The recording itself stays local; no video, private database or live portfolio
+implementation is uploaded with this update.
+
+Startup now preserves existing sample workspaces instead of resetting their
+profiles, messages or saved CV history. If your existing Avery still has three
+projects, stop your local server, pull the main update, then run:
+
+```powershell
+.\.venv\Scripts\python.exe -m server.update_avery_sample --apply
+```
+
+On macOS/Linux use `.venv/bin/python -m server.update_avery_sample --apply`.
+This adds only SolarVision to the explicitly labelled Avery demo, preserving its
+workspace ID, existing edits, messages and saved versions. Review and **Confirm
+profile** in **My profile** afterwards; the current CV can then refresh from the
+new facts. Previous saved CVs stay as historical snapshots. Conflicting SolarVision
+content and pending proposals are not overwritten. Nothing is sent to an AI model.
 
 Clone this repository into your own folder. On Windows, follow the setup and start
 commands below. Each teammate must create their own `.env` from `.env.example` and
@@ -23,6 +53,13 @@ Frontend changes must also rebuild and update `dist/` before merging.
 Repository import verification (22 October 2026): all 61 offline Python unit tests
 passed on the clean team checkout. These tests mock Gemini; this check did not
 make live provider calls. No Assignment 1 private workspace data was imported.
+
+Sidebar/sample update verification (24 October 2026): all 66 offline Python tests
+and the TypeScript/production build pass. Chrome verification confirmed the sidebar
+order, sparkle icon and non-live placeholder. The four-project seed matches the
+working local Avery profile field-for-field; no local runtime data or video was
+copied into Git. Existing-workspace updates, repeat runs, pending proposals and
+conflicting SolarVision edits are covered by the sample regression tests.
 
 ## Run the connected app on this computer
 
@@ -102,7 +139,7 @@ real API calls and consume quota. Live tests use the five supplied synthetic pro
 and save predictions before retrieval. Read each actual status under
 `runtime/evaluation/`; a single passed journey is not five passes.
 
-Current repository verification: 61 offline tests passed on 22 October 2026.
+Current repository verification: 66 offline tests passed on 24 October 2026.
 The Assignment 1 submission separately contains historical five-profile live
 journeys and deterministic integration evidence. Those assessment artifacts,
 personal sample PDFs and runtime databases are not included in this source-only

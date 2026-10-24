@@ -48,7 +48,12 @@ def _profile():
                 'Created a local toolkit for checking image dimensions, duplicate filenames, missing annotation files and class imbalance before model training. '
                 'Exposed validation through a small FastAPI service, stored review runs in SQL, generated CSV summaries and added automated tests. '
                 'Packaged the coursework tool with Docker and documented a repeatable setup workflow for classmates.'),
-                technologies='Python, FastAPI, SQL, Docker, Git, pytest')],
+                technologies='Python, FastAPI, SQL, Docker, Git, pytest'),
+            dict(title='SolarVision', description=(
+                'SolarVision is an AI-powered solar-panel inspection application, included here as a supplied demonstration case study for this Demo CV. '
+                'The recording presents model-selection and drone controls, a live inspection feed, annotated defect views and an inspection dashboard. '
+                'It also includes introductory solar-energy context footage. The supplied recording is not a claim that Avery personally authored the application.'),
+                technologies='Computer Vision, Solar Inspection, Live Video, Defect Visualisation')],
         experience=(
             'Computer Vision Lab Assistant | Harbour Technical College Applied Computing Lab | March 2025 - November 2025\n'
             'Prepared and checked annotated training images, reproduced baseline experiments, logged metrics and documented setup steps. '
@@ -66,12 +71,20 @@ def _profile():
 
 
 def seed(store=None):
+    """Create the labelled demo once; never reset an existing user's workspace."""
     root = Path(__file__).resolve().parents[1]
     store = store or Store(root / 'runtime' / 'proofcv.sqlite3')
+    with store.lock:
+        return _seed_once(store, root)
+
+
+def _seed_once(store, root):
     workspaces = store.list()
     existing = next((w for w in workspaces if w['label'] == LABEL), None)
     legacy = next((w for w in workspaces if w['label'] == LEGACY_LABEL), None)
-    state = store.get((existing or legacy)['id']) if (existing or legacy) else store.create(LABEL)
+    if existing or legacy:
+        return (existing or legacy)['id']
+    state = store.create(LABEL)
 
     profile = _profile()
     validate_profile(profile)
@@ -86,22 +99,27 @@ def seed(store=None):
             summary_fact_ids=['summary:1', 'summary:2'],
             skills=['Python', 'PyTorch', 'NumPy', 'pandas', 'scikit-learn', 'Machine Learning',
                     'Model Evaluation', 'FastAPI', 'SQL', 'Docker', 'Git'],
-            project_order=[2, 0, 1], section_order=['projects', 'experience', 'education', 'achievements'],
+            project_order=[2, 0, 1, 3], section_order=['projects', 'experience', 'education', 'achievements'],
             rationale='Highlights general ML workflow, evaluation, API and reproducibility evidence.')),
         ('computer_vision_engineer', dict(
             summary_fact_ids=['summary:0', 'summary:2'],
             skills=['Python', 'OpenCV', 'PyTorch', 'NumPy', 'Computer Vision', 'YOLO',
                     'Object Detection', 'Image Classification', 'Data Annotation', 'Model Evaluation', 'Git', 'Docker'],
-            project_order=[0, 1, 2], section_order=['projects', 'experience', 'education', 'achievements'],
+            project_order=[0, 1, 2, 3], section_order=['projects', 'experience', 'education', 'achievements'],
             rationale='Prioritises verified object-detection, video-analysis and dataset-quality evidence.'))]
 
     for job_id, selection in samples:
         cv.generate(state, jobs[job_id], CuratedSelection(selection))
+        # These are full-profile demonstration CVs, not the normal automatic
+        # shortlisting path. Keep all four reviewed demo projects visible.
+        state['draft']['selection']['project_order'] = selection['project_order'][:]
+        state['draft']['selection']['rationale'] = selection['rationale'] + ' All four demo projects remain visible.'
+        state['draft']['suggested_order']['project_order'] = selection['project_order'][:]
         state['draft']['tailored_content'] = False
         state['draft'].pop('project_excerpts', None)
         state['draft']['suggestion_status'] = 'accepted'
         state['draft']['design'].update(font='sans', size='compact', spacing='compact',
-            header='left', skills='inline', page='one', ats=True,
+            header='left', skills='inline', page='auto', ats=True,
             visible_sections=selection['section_order'][:])
         cv.validate_draft(state)
 
@@ -110,8 +128,9 @@ def seed(store=None):
     assert state['versions'][0]['draft']['profile'] == state['versions'][1]['draft']['profile']
     assert {v['draft']['job']['document_id'] for v in state['versions']} == {'graduate_ai_engineer', 'computer_vision_engineer'}
     state['messages'] = [{'role': 'assistant', 'content': (
-        'Labelled fictional sample. Every Avery Morgan detail is invented for demonstration. '
-        'The profile is deliberately complete so the full workflow can be assessed.')}]
+        'Labelled fictional sample. Avery Morgan is an invented candidate for demonstration. '
+        'The profile includes four projects. SolarVision is a supplied demonstration case study, not a claim of Avery’s authorship. '
+        'The shared repository contains the project text only; the recording and working Portfolio Studio remain local.')}]
     state['cv_messages'] = [{'role': 'assistant', 'content': (
         'This fictional profile has two saved CVs: Graduate AI Engineer and Computer Vision Engineer. '
         'Open Versions & comparison to inspect or restore either. Both use exactly the same confirmed profile, '
