@@ -99,6 +99,7 @@ class AttemptStore:
                                'job TEXT NOT NULL, questions TEXT NOT NULL, answers TEXT NOT NULL)')
             connection.execute('CREATE TABLE IF NOT EXISTS practice_plans (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, interview_date TEXT NOT NULL, '
                                'PRIMARY KEY (workspace_id, job_id))')
+            connection.execute('CREATE TABLE IF NOT EXISTS coach_setup (workspace_id TEXT PRIMARY KEY, setup TEXT NOT NULL, saved_at TEXT NOT NULL)')
             connection.execute('CREATE TABLE IF NOT EXISTS plan_days (workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, day TEXT NOT NULL, '
                                'questions TEXT NOT NULL, PRIMARY KEY (workspace_id, job_id, day))')
 
@@ -204,3 +205,14 @@ class AttemptStore:
         with self.lock, self.connect() as connection:
             connection.execute('INSERT OR IGNORE INTO plan_days (workspace_id, job_id, day, questions) VALUES (?, ?, ?, ?)',
                                (workspace_id, job_id, day, json.dumps(question_ids)))
+
+    def setup(self, workspace_id):
+        """The saved Interview Coach setup for a workspace, or None before the user has done it."""
+        with self.connect() as connection:
+            row = connection.execute('SELECT setup, saved_at FROM coach_setup WHERE workspace_id=?', (workspace_id,)).fetchone()
+        return {**json.loads(row[0]), 'saved_at': row[1]} if row else None
+
+    def save_setup(self, workspace_id, setup):
+        with self.lock, self.connect() as connection:
+            connection.execute('INSERT OR REPLACE INTO coach_setup (workspace_id, setup, saved_at) VALUES (?, ?, ?)',
+                               (workspace_id, json.dumps(setup), datetime.now(timezone.utc).isoformat(timespec='seconds')))

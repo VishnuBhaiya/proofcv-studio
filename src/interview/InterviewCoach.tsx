@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, Check, FileText, Flag, Mic, Presentation, Target, UserRound } from 'lucide-react';
+import { CalendarDays, FileText, Flag, Mic, Pencil, Presentation, Target, UserRound } from 'lucide-react';
 import { api, Workspace } from '../api';
 import FitPanel, { Fit } from './FitPanel';
 import InterviewRoom from './InterviewRoom';
 import MockInterview from './MockInterview';
 import PlanPanel, { countdown, Plan } from './PlanPanel';
 import ReportsPanel from './ReportsPanel';
+import SetupPanel, { jobLabel, Status } from './SetupPanel';
 import SlideDeck from './SlideDeck';
-import { configureSpeech, setSpeechChoice, speechChoice, SpeechSettings, stopSpeaking } from './speech';
+import { configureSpeech, SpeechSettings } from './speech';
 import { Overview, Questions, questionStatus, ReportItem } from './types';
 import { ScoreRing } from './ui';
 import './interview.css';
 
-type Readiness = { workspace_id: string; profile_confirmed: boolean; matched_jobs: { document_id: string; title: string; score: number }[]; target_job: { document_id: string; title: string } | null; rounds: string[] };
 type Tab = 'practice' | 'plan' | 'mock' | 'reports' | 'fit' | 'deck';
 const TABS: { id: Tab; label: string; icon: typeof Mic }[] = [
     { id: 'practice', label: 'Practice', icon: Mic }, { id: 'plan', label: 'Plan', icon: CalendarDays }, { id: 'mock', label: 'Mock interview', icon: Flag }, { id: 'reports', label: 'Reports', icon: FileText },
@@ -20,37 +20,36 @@ const TABS: { id: Tab; label: string; icon: typeof Mic }[] = [
 ];
 
 export default function InterviewCoach({ workspace, go }: { workspace: Workspace; go: (page: 'profile' | 'jobs') => void }) {
-    const [status, setStatus] = useState<Readiness | null>(null);
+    const [status, setStatus] = useState<Status | null>(null);
     const [error, setError] = useState('');
-    const [jobId, setJobId] = useState('');
+    const [editing, setEditing] = useState(false);
     const [fit, setFit] = useState<Fit | null>(null);
     const [questions, setQuestions] = useState<Questions | null>(null);
     const [overview, setOverview] = useState<Overview>({});
     const [reports, setReports] = useState<ReportItem[]>([]);
     const [tab, setTab] = useState<Tab>('practice');
-    const [speech, setSpeech] = useState<SpeechSettings | null>(null);
     const [plan, setPlan] = useState<Plan | null>(null);
     const [focus, setFocus] = useState<{ id: string } | null>(null);
-    const [, setChoiceVersion] = useState(0);
+    // The voice (Piper) and speech recognition (Accurate) are fixed; this only tells the page what is installed.
     useEffect(() => {
-        api<SpeechSettings>(`/interview/${workspace.id}/speech`).then(s => { configureSpeech(workspace.id, s); setSpeech(s); }).catch(() => undefined);
+        api<SpeechSettings>(`/interview/${workspace.id}/speech`).then(s => configureSpeech(workspace.id, s)).catch(() => undefined);
     }, [workspace.id]);
-    const choose = (update: Parameters<typeof setSpeechChoice>[0]) => { stopSpeaking(); setSpeechChoice(update); setChoiceVersion(v => v + 1); };
+    const jobId = status?.setup?.job || '';
     useEffect(() => {
         setError('');
-        api<Readiness>(`/interview/${workspace.id}/status`).then(setStatus).catch(e => setError(e.message));
+        api<Status>(`/interview/${workspace.id}/status`).then(setStatus).catch(e => setError(e.message));
     }, [workspace.id, workspace.revision, workspace.confirmed_revision, workspace.retrieval, workspace.draft?.job.document_id]);
     const refresh = () => {
         api<Overview>(`/interview/${workspace.id}/attempts`).then(setOverview).catch(() => undefined);
         api<ReportItem[]>(`/interview/${workspace.id}/mock`).then(setReports).catch(() => undefined);
-        api<Plan>(`/interview/${workspace.id}/plan${jobId ? `?job=${encodeURIComponent(jobId)}` : ''}`).then(setPlan).catch(() => undefined);
+        if (jobId) api<Plan>(`/interview/${workspace.id}/plan?job=${encodeURIComponent(jobId)}`).then(setPlan).catch(() => undefined);
     };
     useEffect(() => {
         setFit(null);
         setQuestions(null);
         setPlan(null);
-        if (!status?.profile_confirmed || !status.target_job) return;
-        const query = jobId ? `?job=${encodeURIComponent(jobId)}` : '';
+        if (!status?.profile_confirmed || !jobId) return;
+        const query = `?job=${encodeURIComponent(jobId)}`;
         api<Fit>(`/interview/${workspace.id}/fit${query}`).then(setFit).catch(e => setError(e.message));
         api<Questions>(`/interview/${workspace.id}/questions${query}`).then(setQuestions).catch(e => setError(e.message));
         refresh();
@@ -58,20 +57,22 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
 
     if (error) return <div className="page-content"><p className="live-error" role="alert">{error}</p></div>;
     if (!status) return <div className="page-content"><p className="live-progress"><span className="live-dot" /> Loading Interview Coach…</p></div>;
-    if (!status.profile_confirmed || !status.target_job) return <div className="page-content interview-coach">
+    if (!status.profile_confirmed) return <div className="page-content interview-coach">
         <section className="ic-setup">
             <span className="ic-eyebrow-dark">Interview Coach</span>
-            <h2>Two steps before you practise</h2>
-            <p>The coach builds every question and every example answer from your confirmed facts and the job you chose.</p>
+            <h2>One step before you practise</h2>
+            <p>The coach builds every question and every example answer from your confirmed facts.</p>
             <div className="ic-setup-steps">
-                <div className={status.profile_confirmed ? 'done' : ''}><UserRound size={20} /><div><strong>Confirm your profile</strong><span>{status.profile_confirmed ? 'Done' : 'Review your facts and confirm them'}</span></div>{status.profile_confirmed ? <Check size={18} /> : <button className="button dark" onClick={() => go('profile')}>Open profile</button>}</div>
-                <div className={status.target_job ? 'done' : ''}><Target size={20} /><div><strong>Choose a target job</strong><span>{status.target_job ? status.target_job.title : 'Pick one of your top matches'}</span></div>{status.target_job ? <Check size={18} /> : <button className="button dark" disabled={!status.profile_confirmed} onClick={() => go('jobs')}>Discover jobs</button>}</div>
+                <div><UserRound size={20} /><div><strong>Confirm your profile</strong><span>Review your facts and confirm them</span></div><button className="button dark" onClick={() => go('profile')}>Open profile</button></div>
             </div>
         </section>
     </div>;
+    if (!status.setup || editing) return <div className="page-content interview-coach">
+        <SetupPanel workspaceId={workspace.id} status={status} onSaved={next => { setStatus(next); setEditing(false); setTab('practice'); }}
+            onCancel={status.setup ? () => setEditing(false) : undefined} />
+    </div>;
 
-    const jobs = [status.target_job, ...status.matched_jobs.filter(j => j.document_id !== status.target_job!.document_id)];
-    const current = jobs.find(j => j.document_id === (jobId || status.target_job!.document_id))!;
+    const current = status.jobs.find(j => j.document_id === jobId) || { document_id: jobId, title: jobId, location: null, focus: null, match_score: null, cv_target: false };
     const all = questions ? Object.values(questions.rounds).flat() : [];
     const practised = new Set(all.filter(q => overview[q.id]).map(q => q.id)).size;
     const strong = new Set(all.filter(q => questionStatus(overview, q.id) === 'strong').map(q => q.id)).size;
@@ -80,25 +81,12 @@ export default function InterviewCoach({ workspace, go }: { workspace: Workspace
         <section className="ic-hero">
             <div className="ic-hero-main">
                 <span className="ic-eyebrow">Interview Coach</span>
-                <h2>Ready for <em>{current.title}</em>?</h2>
+                <h2>Ready for <em>{jobLabel(current)}</em>?</h2>
                 <p>Practise out loud, get scored on delivery, structure and evidence, and handle follow-up questions. Everything is analysed on this computer.</p>
-                <label className="ic-job">Preparing for
-                    <select value={current.document_id} onChange={e => setJobId(e.target.value)}>{jobs.map(j => <option key={j.document_id} value={j.document_id}>{j.title}</option>)}</select>
-                </label>
-                {plan?.interview_date && plan.status !== 'passed' && <button type="button" className="ic-countdown" onClick={() => setTab('plan')}><CalendarDays size={14} />{countdown(plan)}</button>}
-                {speech && <div className="ic-speech-options">
-                    <label className="ic-job">Voice
-                        <select value={speechChoice().voice} onChange={e => choose({ voice: e.target.value as 'natural' | 'browser' })}>
-                            {speech.voice.available && <option value="natural">{speech.voice.label}</option>}
-                            <option value="browser">Browser voice</option>
-                        </select>
-                    </label>
-                    <label className="ic-job">Speech recognition
-                        <select value={speechChoice().recognition ?? ''} onChange={e => choose({ recognition: e.target.value })}>
-                            {speech.recognition.options.filter(o => o.installed).map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-                        </select>
-                    </label>
-                </div>}
+                <div className="ic-hero-setup">
+                    {plan?.interview_date && plan.status !== 'passed' && <button type="button" className="ic-countdown" onClick={() => setTab('plan')}><CalendarDays size={14} />{countdown(plan)}</button>}
+                    <button type="button" className="ic-countdown" onClick={() => setEditing(true)}><Pencil size={14} />Edit setup</button>
+                </div>
             </div>
             <div className="ic-hero-side">
                 <ScoreRing value={latest?.overall} size={112} label={latest ? latest.band : 'No mock yet'} />

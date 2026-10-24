@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Mic, Square, Volume2 } from 'lucide-react';
 import { api } from '../api';
-import { speak, speechChoice, SpeechState, stopSpeaking } from './speech';
+import { speak, SpeechState, stopSpeaking } from './speech';
 import { PART_LABEL } from './types';
 import LiveMeter from './LiveMeter';
 import { Bar, Bubble, ScoreRing } from './ui';
@@ -175,7 +175,7 @@ export default function AnswerRecorder({ workspaceId, questionId, questionText, 
                 setPhase('processing');
                 try {
                     const audio = await toBase64(new Blob(chunks, { type: media.mimeType }));
-                    setAnswer(await api<Answer>(`/interview/${workspaceId}/answer`, { ...extra, question_id: questionId, audio, question_text: questionText, job: jobId, requirement_id: requirementId, recognition: speechChoice().recognition ?? undefined }));
+                    setAnswer(await api<Answer>(`/interview/${workspaceId}/answer`, { ...extra, question_id: questionId, audio, question_text: questionText, job: jobId, requirement_id: requirementId }));
                     onResult?.();
                 } catch (e) {
                     setError(e instanceof Error ? e.message : 'Transcription failed.');

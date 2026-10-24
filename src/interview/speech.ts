@@ -1,5 +1,5 @@
-// Reading questions and example answers aloud, and the user's voice and recognition choices.
-// The natural voice is Piper, run by the server on this computer; the browser's own voice is the fallback.
+// Reading questions and example answers aloud. The voice is fixed: Piper, run by the server on this
+// computer; the browser's own voice is used only when Piper is not installed or fails.
 // Browser voice works around two Chrome quirks: an utterance queued right after cancel() can be
 // dropped, and an unreferenced utterance can be garbage-collected mid-speech.
 
@@ -8,9 +8,7 @@ export type SpeechSettings = {
     voice: { id: string; label: string; available: boolean };
     recognition: { options: { id: string; label: string; installed: boolean }[]; default: string };
 };
-export type VoiceChoice = 'natural' | 'browser';
 const PREFERRED = /Samantha|Daniel|Karen|Moira|Google US English|Google UK English|Microsoft (Aria|Jenny|Guy|Zira|David)/;
-const STORAGE_KEY = 'proofcv.interview.speech';
 let current: SpeechSynthesisUtterance | null = null;
 let playing: HTMLAudioElement | null = null;
 let loading: AbortController | null = null;
@@ -18,26 +16,12 @@ let listener: ((state: SpeechState) => void) | null = null; // The natural voice
 let generation = 0; // Bumped on every stop, so a stopped request never falls back to the browser voice.
 let workspace = '';
 let settings: SpeechSettings | null = null;
-let choice: { voice: VoiceChoice; recognition: string | null } = { voice: 'natural', recognition: null };
-try { choice = { ...choice, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }; } catch { /* Storage unavailable: use the defaults. */ }
 
 export function configureSpeech(workspaceId: string, available: SpeechSettings) {
     workspace = workspaceId;
     settings = available;
 }
 
-export function speechChoice() {
-    const installed = settings?.recognition.options.filter(o => o.installed).map(o => o.id) || [];
-    return {
-        voice: settings?.voice.available && choice.voice === 'natural' ? 'natural' as const : 'browser' as const,
-        recognition: choice.recognition && installed.includes(choice.recognition) ? choice.recognition : settings?.recognition.default ?? null,
-    };
-}
-
-export function setSpeechChoice(update: Partial<typeof choice>) {
-    choice = { ...choice, ...update };
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(choice)); } catch { /* Not remembered, still applied. */ }
-}
 
 function englishVoice() {
     const voices = window.speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith('en'));
@@ -59,7 +43,7 @@ export function stopSpeaking() {
 export function speak(text: string, onState: (state: SpeechState) => void = () => undefined) {
     stopSpeaking();
     if (!text.trim()) { onState('failed'); return; }
-    if (speechChoice().voice === 'natural') void speakNatural(text, onState);
+    if (settings?.voice.available) void speakNatural(text, onState);
     else speakBrowser(text, onState);
 }
 

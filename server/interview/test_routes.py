@@ -76,18 +76,22 @@ class InterviewRouteTests(unittest.TestCase):
         matched = json.loads(self.request('GET', f"/api/interview/{state['id']}/fit?job=graduate_ai_engineer")[1])
         self.assertEqual(matched['job']['document_id'], 'graduate_ai_engineer')
 
-    def test_fit_rejects_jobs_the_user_did_not_match(self):
+    def test_fit_accepts_any_listed_job_and_lists_skills_to_learn(self):
         state = self.confirmed_state()
-        code, body = self.request('GET', f"/api/interview/{state['id']}/fit?job=rag_agent_engineer")
-        self.assertEqual(code, 404)
-        self.assertIn('matched jobs', json.loads(body)['error'])
+        result = json.loads(self.request('GET', f"/api/interview/{state['id']}/fit?job=rag_agent_engineer")[1])
+        self.assertEqual(result['job']['document_id'], 'rag_agent_engineer')  # Not one of the user's matches.
+        gaps = {r['id']: r for r in result['requirements']}
+        self.assertTrue(all(gaps[s['id']]['category'] in ('skill', 'practice') and gaps[s['id']]['status'] in ('gap', 'partial') for s in result['to_learn']))
+        code, body = self.request('GET', f"/api/interview/{state['id']}/fit?job=no_such_job")
+        self.assertEqual((code, json.loads(body)['error']), (404, 'Choose a job from the list.'))
 
     def test_questions_follow_the_same_job_rules_as_fit(self):
         state = self.confirmed_state()
         result = json.loads(self.request('GET', f"/api/interview/{state['id']}/questions?job=graduate_ai_engineer")[1])
         self.assertEqual(result['job']['document_id'], 'graduate_ai_engineer')
         self.assertEqual(set(result['rounds']), {'self_introduction', 'behavioural', 'technical', 'motivation_fit'})
-        self.assertEqual(self.request('GET', f"/api/interview/{state['id']}/questions?job=rag_agent_engineer")[0], 404)
+        self.assertEqual(json.loads(self.request('GET', f"/api/interview/{state['id']}/questions?job=rag_agent_engineer")[1])['job']['document_id'], 'rag_agent_engineer')
+        self.assertEqual(self.request('GET', f"/api/interview/{state['id']}/questions?job=no_such_job")[0], 404)
 
     def post_answer(self, workspace_id, body):
         return self.request('POST', f'/api/interview/{workspace_id}/answer', body, {'Content-Type': 'application/json'})
@@ -296,7 +300,9 @@ class InterviewRouteTests(unittest.TestCase):
                 mock.patch.object(gemini_speech, 'wav_bytes', return_value=b'RIFF'), mock.patch.object(speech, 'decode_audio', return_value=None), \
                 mock.patch.object(speech, 'transcriber', return_value=FakeTranscriber()):
             settings = json.loads(self.request('GET', f"/api/interview/{state['id']}/speech")[1])['recognition']
-            self.assertEqual((settings['default'], settings['options'][0]['id']), ('gemini', 'gemini'))
+            self.assertNotEqual(settings['default'], 'gemini')  # Local recognition is the fixed default.
+            self.assertIn('gemini', [o['id'] for o in settings['options']])
+            body = {**body, 'recognition': 'gemini'}
             result = json.loads(self.post_answer(state['id'], body)[1])
             self.assertEqual(result['transcript'], 'I am Sam Lee and I built a lane detector.')  # Gemini's text, not Whisper's "lame".
             self.assertEqual((result['words'], result['recognition']['source']), ([], 'gemini'))
@@ -311,6 +317,27 @@ class InterviewRouteTests(unittest.TestCase):
             self.assertIn('Gemini could not transcribe this answer', fallback['delivery']['notes'][0])
             local = json.loads(self.post_answer(state['id'], {**body, 'recognition': 'base.en'})[1])
             self.assertEqual(local['recognition']['source'], 'whisper')
+
+    def test_setup_saves_any_job_with_date_and_skills_and_becomes_the_default(self):
+        from datetime import date, timedelta
+        state = self.confirmed_state()
+        url, header = f"/api/interview/{state['id']}", {'Content-Type': 'application/json'}
+        before = json.loads(self.request('GET', url + '/status')[1])
+        self.assertIsNone(before['setup'])
+        self.assertEqual(len(before['jobs']), len(self.service.jobs))
+        self.assertTrue(next(j for j in before['jobs'] if j['document_id'] == 'computer_vision_engineer')['cv_target'])
+        learnable = [s['id'] for s in json.loads(self.request('GET', url + '/fit?job=rag_agent_engineer')[1])['to_learn']]
+        when = (date.today() + timedelta(14)).isoformat()
+        form = {'job': 'rag_agent_engineer', 'interview_date': when, 'learn_skills': learnable[:2], 'stage': 'technical', 'daily_minutes': 60, 'notes': ' Two interviewers. '}
+        saved = json.loads(self.request('POST', url + '/setup', form, header)[1])['setup']
+        self.assertEqual((saved['job'], saved['interview_date'], saved['learn_skills'], saved['notes']), ('rag_agent_engineer', when, learnable[:2], 'Two interviewers.'))
+        self.assertEqual(json.loads(self.request('GET', url + '/fit')[1])['job']['document_id'], 'rag_agent_engineer')  # The setup's job is now the default.
+        self.assertEqual(json.loads(self.request('GET', url + '/plan?job=rag_agent_engineer')[1])['interview_date'], when)
+        for bad, message in (({'job': 'nope'}, 'Choose a job from the list.'), ({'learn_skills': ['not-a-skill']}, 'Choose skills to learn from the list for this job.'),
+                             ({'stage': 'chat'}, 'Choose the interview stage.'), ({'daily_minutes': 45}, 'Choose how much time you have each day.'),
+                             ({'interview_date': '2020-01-01'}, 'The interview date is in the past.')):
+            code, body = self.request('POST', url + '/setup', {**form, **bad}, header)
+            self.assertEqual((code, json.loads(body)['error']), (400, message))
 
     def test_rehearsal_reports_which_slides_were_covered(self):
         class FakeTranscriber:

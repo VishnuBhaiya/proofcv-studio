@@ -8,7 +8,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import attempts, cheatsheet, content, evaluate, factcheck, followup, gemini_speech, mock, model_answer, plan, slides, speech, star, voice
+from . import attempts, cheatsheet, content, evaluate, factcheck, followup, gemini_speech, mock, model_answer, plan, setup, slides, speech, star, voice
 from ..gemini import GeminiError
 from .fit import job_fit, load_requirements
 from .questions import ROUNDS as QUESTION_ROUNDS, load_bank, pick_questions
@@ -48,22 +48,39 @@ def readiness(state):
     }
 
 
+def status(service, state):
+    """Readiness plus every job the user can prepare for and their saved setup."""
+    ready = readiness(state)
+    return {**ready, 'jobs': setup.job_list(service.jobs, ready['matched_jobs'], (ready['target_job'] or {}).get('document_id')),
+            'setup': attempt_store(service).setup(state['id'])}
+
+
 def fit(service, state, job_id=None):
-    """Strengths and gaps for the target job, or another of the user's matched jobs."""
+    """Strengths, gaps and skills to learn for any supplied job; by default the one chosen in setup, else the CV's job."""
     ready = readiness(state)
     if not ready['profile_confirmed'] or not state.get('confirmed_profile'):
         raise ValueError('Confirm your profile before preparing for an interview.')
-    allowed = [j['document_id'] for j in ready['matched_jobs']] + ([ready['target_job']['document_id']] if ready['target_job'] else [])
-    job_id = job_id or (ready['target_job'] or {}).get('document_id')
+    job_id = job_id or (attempt_store(service).setup(state['id']) or {}).get('job') or (ready['target_job'] or {}).get('document_id')
     if not job_id:
-        raise ValueError('Choose a target job first.')
-    if job_id not in allowed:
-        raise ValueError('Choose one of your matched jobs.')
+        raise ValueError('Choose a job to prepare for.')
+    job = next((j for j in service.jobs if j['document_id'] == job_id), None)
+    if not job:
+        raise ValueError('Choose a job from the list.')
     data = requirements(service.jobs)
-    job = next(j for j in service.jobs if j['document_id'] == job_id)
     with _embedding_lock:
         result = job_fit(job, data['jobs'][job_id], state['confirmed_profile'], service.retriever.backend)
-    return {**result, 'review_status': data['review_status']}
+    return {**result, 'review_status': data['review_status'], 'to_learn': setup.skills_to_learn(result['requirements'])}
+
+
+def save_setup(service, state, data, today=None):
+    """Check and store the setup form; the interview date also drives the countdown plan."""
+    chosen = fit(service, state, data.get('job') if isinstance(data.get('job'), str) else None) if data.get('job') in {j['document_id'] for j in service.jobs} else None
+    clean = setup.validate(data, {j['document_id'] for j in service.jobs}, {s['id'] for s in (chosen or {}).get('to_learn', [])}, today)
+    store = attempt_store(service)
+    store.save_setup(state['id'], clean)
+    if store.interview_date(state['id'], clean['job']) != clean['interview_date']:
+        store.set_interview_date(state['id'], clean['job'], clean['interview_date'])
+    return status(service, state)
 
 
 def questions(service, state, job_id=None):
@@ -249,10 +266,11 @@ def set_plan(service, state, data, today=None):
 
 
 def recognition_settings(service):
-    """Local Whisper models that are installed, plus Gemini when the server has a key; Gemini is the default then."""
+    """Installed local Whisper models, plus Gemini when the server has a key. The default is always local:
+    Accurate (small.en) when it is installed. Gemini is used only when a request asks for it."""
     options = speech.recognition_options()
     if gemini_speech.configured(service.model):
-        return {'options': [{'id': 'gemini', 'label': gemini_speech.LABEL, 'installed': True}, *options['options']], 'default': 'gemini'}
+        return {**options, 'options': [*options['options'], {'id': 'gemini', 'label': gemini_speech.LABEL, 'installed': True}]}
     return options
 
 
@@ -294,6 +312,8 @@ def handle_post(service, path, data):
         return answer(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'mock':
         return start_mock(service, service.store.get(parts[2]), data)
+    if len(parts) == 4 and parts[3] == 'setup':
+        return save_setup(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'plan':
         return set_plan(service, service.store.get(parts[2]), data)
     if len(parts) == 4 and parts[3] == 'speak':
@@ -333,7 +353,7 @@ def handle_get(service, url):
         service.store.get(parts[2])
         return speech_settings(service)
     if len(parts) == 4 and parts[3] == 'status':
-        return readiness(service.store.get(parts[2]))
+        return status(service, service.store.get(parts[2]))
     if len(parts) == 4 and parts[3] == 'fit':
         return fit(service, service.store.get(parts[2]), job_id)
     if len(parts) == 4 and parts[3] == 'questions':
