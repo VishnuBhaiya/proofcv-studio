@@ -1,0 +1,988 @@
+{
+ "note": "Interview Coach demo for the labelled Avery Morgan sample, recorded through the app. Dates are relative to the load day.",
+ "setup": {
+  "job": "computer_vision_engineer",
+  "learn_skills": [
+   "cve-07",
+   "cve-11"
+  ],
+  "stage": "technical",
+  "daily_minutes": 60,
+  "notes": "Technical interview with the computer vision team lead.",
+  "interview_in_days": 9,
+  "saved_at": {
+   "days": -3,
+   "time": "11:20:00"
+  }
+ },
+ "attempts": [
+  {
+   "ref": 105,
+   "question_id": "tq-video-analytics",
+   "created_at": {
+    "days": -3,
+    "time": "11:35:00"
+   },
+   "transcript": "You would run the detector on every frame of the video and draw a box around each person. Then you could count the boxes in each frame and show the total on the screen.",
+   "summary": {
+    "words_per_minute": 265,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 105,
+    "unsure_share": 0.0,
+    "length_gap": 90,
+    "length_ratio": 0.1,
+    "key_points": 0.1,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": null
+   }
+  },
+  {
+   "ref": 106,
+   "question_id": "tq-pytorch-loop",
+   "created_at": {
+    "days": -3,
+    "time": "11:40:00"
+   },
+   "transcript": "A PyTorch training loop starts with a data set and a data loader that produce batches, for each batch. You run the forward pass and compute the loss. Then you zero the gradients, call backward, and take an optimizer step. After each epoch you switch the model to eval mode and use no grad for validation. Finally, you track metrics and save checkpoints of the best model. In my Smart Intersection project I trained a lightweight YOLO model with PyTorch.",
+   "summary": {
+    "words_per_minute": 191,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 31,
+    "unsure_share": 0.03,
+    "length_gap": 67,
+    "length_ratio": 0.33,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 107,
+   "question_id": "tq-detection-eval",
+   "created_at": {
+    "days": -3,
+    "time": "11:45:00"
+   },
+   "transcript": "First, you match each prediction to the ground truth with an EOU threshold, usually 0 .5, to decide whether a detection is correct. Then you report precision, and recall for each class, and mean average precision across classes and several EOU thresholds. Beyond the averages, you do per class and per condition error analysis, for example low light or occlusion, and you test on data that resembles the real deployment conditions. In my smart intersection project I compared precision, recall and MAP across experiments and reviewed false positives and missed detections.",
+   "summary": {
+    "words_per_minute": 161,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 1,
+    "unsure_share": 0.01,
+    "length_gap": 55,
+    "length_ratio": 0.45,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 108,
+   "question_id": "tq-big-data",
+   "created_at": {
+    "days": -3,
+    "time": "11:50:00"
+   },
+   "transcript": "I would try to load it with pandas, and if it is too big I would use a computer with more memory, or make the images smaller.",
+   "summary": {
+    "words_per_minute": 248,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 88,
+    "unsure_share": 0.0,
+    "length_gap": 91,
+    "length_ratio": 0.09,
+    "key_points": 0.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": null
+   }
+  },
+  {
+   "ref": 109,
+   "question_id": "tq-data-cleaning",
+   "created_at": {
+    "days": -3,
+    "time": "11:55:00"
+   },
+   "transcript": "You start by profiling missing values, outliers, and data types. Then you decide whether to impute or remove each problem, and fix duplicates and label errors. In my dataset quality, review toolkit I checked image dimensions, duplicate file names, missing annotation files, and class imbalance, before training.",
+   "summary": {
+    "words_per_minute": 154,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 0,
+    "unsure_share": 0.02,
+    "length_gap": 76,
+    "length_ratio": 0.24,
+    "key_points": 0.5,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 110,
+   "question_id": "tq-batch-stream",
+   "created_at": {
+    "days": -3,
+    "time": "12:00:00"
+   },
+   "transcript": "Batch processing handles data that has built up, on a schedule, for example every night. Streaming processes events continuously with low latency, for example a live camera feed. Streaming is harder to build, so the trade -off is latency against complexity.",
+   "summary": {
+    "words_per_minute": 173,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 13,
+    "unsure_share": 0.0,
+    "length_gap": 81,
+    "length_ratio": 0.19,
+    "key_points": 0.8,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": null
+   }
+  },
+  {
+   "ref": 111,
+   "question_id": "tq-edge",
+   "created_at": {
+    "days": -3,
+    "time": "12:05:00"
+   },
+   "transcript": "You would choose a smaller architecture, such as a lightweight YOLO model, and use quantization to make it faster. Then you export it to an optimized runtime such as Onks.",
+   "summary": {
+    "words_per_minute": 207,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 47,
+    "unsure_share": 0.03,
+    "length_gap": 88,
+    "length_ratio": 0.12,
+    "key_points": 0.4,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": null
+   }
+  },
+  {
+   "ref": 112,
+   "question_id": "tq-docker",
+   "created_at": {
+    "days": -3,
+    "time": "12:10:00"
+   },
+   "transcript": "Docker gives a reproducible environment, because the dependencies are inside the image. The same image runs in development and in production, and it is isolated from other services. It is easy to deploy and scale, for example with Kubernetes, and you should pin versions and keep the image small. I packaged my Dataset Quality Review Toolkit with Docker, and documented a repeatable setup workflow for classmates.",
+   "summary": {
+    "words_per_minute": 171,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 11,
+    "unsure_share": 0.02,
+    "length_gap": 69,
+    "length_ratio": 0.31,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 113,
+   "question_id": "tq-cv-robustness",
+   "created_at": {
+    "days": -3,
+    "time": "12:15:00"
+   },
+   "transcript": "First, you do error analysis by condition, to confirm that night and rain really are the cause. Then you add augmentation, such as brightness changes, blur and noise.",
+   "summary": {
+    "words_per_minute": 176,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 16,
+    "unsure_share": 0.0,
+    "length_gap": 87,
+    "length_ratio": 0.13,
+    "key_points": 0.4,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": null
+   }
+  },
+  {
+   "ref": 114,
+   "question_id": "si-30",
+   "created_at": {
+    "days": -2,
+    "time": "18:00:00"
+   },
+   "transcript": "Hi, I'm Avery Morgan, I'm an artificial intelligence diploma student at Harbor Technical College, and I focus on computer vision. In my Smart Intersection Object Detection project, I trained a lightweight YOLO model to detect vehicles, cyclists and pedestrians in recorded intersection footage, and compared precision. Recall and MAP across experiments. I'm applying for the AI Computer Vision Engineer role because building and evaluating detection models with Python, OpenCV and pie torch is exactly the work I want to do.",
+   "summary": {
+    "words_per_minute": 155,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 0,
+    "unsure_share": 0.04,
+    "length_gap": 3,
+    "length_ratio": 1.03,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 115,
+   "question_id": "si-90",
+   "created_at": {
+    "days": -2,
+    "time": "18:08:00"
+   },
+   "transcript": "Hi, I'm Avery Morgan. I'm studying an advanced diploma of information technology in artificial intelligence at Harbor Technical College, with hands -on coursework in object detection, video analytics and data set quality. In 2025 I worked as a computer vision lab assistant in the college's applied computing lab. I prepared and checked annotated training images, reproduced baseline experiments, logged metrics and documented setup steps, and I helped classmates debug their data loading and evaluation scripts. My strongest project is smart intersection object detection. I curated and labeled a small image dataset, trained a lightweight YOLO model, and compared precision, recall and MAP across experiments. I then reviewed false positives and missed detections, and documented the limitations caused by low light, occlusion and the small training set. I presented it as a finalist at the Harbor Applied AI Showcase. I also built a warehouse safety prototype that highlights people entering marked safety zones in recorded video, with object tracking, event counts and latency measured on a laptop, I fit the AI computer vision engineer role because it asks for Python, OpenCV and a deep learning framework like PyTorch, which are the tools I use in every project, and because I care about evaluating models carefully, not just training them.",
+   "summary": {
+    "words_per_minute": 160,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 0,
+    "unsure_share": 0.02,
+    "length_gap": 14,
+    "length_ratio": 0.86,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 116,
+   "question_id": "bh-project-hardest",
+   "created_at": {
+    "days": -2,
+    "time": "18:16:00"
+   },
+   "transcript": "The hardest problem in my Smart Intersection Object Detection project was working out why the model was still missing objects, because the summary metrics on their own didn't tell me where it was failing. I had curated and labeled a small image dataset myself, trained a lightweight YOLO model with PyTorch, and I was comparing precision, recall and MAP across experiments. Those numbers told me how well the model did on average, but not why it got things wrong, so I stopped relying on the averages and went through the false positives and the misdetections directly. That error analysis showed the failures clustered around three causes, low light, occlusion, where vehicles, cyclists or pedestrians were partly hidden behind each other, and the deliberately small training set, which simply didn't cover those conditions well enough. Once I understood the cause, I could be honest about what the model could and couldn't do. I documented those limitations clearly, and I presented the project as an offline demonstration. Not a deployed traffic system, that error analysis became the center of my presentation, when the project was a finalist at the Harbor Applied AI Showcase. The main thing I learned, is that a good MAP score isn't the end of evaluation. If I took the project further, my next step would be to collect and label more low light and occluded examples, and test on a separate slice for those conditions, so I could measure whether the fix actually worked.",
+   "summary": {
+    "words_per_minute": 182,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 22,
+    "unsure_share": 0.02,
+    "length_gap": 10,
+    "length_ratio": 0.9,
+    "star_parts": 4,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 80
+   }
+  },
+  {
+   "ref": 117,
+   "question_id": "mf-why-role",
+   "created_at": {
+    "days": -2,
+    "time": "18:24:00"
+   },
+   "transcript": "I want this AI Computer Vision Engineer role because it focuses on the work I enjoy most, detecting objects in video and evaluating models carefully. In my Smart Intersection Object Detection project I trained a lightweight YOLO model and compared precision, recall and MAP across experiments. In my Warehouse Safety Video Analytics project I added object tracking and event counts. I want to learn how to take models like these into production, and this role is where I can do that.",
+   "summary": {
+    "words_per_minute": 175,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 15,
+    "unsure_share": 0.02,
+    "length_gap": 54,
+    "length_ratio": 0.46,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 90
+   }
+  },
+  {
+   "ref": 118,
+   "question_id": "tq-video-analytics",
+   "created_at": {
+    "days": -1,
+    "time": "11:00:00"
+   },
+   "transcript": "First, you track objects across frames so each person keeps the same identity. Then you count with track ID or a line crossing rule, so the same person is not counted twice. You also choose between frame sampling and the full real time frame rate, and smooth noisy detections over several frames. Finally, you check the latency and throughput limits. In my warehouse safety project I added frame sampling, object tracking and event counts.",
+   "summary": {
+    "words_per_minute": 184,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 24,
+    "unsure_share": 0.01,
+    "length_gap": 68,
+    "length_ratio": 0.32,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 119,
+   "question_id": "tq-big-data",
+   "created_at": {
+    "days": -1,
+    "time": "11:05:00"
+   },
+   "transcript": "You process the data in chunks, or stream it, instead of loading everything at once. For larger jobs you would use distributed processing such as Spark, and store the data in an efficient file format such as Parquet. You can sample the data for exploration first, and push filtering and aggregation to the database where possible.",
+   "summary": {
+    "words_per_minute": 192,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 32,
+    "unsure_share": 0.0,
+    "length_gap": 77,
+    "length_ratio": 0.23,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": null
+   }
+  },
+  {
+   "ref": 120,
+   "question_id": "tq-edge",
+   "created_at": {
+    "days": -1,
+    "time": "11:10:00"
+   },
+   "transcript": "You choose a smaller architecture, such as a lightweight YOLO model, then you apply quantization, and pruning or distillation, and export it to an optimized runtime such as Onks or TensorRT. Finally, you measure the latency and accuracy trade -off on the device itself.",
+   "summary": {
+    "words_per_minute": 174,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 14,
+    "unsure_share": 0.0,
+    "length_gap": 80,
+    "length_ratio": 0.2,
+    "key_points": 0.8,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": null
+   }
+  },
+  {
+   "ref": 121,
+   "question_id": "tq-cloud",
+   "created_at": {
+    "days": -1,
+    "time": "11:15:00"
+   },
+   "transcript": "You package the model as a container image and run it on a managed service or on Kubernetes. The service auto -scales with load, and the models and secrets are stored securely. You also monitor performance and cost.",
+   "summary": {
+    "words_per_minute": 204,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 44,
+    "unsure_share": 0.0,
+    "length_gap": 85,
+    "length_ratio": 0.15,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": null
+   }
+  },
+  {
+   "ref": 122,
+   "question_id": "si-90",
+   "created_at": {
+    "days": -1,
+    "time": "19:00:00"
+   },
+   "transcript": "Hi, I'm Avery Morgan. I'm studying an advanced diploma of information technology in artificial intelligence at Harbor Technical College, with hands -on coursework in object detection, video analytics and data set quality. In 2025 I worked as a computer vision lab assistant in the college's applied computing lab. I prepared and checked annotated training images, reproduced baseline experiments, logged metrics and documented setup steps, and I helped classmates debug their data loading and evaluation scripts. My strongest project is smart intersection object detection. I curated and labeled a small image dataset, trained a lightweight YOLO model, and compared precision, recall and MAP across experiments. I then reviewed false positives and missed detections, and documented the limitations caused by low light, occlusion and the small training set. I presented it as a finalist at the Harbor Applied AI Showcase. I also built a warehouse safety prototype that highlights people entering marked safety zones in recorded video, with object tracking, event counts and latency measured on a laptop, I fit the AI computer vision engineer role because it asks for Python, OpenCV and a deep learning framework like PyTorch, which are the tools I use in every project, and because I care about evaluating models carefully, not just training them.",
+   "summary": {
+    "words_per_minute": 160,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 0,
+    "unsure_share": 0.02,
+    "length_gap": 14,
+    "length_ratio": 0.86,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 123,
+   "question_id": "si-90:follow-up",
+   "created_at": {
+    "days": -1,
+    "time": "19:04:00"
+   },
+   "transcript": "In my Smart Intersection Object Detection project, I curated and labeled a small image dataset, trained a lightweight YOLO model, and compared precision, recall and MAP across experiments. I reviewed false positives and missed detections, and documented the limitations caused by low light and occlusion.",
+   "summary": {
+    "words_per_minute": 147,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 0,
+    "unsure_share": 0.04,
+    "length_gap": 59,
+    "length_ratio": 0.41,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 124,
+   "question_id": "bh-project-hardest",
+   "created_at": {
+    "days": -1,
+    "time": "19:07:00"
+   },
+   "transcript": "The hardest problem in my Smart Intersection Object Detection project was working out why the model was still missing objects, because the summary metrics on their own didn't tell me where it was failing. I had curated and labeled a small image dataset myself, trained a lightweight YOLO model with PyTorch, and I was comparing precision, recall and MAP across experiments. Those numbers told me how well the model did on average, but not why it got things wrong, so I stopped relying on the averages and went through the false positives and the misdetections directly. That error analysis showed the failures clustered around three causes, low light, occlusion, where vehicles, cyclists or pedestrians were partly hidden behind each other, and the deliberately small training set, which simply didn't cover those conditions well enough. Once I understood the cause, I could be honest about what the model could and couldn't do. I documented those limitations clearly, and I presented the project as an offline demonstration. Not a deployed traffic system, that error analysis became the center of my presentation, when the project was a finalist at the Harbor Applied AI Showcase. The main thing I learned, is that a good MAP score isn't the end of evaluation. If I took the project further, my next step would be to collect and label more low light and occluded examples, and test on a separate slice for those conditions, so I could measure whether the fix actually worked.",
+   "summary": {
+    "words_per_minute": 182,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 22,
+    "unsure_share": 0.02,
+    "length_gap": 10,
+    "length_ratio": 0.9,
+    "star_parts": 4,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 80
+   }
+  },
+  {
+   "ref": 125,
+   "question_id": "bh-project-hardest:follow-up",
+   "created_at": {
+    "days": -1,
+    "time": "19:11:00"
+   },
+   "transcript": "In my Smart Intersection Object Detection project, I curated and labeled a small image dataset, trained a lightweight YOLO model, and compared precision, recall and MAP across experiments. I reviewed false positives and missed detections, and documented the limitations caused by low light and occlusion.",
+   "summary": {
+    "words_per_minute": 147,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 0,
+    "unsure_share": 0.04,
+    "length_gap": 59,
+    "length_ratio": 0.41,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 126,
+   "question_id": "bh-cross-team",
+   "created_at": {
+    "days": -1,
+    "time": "19:14:00"
+   },
+   "transcript": "As a customer technology assistant at Harbor Electronics, I worked between customers and the technical team. My task was to resolve basic setup issues and pass on the harder ones. I recorded recurring customer questions and coordinated escalations during busy periods that helped the team see which problems came up most often.",
+   "summary": {
+    "words_per_minute": 179,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 19,
+    "unsure_share": 0.0,
+    "length_gap": 81,
+    "length_ratio": 0.19,
+    "star_parts": 2,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 87
+   }
+  },
+  {
+   "ref": 127,
+   "question_id": "bh-cross-team:follow-up",
+   "created_at": {
+    "days": -1,
+    "time": "19:18:00"
+   },
+   "transcript": "In my Smart Intersection Object Detection project, I curated and labeled a small image dataset, trained a lightweight YOLO model, and compared precision, recall and MAP across experiments. I reviewed false positives and missed detections, and documented the limitations caused by low light and occlusion.",
+   "summary": {
+    "words_per_minute": 147,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 0,
+    "unsure_share": 0.04,
+    "length_gap": 59,
+    "length_ratio": 0.41,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 128,
+   "question_id": "tq-video-analytics",
+   "created_at": {
+    "days": -1,
+    "time": "19:21:00"
+   },
+   "transcript": "First, you track objects across frames so each person keeps the same identity. Then you count with track ID or a line crossing rule, so the same person is not counted twice. You also choose between frame sampling and the full real time frame rate, and smooth noisy detections over several frames. Finally, you check the latency and throughput limits. In my warehouse safety project I added frame sampling, object tracking and event counts.",
+   "summary": {
+    "words_per_minute": 184,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 24,
+    "unsure_share": 0.01,
+    "length_gap": 68,
+    "length_ratio": 0.32,
+    "key_points": 1.0,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 129,
+   "question_id": "tq-video-analytics:follow-up",
+   "created_at": {
+    "days": -1,
+    "time": "19:25:00"
+   },
+   "transcript": "In my Smart Intersection Object Detection project, I curated and labeled a small image dataset, trained a lightweight YOLO model, and compared precision, recall and MAP across experiments. I reviewed false positives and missed detections, and documented the limitations caused by low light and occlusion.",
+   "summary": {
+    "words_per_minute": 147,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 0,
+    "unsure_share": 0.04,
+    "length_gap": 59,
+    "length_ratio": 0.41,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 130,
+   "question_id": "mf-gap",
+   "created_at": {
+    "days": -1,
+    "time": "19:32:00"
+   },
+   "transcript": "That's fair. I haven't worked with truly large datasets yet. The closest experience I have is my dataset quality review toolkit, where I checked image dimensions, duplicate filenames, missing annotation files and class imbalance before training. In my Smart Intersection project, I also curated and labeled my own image dataset to close the gap. I am learning to process data in chunks and with Spark, using free courses, and I would build that skill quickly on the job.",
+   "summary": {
+    "words_per_minute": 170,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 10,
+    "unsure_share": 0.01,
+    "length_gap": 54,
+    "length_ratio": 0.46,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  },
+  {
+   "ref": 131,
+   "question_id": "mf-gap:follow-up",
+   "created_at": {
+    "days": -1,
+    "time": "19:35:00"
+   },
+   "transcript": "I would start with a small project of my own, for example processing a public video dataset in chunks, and measure the processing time before and after. In my warehouse safety project I already measured processing latency on a laptop, so I know how to compare the results.",
+   "summary": {
+    "words_per_minute": 191,
+    "fillers_per_minute": 0.0,
+    "long_pauses": 0,
+    "pace_gap": 31,
+    "unsure_share": 0.0,
+    "length_gap": 66,
+    "length_ratio": 0.34,
+    "flags": 0,
+    "unmatched": 0,
+    "honesty": 100
+   }
+  }
+ ],
+ "skill_check": {
+  "job": {
+   "document_id": "computer_vision_engineer",
+   "title": "AI Computer Vision Engineer",
+   "learn_skills": [
+    "Working with large datasets",
+    "Video streaming and MLOps"
+   ]
+  },
+  "questions": [
+   {
+    "id": "tq-video-analytics",
+    "text": "How would you turn a frame-by-frame detector into a video analytics system, for example to count people?",
+    "topic": "video analytics with tracking across frames",
+    "round": "technical",
+    "compulsory": true,
+    "requirement": {
+     "id": "cve-06",
+     "text": "Video analytics",
+     "status": "strong",
+     "level": "required"
+    },
+    "learning": false
+   },
+   {
+    "id": "tq-pytorch-loop",
+    "text": "Walk me through a PyTorch training loop.",
+    "topic": "deep-learning framework training loop in PyTorch",
+    "round": "technical",
+    "compulsory": true,
+    "requirement": {
+     "id": "cve-03",
+     "text": "TensorFlow, PyTorch or a similar deep-learning framework",
+     "status": "strong",
+     "level": "required"
+    },
+    "learning": false
+   },
+   {
+    "id": "tq-detection-eval",
+    "text": "How would you evaluate an object detection model? Which metrics would you report and why?",
+    "topic": "object detection evaluation metrics",
+    "round": "technical",
+    "compulsory": true,
+    "requirement": {
+     "id": "cve-05",
+     "text": "Object detection and image classification",
+     "status": "strong",
+     "level": "required"
+    },
+    "learning": false
+   },
+   {
+    "id": "tq-big-data",
+    "text": "How would you process a dataset that does not fit in memory?",
+    "topic": "big-data technologies for large-scale datasets",
+    "round": "technical",
+    "compulsory": true,
+    "requirement": {
+     "id": "cve-07",
+     "text": "Working with large datasets",
+     "status": "gap",
+     "level": "required"
+    },
+    "learning": false
+   },
+   {
+    "id": "tq-data-cleaning",
+    "text": "You receive a messy, incomplete dataset. How do you prepare it for training?",
+    "topic": "data cleaning for incomplete and noisy datasets",
+    "round": "technical",
+    "compulsory": false,
+    "requirement": {
+     "id": "cve-07",
+     "text": "Working with large datasets",
+     "status": "gap",
+     "level": "required"
+    },
+    "learning": true
+   },
+   {
+    "id": "tq-batch-stream",
+    "text": "What is the difference between batch and streaming processing, and when would you use each?",
+    "topic": "batch versus streaming data processing",
+    "round": "technical",
+    "compulsory": false,
+    "requirement": {
+     "id": "cve-11",
+     "text": "Video streaming and MLOps",
+     "status": "gap",
+     "level": "preferred"
+    },
+    "learning": true
+   },
+   {
+    "id": "tq-edge",
+    "text": "How would you deploy a vision model on an edge device with limited compute?",
+    "topic": "edge AI deployment and model optimisation",
+    "round": "technical",
+    "compulsory": false,
+    "requirement": {
+     "id": "cve-09",
+     "text": "YOLO, edge AI or GPU environments",
+     "status": "strong",
+     "level": "preferred"
+    },
+    "learning": false
+   },
+   {
+    "id": "tq-cloud",
+    "text": "How would you deploy and scale a machine-learning service in the cloud?",
+    "topic": "cloud deployment and scaling",
+    "round": "technical",
+    "compulsory": false,
+    "requirement": {
+     "id": "cve-10",
+     "text": "Docker, cloud platforms and production deployment",
+     "status": "strong",
+     "level": "preferred"
+    },
+    "learning": false
+   },
+   {
+    "id": "tq-docker",
+    "text": "Why would you put a machine-learning service in a Docker container?",
+    "topic": "Docker containers for reproducible deployment",
+    "round": "technical",
+    "compulsory": false,
+    "requirement": {
+     "id": "cve-10",
+     "text": "Docker, cloud platforms and production deployment",
+     "status": "strong",
+     "level": "preferred"
+    },
+    "learning": false
+   },
+   {
+    "id": "tq-cv-robustness",
+    "text": "Your vision model performs badly at night or in rain. How would you improve it?",
+    "topic": "improving computer-vision model robustness with data and augmentation",
+    "round": "technical",
+    "compulsory": false,
+    "requirement": {
+     "id": "cve-04",
+     "text": "Deploying computer-vision models",
+     "status": "partial",
+     "level": "required"
+    },
+    "learning": false
+   }
+  ],
+  "answers": {
+   "0": {
+    "id": 105,
+    "covered": [],
+    "partial": [
+     "Track objects across frames to keep identities"
+    ],
+    "missed": [
+     "Count with track IDs or line crossing to avoid double counting",
+     "Frame sampling versus real-time frame rate",
+     "Temporal smoothing of noisy detections",
+     "Latency and throughput limits"
+    ]
+   },
+   "1": {
+    "id": 106,
+    "covered": [
+     "Dataset and DataLoader produce batches",
+     "Forward pass and loss",
+     "Zero gradients, backward pass, optimiser step",
+     "Switch to eval mode and no_grad for validation",
+     "Track metrics and save checkpoints"
+    ],
+    "partial": [],
+    "missed": []
+   },
+   "2": {
+    "id": 107,
+    "covered": [
+     "IoU threshold decides whether a detection is correct",
+     "Precision and recall",
+     "mAP across classes and IoU thresholds",
+     "Per-class and per-condition error analysis",
+     "Test data that resembles real deployment conditions"
+    ],
+    "partial": [],
+    "missed": []
+   },
+   "3": {
+    "id": 108,
+    "covered": [],
+    "partial": [],
+    "missed": [
+     "Process in chunks or stream it",
+     "Distributed processing such as Spark",
+     "Efficient file formats such as Parquet",
+     "Sample for exploration",
+     "Push work to the database where possible"
+    ]
+   },
+   "4": {
+    "id": 109,
+    "covered": [
+     "Profile missing values, outliers and types",
+     "Fix duplicates and label errors"
+    ],
+    "partial": [
+     "Choose imputation or removal with a reason"
+    ],
+    "missed": [
+     "Keep cleaning in a reproducible pipeline",
+     "Add data checks and document assumptions"
+    ]
+   },
+   "5": {
+    "id": 110,
+    "covered": [
+     "Batch processes accumulated data on a schedule",
+     "Streaming processes events continuously with low latency",
+     "Trade-off between latency and complexity"
+    ],
+    "partial": [
+     "Example tools such as Spark and Kafka",
+     "A concrete example of each"
+    ],
+    "missed": []
+   },
+   "6": {
+    "id": 111,
+    "covered": [
+     "Choose a smaller architecture",
+     "Export to an optimised runtime such as ONNX or TensorRT"
+    ],
+    "partial": [],
+    "missed": [
+     "Quantisation",
+     "Pruning or distillation",
+     "Measure the latency and accuracy trade-off on the device"
+    ]
+   },
+   "8": {
+    "id": 112,
+    "covered": [
+     "Reproducible environment and dependencies",
+     "The same image runs in development and production",
+     "Isolation from other services",
+     "Easy to deploy and scale, for example with Kubernetes",
+     "Pin versions and keep the image small"
+    ],
+    "partial": [],
+    "missed": []
+   },
+   "9": {
+    "id": 113,
+    "covered": [
+     "Error analysis by condition to confirm the cause",
+     "Augmentation such as brightness, blur and noise"
+    ],
+    "partial": [],
+    "missed": [
+     "Collect and label more data for those conditions",
+     "Balance conditions in training data",
+     "Evaluate on a held-out slice for those conditions"
+    ]
+   }
+  },
+  "created_at": {
+   "days": -3,
+   "time": "11:30:00"
+  },
+  "finished_at": {
+   "days": -3,
+   "time": "12:20:00"
+  }
+ },
+ "mocks": [
+  {
+   "job": {
+    "document_id": "computer_vision_engineer",
+    "title": "AI Computer Vision Engineer"
+   },
+   "questions": [
+    {
+     "id": "si-90",
+     "round": "self_introduction",
+     "text": "Tell me about yourself. Take about 90 seconds and focus on why you fit the AI Computer Vision Engineer role.",
+     "reason": "90-second version",
+     "seconds": 90
+    },
+    {
+     "id": "bh-project-hardest",
+     "round": "behavioural",
+     "text": "In your Smart Intersection Object Detection project, what was the hardest problem you faced, and how did you solve it?",
+     "reason": "Uses your project with the most evidence for this job"
+    },
+    {
+     "id": "bh-cross-team",
+     "round": "behavioural",
+     "text": "Tell me about working with people from a different discipline or team.",
+     "reason": "Linked to “Collaborate with stakeholders and technology partners”",
+     "requirement": {
+      "id": "cve-14",
+      "text": "Collaborate with stakeholders and technology partners",
+      "status": "gap"
+     }
+    },
+    {
+     "id": "tq-video-analytics",
+     "round": "technical",
+     "text": "How would you turn a frame-by-frame detector into a video analytics system, for example to count people?",
+     "reason": "From your skill check: video analytics with tracking across frames",
+     "requirement": {
+      "id": "cve-06",
+      "text": "Video analytics",
+      "status": "strong"
+     }
+    },
+    {
+     "id": "mf-gap",
+     "round": "motivation_fit",
+     "text": "The job asks for “Working with large datasets”, and your profile doesn't show this yet. How would you answer if the interviewer raised it?",
+     "reason": "Required by the job, with no supporting fact in your profile",
+     "requirement": {
+      "id": "cve-07",
+      "text": "Working with large datasets",
+      "status": "gap"
+     }
+    }
+   ],
+   "answers": {
+    "0": 122,
+    "0f": {
+     "id": 123,
+     "question": "What are you hoping to learn in your next role?"
+    },
+    "1": 124,
+    "1f": {
+     "id": 125,
+     "question": "How did you know it worked? Can you put a number on the result?"
+    },
+    "2": 126,
+    "2f": {
+     "id": 127,
+     "question": "What was the outcome? Can you put a number on it?"
+    },
+    "3": 128,
+    "3f": {
+     "id": 129,
+     "question": "What are the limitations or trade-offs of that approach?"
+    },
+    "4": 130,
+    "4f": {
+     "id": 131,
+     "question": "What would you want to achieve in your first three months?"
+    }
+   },
+   "created_at": {
+    "days": -1,
+    "time": "18:55:00"
+   }
+  }
+ ],
+ "ticks": [
+  {
+   "days": -3,
+   "task": "study:tq-big-data"
+  },
+  {
+   "days": -3,
+   "task": "study:tq-video-analytics"
+  },
+  {
+   "days": -2,
+   "task": "study:tq-cloud"
+  },
+  {
+   "days": -2,
+   "task": "study:tq-edge"
+  }
+ ]
+}
