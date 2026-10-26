@@ -95,11 +95,13 @@ class Evidence:
             if since is None or datetime.fromisoformat(a['created_at']) > datetime.fromisoformat(since):
                 self.answered_on.setdefault(day, set()).add(a['question_id'])
             if a['summary'].get('key_points') is not None:
-                self.by_question.setdefault(a['question_id'], []).append((day, a['summary']['key_points']))
+                self.by_question.setdefault(a['question_id'], []).append((day, datetime.fromisoformat(a['created_at']), a['summary']['key_points']))
 
-    def knowledge(self, question_id, before=None):
-        """Latest knowledge before a day (or ever, when before is None); None if never answered."""
-        found = [k for day, k in self.by_question.get(question_id, []) if before is None or day < before]
+    def knowledge(self, question_id, before=None, until=None):
+        """Latest knowledge before a day (or ever, when before is None), and given no later than until
+        when that is set; None if never answered."""
+        found = [k for day, moment, k in self.by_question.get(question_id, [])
+                 if (before is None or day < before) and (until is None or moment <= until)]
         return found[-1] if found else None
 
     def answered(self, question_id, day):
@@ -138,11 +140,16 @@ def build(start, today, interview, topics, attempts, mocks, ticks, daily_minutes
 
     first_day = start + timedelta(1)
 
+    finished = datetime.fromisoformat(since) if since else None
+
     def known(topic, before):
-        """Knowledge from answers before a day; the skill check's own answers count from the start day."""
+        """Knowledge from answers before a day. On the start day that means the skill check's own answers only:
+        practice later that same day must not change the starting level or the first day's list."""
         if not topic['question_id']:
             return None
-        return evidence.knowledge(topic['question_id'], before if before is None else max(before, first_day))
+        if before is not None and before <= start:
+            return evidence.knowledge(topic['question_id'], first_day, until=finished)
+        return evidence.knowledge(topic['question_id'], before)
 
     def need(topic, before):
         """Sort key: weakest level first, then least knowledge, then the topic's skill-check order."""

@@ -101,6 +101,19 @@ class ProgressTests(unittest.TestCase):
         first = plan['days'][2]['tasks'][0]
         self.assertEqual((first['question_id'], first['before'], first['after'], first['done']), ('weak', 0, 60, True))
 
+    def test_same_day_practice_after_the_skill_check_keeps_the_starting_level(self):
+        since = f'{START.isoformat()}T12:30:00+00:00'  # The skill check (CHECK, at 12:00) finished at 12:30.
+        practice = {'question_id': 'weak', 'created_at': f'{START.isoformat()}T15:00:00+00:00', 'summary': {'key_points': 0.9}}
+        build_with = lambda attempts: build(START, START, START + timedelta(9), TOPICS, attempts, [], set(), 60, 'technical', (), timezone.utc, since)
+        before, after = build_with(CHECK), build_with(CHECK + [practice])
+        weak = lambda plan: next(t for t in plan['topics'] if t['id'] == 'weak')
+        self.assertEqual((weak(after)['start'], weak(after)['start_knowledge']), ('weak', 0))  # Baseline: the skill check only.
+        self.assertEqual((weak(after)['level'], weak(after)['knowledge']), ('strong', 90))  # "Now" includes the practice.
+        topics_on = lambda plan, i: [t['topic_id'] for t in plan['days'][i]['tasks']]
+        self.assertEqual(topics_on(after, 0), topics_on(before, 0))  # The first day's list does not shift.
+        self.assertIn('weak', topics_on(before, 3))
+        self.assertNotIn('weak', topics_on(after, 3))  # From the next day on, the practice counts.
+
     def test_a_test_taken_early_counts_for_its_day(self):
         test_day = START + timedelta(2)
         plan = make(START + timedelta(9), CHECK + [answer('weak', START + timedelta(1), 0.7)], today=START + timedelta(1),
