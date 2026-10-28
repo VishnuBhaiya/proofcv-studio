@@ -165,8 +165,10 @@ def make_handler(service):
                 self.send(403, {'error': 'Only local hostnames are accepted.'})
                 return
             # JSON plus origin validation prevents drive-by web forms writing local data.
+            # The app's own page may always save, whichever port it runs on (8000 can be taken).
             is_guide = request_path.endswith('/portfolio-chat')
-            allowed_origins = ('http://' + self.headers.get('Host',''),) if is_guide else (None, 'http://127.0.0.1:5173', 'http://localhost:5173', 'http://127.0.0.1:8000', 'http://localhost:8000')
+            own_origin = 'http://' + self.headers.get('Host','')
+            allowed_origins = (own_origin,) if is_guide else (None, own_origin, 'http://127.0.0.1:5173', 'http://localhost:5173', 'http://127.0.0.1:8000', 'http://localhost:8000')
             if self.headers.get('Origin') not in allowed_origins:
                 self.send(403, {'error': 'Origin not allowed.'})
                 return

@@ -41,6 +41,13 @@ class HTTPTests(unittest.TestCase):
             {'Content-Type':'application/json','Origin':'https://attacker.example'})[0],403)
         self.assertEqual(self.request('POST','/api/workspaces',{'label':'bad'})[0],415)
         self.assertEqual(self.service.store.list(),[])
+    def test_page_served_on_another_port_can_save(self):
+        own=f'http://127.0.0.1:{self.server.server_port}'
+        self.assertEqual(self.request('POST','/api/workspaces',{'label':'Same origin'},
+            {'Content-Type':'application/json','Origin':own})[0],201)
+        self.assertEqual(self.request('POST','/api/workspaces',{'label':'Other local app'},
+            {'Content-Type':'application/json','Origin':'http://127.0.0.1:9999'})[0],403)
+        self.assertEqual([w['label'] for w in self.service.store.list()],['Same origin'])
     def test_json_create_and_read_workspace(self):
         code,body=self.request('POST','/api/workspaces',{'label':'Synthetic HTTP test'},
             {'Content-Type':'application/json','Origin':'http://127.0.0.1:8000'})
