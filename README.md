@@ -1,24 +1,23 @@
-# ProofCV Studio — connected app
+# ProofCV Studio
 
-**Portfolio overview:** an evidence-grounded AI CV and portfolio application with a React/TypeScript frontend and a Python agent runtime. Built from a confirmed-profile CV builder and extended through a team Assignment 3 project.
+An evidence-grounded AI application for building job-specific CVs, publishing reviewed portfolio websites and practising interviews. A React/TypeScript frontend connects to a Python agent runtime, Gemini, semantic job retrieval and revisioned SQLite workspaces.
 
-Vishnu Bhaiya's Assignment 3 contribution is **Portfolio Studio**; **Interview Coach** is credited to teammate Tirth. Fictional demonstration profiles and illustrative project worlds are labelled throughout. See [portfolio scope and validation](docs/PORTFOLIO.md).
+Vishnu Bhaiya developed the original **CV Builder** and **Portfolio Studio**; **Interview Coach** is credited to teammate Tirth. Fictional demonstration profiles and illustrative project worlds are labelled throughout. See [portfolio scope and validation](docs/PORTFOLIO.md).
 
 React/TypeScript with a Python/Gemini runtime agent, SQLite workspaces, MiniLM
 retrieval across nine supplied jobs, confirmed-source CV generation and PDF export.
 
-## Team repository — Assignment 3 baseline
+## Application modules
 
-This repository starts from the final Assignment 1 CV builder. Its application
-source, supplied datasets and production frontend were compared with the working
-app before import. Assignment 3 adds two features, each in its own module:
+The confirmed-profile CV builder supports source-grounded generation, job matching,
+version comparison and PDF export. Two integrated modules extend that workflow:
 
 - **Interview Coach** (Tirth), under **Versions & comparison** in the sidebar: see
-  [Interview Coach](#interview-coach-assignment-3) below.
+  [Interview Coach](#interview-coach) below.
 - **Portfolio Studio** (Vishnu), after **CV studio** with the sparkle icon: a complete
   confirmed-CV website workflow, reviewed media, narrated 3D project tours, portfolio
   exports and an optional local recruiter website with a source-grounded AI guide.
-  See [Portfolio Studio](#portfolio-studio-assignment-3) below.
+  See [Portfolio Studio](#portfolio-studio) below.
 
 ### Shared Avery Morgan demo
 
@@ -60,7 +59,7 @@ Frontend changes must also rebuild and update `dist/` and `portfolio-runtime/` b
 
 Repository import verification (22 October 2026): all 61 offline Python unit tests
 passed on the clean team checkout. These tests mock Gemini; this check did not
-make live provider calls. No Assignment 1 private workspace data was imported.
+make live provider calls. No private workspace data was imported.
 
 Integration verification (25 October 2026): 316 offline Python checks (315 in the
 full suite plus the combined-module HTTP regression), 245 frontend checks, and
@@ -70,7 +69,7 @@ Provider calls and fresh Whisper/Piper model downloads were not part of this run
 
 The four-project seed matches the working Avery demo profile field-for-field.
 Existing-workspace updates, repeat runs, pending proposals and conflicting
-SolarVision edits are covered by sample regression tests. Both Assignment 3
+SolarVision edits are covered by sample regression tests. Both integrated
 modules share the confirmed profile and selected job; their practice records and
 portfolio drafts remain separate.
 
@@ -84,7 +83,7 @@ Open http://127.0.0.1:8000. The launcher uses only the `.venv` contained in this
 project, so ProofCV Studio has no dependency on an older sibling project. Port 8000
 must be available.
 
-## Tutor quick start (Node.js is not required)
+## Quick start (Node.js is not required)
 
 The verified `dist/` production frontend is intentionally included as a reviewed
 runtime artifact, not a temporary build folder. From this folder, the simplest
@@ -105,7 +104,7 @@ python -m venv .venv
 Copy-Item .env.example .env
 ```
 
-Open `.env` and paste the tutor's key only after `GEMINI_API_KEY=`. The primary model
+Open `.env` and paste your own API key only after `GEMINI_API_KEY=`. The primary model
 and ordered fallbacks are already configured. Never use a `VITE_` credential prefix.
 Then start the app:
 
@@ -139,7 +138,7 @@ dependency graph with `pnpm install --frozen-lockfile`, then
 6. Save versions, compare jobs and download PDF. Changing jobs preserves confirmed
    facts. A draft using an older profile cannot be exported.
 
-## Portfolio Studio (Assignment 3)
+## Portfolio Studio
 
 Open **Portfolio Studio** after **CV studio** in the sidebar. It uses the currently
 selected workspace's confirmed profile; it does not replace Interview Coach.
@@ -213,7 +212,7 @@ does not require Node. Frontend contributors should run `pnpm run build` and
 Python checks with `.venv/bin/python -m unittest discover -v` (Windows:
 `.\.venv\Scripts\python.exe -m unittest discover -v`).
 
-## Interview Coach (Assignment 3)
+## Interview Coach
 
 Spoken interview practice for the job the user picked from their top matches. Every step
 runs on this computer with local models or plain rules. The one exception is optional:
@@ -331,13 +330,14 @@ real API calls and consume quota. Live tests use the five supplied synthetic pro
 and save predictions before retrieval. Read each actual status under
 `runtime/evaluation/`; a single passed journey is not five passes.
 
-Current repository verification (24 October 2026, after merging Interview Coach with
-main): 221 offline tests passed on macOS with Python 3.14. Interview Coach tests use a fake transcriber, a fake voice and
-small test embeddings, so they need none of the Whisper, Piper or MiniLM models. Not yet
-run on Windows.
+Current repository verification (29 October 2026): 327 offline Python regression
+checks passed on Windows, both production frontend builds completed and the portfolio
+frontend check suite passed. Interview Coach tests use a fake transcriber, a fake voice
+and small test embeddings, so they need none of the Whisper, Piper or MiniLM models.
+See [release validation](docs/VALIDATION.md) for the checks and their limits.
 
-The Assignment 1 submission separately contains historical five-profile live
-journeys and deterministic integration evidence. Those assessment artifacts,
+An earlier CV-builder version has historical five-profile live
+journeys and deterministic integration evidence. Those historical artifacts,
 personal sample PDFs and runtime databases are not included in this source-only
 team repository, and no new live journeys were run during the repository import.
 Post-acceptance follow-up questions use model `final_answer` Actions validated
@@ -361,14 +361,14 @@ http.py = transport; src/LiveStudio.tsx = connected screens.
 
 This is a local single-operator app, not authenticated accounts. Anyone with access
 to it can switch workspaces. SQLite holds unencrypted personal data; use synthetic
-profiles for assessment testing. Only dist files are web-served, never .env or runtime.
+profiles for demonstration and testing. Only dist files are web-served, never .env or runtime.
 Matched/missing checks are conservative text checks, not exhaustive qualification
 assessment. Inspect full job requirements, especially seniority and experience.
 Confirmation is user review, not independent verification. Provider failures retain
 submitted messages and completed tool writes. Exclude .env, runtime databases,
-node_modules, model weights, caches and personal data from any eventual submission.
+node_modules, model weights, caches and personal data from any shared repository or release.
 The supplied `dist/` is the intentional, verified production runtime frontend;
 transient build caches remain excluded.
-No billing changes, report writing, deployment or submission is automated.
+No billing changes or external deployment is automated.
 
 API reference: https://ai.google.dev/api/generate-content

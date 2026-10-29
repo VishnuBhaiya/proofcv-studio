@@ -30,5 +30,5 @@ if (-not (Test-Path -LiteralPath $privateConfig)) {
 }
 
 Write-Host ''
-Write-Host 'Setup complete. Add the tutor API key after GEMINI_API_KEY= in .env.'
+Write-Host 'Setup complete. Add your own API key after GEMINI_API_KEY= in .env.'
 Write-Host 'Then run: .\start-proofcv.ps1'
