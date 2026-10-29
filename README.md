@@ -1,5 +1,9 @@
 # ProofCV Studio — connected app
 
+**Portfolio overview:** an evidence-grounded AI CV and portfolio application with a React/TypeScript frontend and a Python agent runtime. Built from a confirmed-profile CV builder and extended through a team Assignment 3 project.
+
+Vishnu Bhaiya's Assignment 3 contribution is **Portfolio Studio**; **Interview Coach** is credited to teammate Tirth. Fictional demonstration profiles and illustrative project worlds are labelled throughout. See [portfolio scope and validation](docs/PORTFOLIO.md).
+
 React/TypeScript with a Python/Gemini runtime agent, SQLite workspaces, MiniLM
 retrieval across nine supplied jobs, confirmed-source CV generation and PDF export.
 
